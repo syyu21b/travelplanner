@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <!-- 베이지 배경: 중앙 밝고 테두리로 갈수록 따뜻한 갈색 -->
+    <radialGradient id="bg" cx="50%" cy="36%" r="64%">
+      <stop offset="0%"   stop-color="#f2e2cc"/>
+      <stop offset="38%"  stop-color="#dfc8b0"/>
+      <stop offset="72%"  stop-color="#ccb098"/>
+      <stop offset="100%" stop-color="#b89880"/>
+    </radialGradient>
+    <!-- 상단 중앙 흰 광택 (3D 버튼 느낌) -->
+    <radialGradient id="shine" cx="50%" cy="28%" r="50%">
+      <stop offset="0%"   stop-color="white" stop-opacity="0.82"/>
+      <stop offset="50%"  stop-color="white" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 아래쪽 부드러운 그림자 -->
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="145%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#5c3810" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+
+  <!-- ── 배경: 둥근 사각형 ── -->
+  <rect x="2" y="2" width="60" height="60" rx="15" ry="15"
+        fill="url(#bg)" filter="url(#shadow)"/>
+  <!-- 상단 광택 오버레이 -->
+  <rect x="2" y="2" width="60" height="60" rx="15" ry="15"
+        fill="url(#shine)"/>
+  <!-- 테두리 하이라이트 -->
+  <rect x="2.8" y="2.8" width="58.4" height="58.4" rx="14.2" ry="14.2"
+        fill="none" stroke="white" stroke-width="0.7" stroke-opacity="0.48"/>
+
+  <!-- ── 비행기 아이콘: 두꺼운 아웃라인, 오른쪽 위 방향 ── -->
+  <g fill="none" stroke="white" stroke-width="3.6"
+     stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- 동체(fuselage): 대각선 방향 타원형 닫힌 경로 -->
+    <!-- 코(nose): 우상단 (46,14) → 꼬리(tail): 좌하단 (~15,46) -->
+    <path d="
+      M 46,14
+      C 51,17 51,24 47,28
+      L 21,47
+      C 18,50 13,50 14,47
+      C 15,44 18,43 20,41
+      L 44,22
+      C 47,20 48,17 46,14
+      Z
+    "/>
+
+    <!-- 왼쪽 날개 (큰 날개, 좌상단 방향) -->
+    <path d="M 34,23  L 10,13  L 22,32"/>
+
+    <!-- 오른쪽 날개 (작은 날개, 우하단 방향) -->
+    <path d="M 30,41  L 50,52  L 42,35"/>
+
+    <!-- 꼬리 수평 안정판 fin 1 -->
+    <path d="M 17,44  L 11,53  L 16,52"/>
+
+    <!-- 꼬리 수평 안정판 fin 2 -->
+    <path d="M 20,47  L 14,57  L 19,55"/>
+
+  </g>
+</svg>

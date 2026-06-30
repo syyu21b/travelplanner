@@ -40,6 +40,10 @@ interface AuthContextType {
   findUsernameByEmail: (email: string) => string | null;
   resetPassword: (username: string, email: string, newPassword: string) => { success: boolean; message: string };
   withdrawAccount: () => { success: boolean; message: string };
+  updateProfile: (updates: { nickname?: string; email?: string }) => { success: boolean; message: string };
+  changePassword: (currentPassword: string, newPassword: string) => { success: boolean; message: string };
+  getProfilePhoto: (userId: string) => string | null;
+  setProfilePhoto: (photo: string | null) => void;
   // 관리자 전용
   getAllUsers: () => PublicUser[];
   adminUpdateUser: (userId: string, updates: { nickname?: string; email?: string; password?: string }) => { success: boolean; message: string };
@@ -185,6 +189,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true, message: '회원 탈퇴가 완료되었습니다.' };
   };
 
+  const updateProfile = (updates: { nickname?: string; email?: string }): { success: boolean; message: string } => {
+    if (!user) return { success: false, message: '로그인 상태가 아닙니다.' };
+    const users = getStoredUsers();
+    const idx = users.findIndex(u => u.id === user.id);
+    if (idx === -1) return { success: false, message: '사용자를 찾을 수 없습니다.' };
+
+    if (updates.nickname && updates.nickname !== users[idx].nickname) {
+      if (users.some(u => u.nickname === updates.nickname))
+        return { success: false, message: '이미 사용 중인 닉네임입니다.' };
+      users[idx].nickname = updates.nickname;
+    }
+    if (updates.email && updates.email !== users[idx].email) {
+      if (users.some(u => u.email === updates.email))
+        return { success: false, message: '이미 사용 중인 이메일입니다.' };
+      users[idx].email = updates.email;
+    }
+    saveStoredUsers(users);
+    const updatedUser = toPublicUser(users[idx]);
+    setUser(updatedUser);
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    return { success: true, message: '프로필이 업데이트되었습니다.' };
+  };
+
+  const changePassword = (currentPassword: string, newPassword: string): { success: boolean; message: string } => {
+    if (!user) return { success: false, message: '로그인 상태가 아닙니다.' };
+    const users = getStoredUsers();
+    const idx = users.findIndex(u => u.id === user.id);
+    if (idx === -1) return { success: false, message: '사용자를 찾을 수 없습니다.' };
+    if (users[idx].password !== currentPassword) return { success: false, message: '현재 비밀번호가 일치하지 않습니다.' };
+    if (newPassword.length < 6) return { success: false, message: '새 비밀번호는 6자 이상이어야 합니다.' };
+    users[idx].password = newPassword;
+    saveStoredUsers(users);
+    return { success: true, message: '비밀번호가 변경되었습니다.' };
+  };
+
+  const getProfilePhoto = (userId: string): string | null => {
+    try {
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      return profiles[userId]?.photo || null;
+    } catch { return null; }
+  };
+
+  const setProfilePhoto = (photo: string | null): void => {
+    if (!user) return;
+    const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+    profiles[user.id] = { ...profiles[user.id], photo };
+    localStorage.setItem('userProfiles', JSON.stringify(profiles));
+  };
+
   // ── 관리자 전용 ──
 
   const getAllUsers = (): PublicUser[] =>
@@ -228,6 +281,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkUsername, checkNickname,
       findUsernameByEmail, resetPassword,
       withdrawAccount,
+      updateProfile, changePassword, getProfilePhoto, setProfilePhoto,
       getAllUsers, adminUpdateUser, adminDeleteUser,
     }}>
       {children}

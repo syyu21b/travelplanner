@@ -118,6 +118,60 @@ export default function Community() {
     setSavedDiaries(loadSaved());
   }, [user]);
 
+  // 조회수 추적
+  const trackView = (diaryId: string) => {
+    try {
+      const views = JSON.parse(localStorage.getItem('diaryViews') || '{}');
+      views[diaryId] = (views[diaryId] || 0) + 1;
+      localStorage.setItem('diaryViews', JSON.stringify(views));
+    } catch {}
+  };
+
+  const handleViewDiary = (diary: DiaryEntry) => {
+    setSelectedDiary(diary);
+    setActivePhotoIndex(0);
+    trackView(diary.id);
+  };
+
+  // 홈 인기 여행에서 넘어온 다이어리 자동 열기
+  useEffect(() => {
+    try {
+      const openId = sessionStorage.getItem('trendingOpenDiaryId');
+      if (openId) {
+        sessionStorage.removeItem('trendingOpenDiaryId');
+        const target = loadDiaries().find(d => d.id === openId && d.isPublic);
+        if (target) {
+          setSelectedDiary(target);
+          setActivePhotoIndex(0);
+          trackView(target.id);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // 검색어로 여행지 검색 추적 (800ms 디바운스)
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) return;
+    const timer = setTimeout(() => {
+      const q = searchQuery.trim().toLowerCase();
+      const matchedLocations = new Set(
+        publicDiaries
+          .filter(d => d.location.toLowerCase().includes(q))
+          .map(d => d.location)
+      );
+      if (matchedLocations.size > 0) {
+        try {
+          const searches = JSON.parse(localStorage.getItem('locationSearches') || '{}');
+          matchedLocations.forEach(loc => {
+            searches[loc] = (searches[loc] || 0) + 1;
+          });
+          localStorage.setItem('locationSearches', JSON.stringify(searches));
+        } catch {}
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // 댓글 텍스트 변경 시 자동 저장
   useEffect(() => {
     if (selectedDiary && commentText.trim()) {
@@ -897,7 +951,7 @@ export default function Community() {
                       {diary.photos.length > 0 && (
                         <button
                           className="w-full block"
-                          onClick={() => setSelectedDiary(diary)}
+                          onClick={() => handleViewDiary(diary)}
                         >
                           <div className="relative">
                             <img
@@ -917,7 +971,7 @@ export default function Community() {
                       <div className="px-5 pb-5">
                         {/* Title */}
                         <button
-                          onClick={() => setSelectedDiary(diary)}
+                          onClick={() => handleViewDiary(diary)}
                           className="text-left w-full mt-3"
                         >
                           <h3 className="text-lg font-black text-foreground hover:text-primary transition line-clamp-1">
@@ -965,7 +1019,7 @@ export default function Community() {
                             {diary.likes.length > 0 && diary.likes.length}
                           </button>
                           <button
-                            onClick={() => setSelectedDiary(diary)}
+                            onClick={() => handleViewDiary(diary)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-primary transition"
                           >
                             <MessageCircle className="w-4 h-4" />
@@ -978,7 +1032,7 @@ export default function Community() {
                             <Share2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => setSelectedDiary(diary)}
+                            onClick={() => handleViewDiary(diary)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-white transition"
                           >
                             자세히 보기 →

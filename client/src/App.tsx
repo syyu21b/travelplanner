@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -11,66 +10,15 @@ import AuthPage from "./pages/AuthPage";
 import TravelDiary from "./pages/TravelDiary";
 import Community from "./pages/Community";
 import AdminPage from "./pages/AdminPage";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plane, BookOpen, Globe, User, LogOut, Shield, UserX, Crown } from "lucide-react";
+import MyPage from "./pages/MyPage";
+import { Plane, BookOpen, Globe, User, LogOut, Shield, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-
-function WithdrawDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { withdrawAccount } = useAuth();
-  const [confirm, setConfirm] = useState('');
-
-  function handleWithdraw() {
-    if (confirm !== '탈퇴') { toast.error('"탈퇴"를 입력해주세요.'); return; }
-    const result = withdrawAccount();
-    if (result.success) toast.success(result.message);
-    else toast.error(result.message);
-    onClose();
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { setConfirm(''); onClose(); } }}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-red-600 flex items-center gap-2">
-            <UserX className="w-5 h-5" /> 회원 탈퇴
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-2">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 space-y-1">
-            <p className="font-semibold">정말로 탈퇴하시겠습니까?</p>
-            <p className="text-xs text-red-500">탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              확인을 위해 <span className="text-red-500 font-bold">"탈퇴"</span>를 입력하세요
-            </label>
-            <input
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="탈퇴"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setConfirm(''); onClose(); }} className="flex-1">
-              취소
-            </Button>
-            <Button onClick={handleWithdraw} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-              <UserX className="w-4 h-4 mr-1" /> 탈퇴하기
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function SharedNav() {
-  const { user, logout } = useAuth();
+  const { user, logout, getProfilePhoto } = useAuth();
   const [location, setLocation] = useLocation();
-  const [showWithdraw, setShowWithdraw] = useState(false);
+  const profilePhoto = user ? getProfilePhoto(user.id) : null;
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
@@ -127,21 +75,35 @@ function SharedNav() {
         </nav>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground bg-secondary px-3 py-1.5 rounded-full border border-border">
-            {user?.isAdmin ? <Crown className="w-4 h-4 text-amber-500" /> : <User className="w-4 h-4" />}
-            <span className="font-semibold">{user?.name}</span>
-          </div>
-          {!user?.isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowWithdraw(true)}
-              className="text-slate-400 hover:text-red-400 gap-1.5 text-xs"
-            >
-              <UserX className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">회원 탈퇴</span>
-            </Button>
-          )}
+          {/* 마이페이지 (프로필 아바타/이름 클릭) */}
+          <Link href="/mypage">
+            <button className={cn(
+              "hidden sm:flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border transition-all",
+              location === "/mypage"
+                ? "bg-primary text-white border-primary shadow-sm"
+                : "text-muted-foreground bg-secondary border-border hover:border-primary hover:text-primary"
+            )}>
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
+              ) : (
+                user?.isAdmin ? <Crown className="w-4 h-4 text-amber-500" /> : <User className="w-4 h-4" />
+              )}
+              <span className="font-semibold">{user?.name}</span>
+            </button>
+          </Link>
+          {/* 모바일용 마이페이지 버튼 */}
+          <Link href="/mypage">
+            <button className={cn(
+              "sm:hidden flex items-center justify-center w-9 h-9 rounded-full border transition-all",
+              location === "/mypage" ? "bg-primary border-primary" : "bg-secondary border-border hover:border-primary"
+            )}>
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <User className={cn("w-4 h-4", location === "/mypage" ? "text-white" : "text-muted-foreground")} />
+              )}
+            </button>
+          </Link>
           <Button
             variant="ghost"
             size="sm"
@@ -153,14 +115,12 @@ function SharedNav() {
           </Button>
         </div>
       </div>
-      <WithdrawDialog open={showWithdraw} onClose={() => setShowWithdraw(false)} />
     </header>
   );
 }
 
 function ProtectedRouter() {
   const { user, isLoading } = useAuth();
-  const [location] = useLocation();
 
   if (isLoading) {
     return (
@@ -187,6 +147,12 @@ function ProtectedRouter() {
         <div className="min-h-screen bg-background">
           <SharedNav />
           <Community />
+        </div>
+      </Route>
+      <Route path={"/mypage"}>
+        <div className="min-h-screen bg-background">
+          <SharedNav />
+          <MyPage />
         </div>
       </Route>
       <Route path={"/admin"}>

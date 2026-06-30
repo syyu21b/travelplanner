@@ -5,12 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import {
   Plus, Trash2, Download, Share2, MapPin, DollarSign,
   Link as LinkIcon, Clock, Calendar, Edit2, Check, X,
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
-  ChevronRight, Eye, BookOpen, Globe, Shield, UserX, Crown
+  ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
+  TrendingUp, Heart, MessageCircle, Flame, Star,
+  Search, Bell, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as QRCodeLib from 'qrcode.react';
@@ -83,9 +86,8 @@ export default function Home() {
     return `${flag} ${symbol}${converted.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   };
 
-  const { user, logout, withdrawAccount } = useAuth();
-  const [showWithdraw, setShowWithdraw] = useState(false);
-  const [withdrawConfirm, setWithdrawConfirm] = useState('');
+  const { user, logout, getProfilePhoto } = useAuth();
+  const profilePhoto = user ? getProfilePhoto(user.id) : null;
 
   // 유저별 여행 계획 로드
   const loadUserPlans = (): TravelPlan[] => {
@@ -146,6 +148,7 @@ export default function Home() {
   const [homeCalendarDate, setHomeCalendarDate] = useState<Date | undefined>(new Date());
   const [previewPlan, setPreviewPlan] = useState<TravelPlan | null>(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [planFilter, setPlanFilter] = useState<'all' | '진행 중' | '예정' | '완료'>('all');
 
   // 계획 상세 달력 상태
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -583,12 +586,53 @@ export default function Home() {
     return dates;
   };
 
+  const getPlanStatus = (plan: TravelPlan): '진행 중' | '예정' | '완료' => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(plan.endDate + 'T23:59:59');
+    const start = new Date(plan.startDate + 'T00:00:00');
+    if (today > end) return '완료';
+    if (today >= start) return '진행 중';
+    return '예정';
+  };
+
+  const getPlanThumbnail = (planId: string): string | null => {
+    try {
+      const diaries = JSON.parse(localStorage.getItem('travelDiaries') || '[]');
+      const linked = diaries.find((d: any) => d.linkedPlanId === planId && d.photos?.length > 0);
+      return linked?.photos[0]?.url || null;
+    } catch { return null; }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-2">
-          {/* Logo */}
+    <div className="min-h-screen bg-[#F8F7F4]">
+      {/* 새 여행 계획 다이얼로그 */}
+      <Dialog open={showNewPlanDialog} onOpenChange={setShowNewPlanDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>새로운 여행 계획</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">여행 제목</label>
+              <Input placeholder="어디로 떠나시나요?" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} className="h-11" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">시작일</label>
+                <Input type="date" value={newPlanStartDate} onChange={e => setNewPlanStartDate(e.target.value)} className="h-11" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">종료일</label>
+                <Input type="date" value={newPlanEndDate} onChange={e => setNewPlanEndDate(e.target.value)} className="h-11" />
+              </div>
+            </div>
+            <Button onClick={handleCreatePlan} className="w-full bg-primary text-white h-11 mt-2">계획 생성</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 헤더 ── */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
           <button
             onClick={() => setCurrentPlan(null)}
             className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
@@ -599,7 +643,6 @@ export default function Home() {
             <h1 className="text-xl font-extrabold text-foreground tracking-tight hidden sm:block">Travel Planner</h1>
           </button>
 
-          {/* Nav buttons — center */}
           <nav className="flex items-center gap-1">
             <Link href="/">
               <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-sm">
@@ -629,216 +672,274 @@ export default function Home() {
             )}
           </nav>
 
-          {/* Right side */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground bg-secondary px-3 py-1.5 rounded-full border border-border">
-              {user?.isAdmin ? <Crown className="w-4 h-4 text-amber-500" /> : <User className="w-4 h-4" />}
-              <span className="font-semibold">{user?.name}</span>
-            </div>
-            {!currentPlan && (
-              <Dialog open={showNewPlanDialog} onOpenChange={setShowNewPlanDialog}>
-                <DialogTrigger asChild>
-                  <Button className="gap-1.5 bg-primary hover:bg-primary/90 text-white rounded-full px-4 text-sm">
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden md:inline">새 여행</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader><DialogTitle>새로운 여행 계획</DialogTitle></DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold">여행 제목</label>
-                      <Input placeholder="어디로 떠나시나요?" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} className="h-11" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">시작일</label>
-                        <Input type="date" value={newPlanStartDate} onChange={e => setNewPlanStartDate(e.target.value)} className="h-11" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">종료일</label>
-                        <Input type="date" value={newPlanEndDate} onChange={e => setNewPlanEndDate(e.target.value)} className="h-11" />
-                      </div>
-                    </div>
-                    <Button onClick={handleCreatePlan} className="w-full bg-primary text-white h-11 mt-2">계획 생성</Button>
+            <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
+              <Search className="w-4 h-4" />
+            </button>
+            <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
+              <Bell className="w-4 h-4" />
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-border bg-white hover:border-primary hover:shadow-sm transition-all">
+                  <div className="w-7 h-7 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    {profilePhoto ? (
+                      <img src={profilePhoto} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.isAdmin ? <Crown className="w-4 h-4 text-amber-500" /> : <User className="w-4 h-4 text-primary" />
+                    )}
                   </div>
-                </DialogContent>
-              </Dialog>
-            )}
-            {!user?.isAdmin && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowWithdraw(true)}
-                className="text-slate-400 hover:text-red-400 gap-1.5 text-xs"
-              >
-                <UserX className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">회원 탈퇴</span>
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={logout}
-              className="text-slate-500 hover:text-red-500 gap-1.5"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">로그아웃</span>
-            </Button>
+                  <span className="hidden sm:block font-semibold text-foreground max-w-[100px] truncate">{user?.name}</span>
+                  <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem asChild>
+                  <Link href="/mypage" className="flex items-center gap-2 cursor-pointer">
+                    <User className="w-4 h-4" /> 마이페이지
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 mr-2" /> 로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
-      {/* 회원 탈퇴 확인 다이얼로그 */}
-      <Dialog open={showWithdraw} onOpenChange={(o) => { if (!o) { setShowWithdraw(false); setWithdrawConfirm(''); } }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <UserX className="w-5 h-5" /> 회원 탈퇴
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 space-y-1">
-              <p className="font-semibold">정말로 탈퇴하시겠습니까?</p>
-              <p className="text-xs text-red-500">탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
+      {!currentPlan ? (
+        /* ===== 메인 홈 화면 ===== */
+        <>
+          {/* ── 히어로 ── */}
+          <div
+            className="w-full h-[360px] md:h-[420px] relative overflow-hidden"
+            style={{ backgroundImage: 'url(/hero-travel.svg)', backgroundSize: 'cover', backgroundPosition: 'center top' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
+            <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 max-w-5xl">
+              <h1 className="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-lg max-w-xl">
+                여행의 순간을 계획하고,<br />평생 간직할 추억을 만들어보세요.
+              </h1>
+              <p className="text-white/75 text-base md:text-lg mt-4 drop-shadow max-w-lg">
+                나만의 여행 일정을 만들고, 기록하고, 공유해보세요.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-8">
+                <Button
+                  onClick={() => setShowNewPlanDialog(true)}
+                  className="bg-[#3B2B1E] hover:bg-[#2A1F16] text-white px-6 h-11 rounded-full gap-2 shadow-lg"
+                >
+                  <Plane className="w-4 h-4" /> 새 여행 시작하기
+                </Button>
+                <Link href="/community">
+                  <Button
+                    variant="outline"
+                    className="bg-white/15 backdrop-blur-sm border-white/50 text-white hover:bg-white/25 px-6 h-11 rounded-full gap-2"
+                  >
+                    <Globe className="w-4 h-4" /> 여행 둘러보기
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                확인을 위해 <span className="text-red-500 font-bold">"탈퇴"</span>를 입력하세요
-              </label>
-              <input
-                value={withdrawConfirm}
-                onChange={(e) => setWithdrawConfirm(e.target.value)}
-                placeholder="탈퇴"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => { setShowWithdraw(false); setWithdrawConfirm(''); }} className="flex-1">
-                취소
-              </Button>
+            <div className="absolute top-4 right-4">
               <Button
-                onClick={() => {
-                  if (withdrawConfirm !== '탈퇴') { toast.error('"탈퇴"를 입력해주세요.'); return; }
-                  const result = withdrawAccount();
-                  if (result.success) toast.success(result.message);
-                  else toast.error(result.message);
-                  setShowWithdraw(false);
-                }}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => setShowNewPlanDialog(true)}
+                className="bg-white/95 text-[#3B2B1E] hover:bg-white gap-1.5 rounded-full shadow-lg font-bold text-sm px-4 h-9"
               >
-                <UserX className="w-4 h-4 mr-1" /> 탈퇴하기
+                <Plus className="w-4 h-4" /> 새 여행 계획
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* 헤더 이미지 */}
-      <div className="w-full h-48 bg-cover bg-center relative overflow-hidden" style={{
-        backgroundImage: 'url(/manus-storage/header-bg_fa71cbb8.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}>
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg" style={{ fontFamily: 'Playfair Display, serif' }}>Travel Planner</h1>
-        </div>
-      </div>
+          {/* ── 스탯 바 ── */}
+          {(() => {
+            const myDiaries = (() => { try { return JSON.parse(localStorage.getItem('travelDiaries') || '[]').filter((d: any) => d.userId === user?.id); } catch { return []; } })();
+            const thisMonth = new Date().toISOString().slice(0, 7);
+            const thisMonthSchedules = travelPlans.reduce((s, p) => s + p.schedules.filter(sc => sc.date?.startsWith(thisMonth)).length, 0);
+            const thisMonthDiaries = myDiaries.filter((d: any) => d.createdAt?.startsWith(thisMonth)).length;
+            const activeCount = travelPlans.filter(p => getPlanStatus(p) === '진행 중').length;
+            const totalSchedules = travelPlans.reduce((s, p) => s + p.schedules.length, 0);
+            const uniqueLocations = new Set(myDiaries.map((d: any) => d.location)).size;
+            const statItems = [
+              { label: '여행 계획', value: travelPlans.length, sub: `진행 중 ${activeCount}개`, icon: <Map className="w-5 h-5" />, bg: 'bg-blue-100', color: 'text-blue-600' },
+              { label: '예정된 일정', value: totalSchedules, sub: `이번 달 ${thisMonthSchedules}개`, icon: <Calendar className="w-5 h-5" />, bg: 'bg-emerald-100', color: 'text-emerald-600' },
+              { label: '작성한 일기', value: myDiaries.length, sub: `이번 달 ${thisMonthDiaries}개`, icon: <BookOpen className="w-5 h-5" />, bg: 'bg-orange-100', color: 'text-orange-600' },
+              { label: '방문한 지역', value: uniqueLocations, sub: `총 ${uniqueLocations}개 여행지`, icon: <MapPin className="w-5 h-5" />, bg: 'bg-purple-100', color: 'text-purple-600' },
+            ];
+            return (
+              <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 grid grid-cols-2 lg:grid-cols-4">
+                  {statItems.map((s, i) => (
+                    <div key={s.label} className={cn(
+                      "p-5 flex items-center gap-4",
+                      i === 0 ? "border-b lg:border-b-0 lg:border-r border-gray-100" : "",
+                      i === 1 ? "border-b lg:border-b-0 lg:border-r border-gray-100" : "",
+                      i === 2 ? "lg:border-r border-gray-100" : "",
+                    )}>
+                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", s.bg)}>
+                        <span className={s.color}>{s.icon}</span>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-black text-foreground">{s.value}</p>
+                        <p className="text-sm font-bold text-foreground">{s.label}</p>
+                        <p className="text-xs text-muted-foreground">{s.sub}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
-      <main className="container mx-auto px-4 py-8">
-        {!currentPlan ? (
-          /* ===== 메인 홈 화면 ===== */
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* ── 메인 그리드: 달력 + 계획 목록 ── */}
+          <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* 왼쪽: 달력 */}
             <div className="lg:col-span-1">
-              <Card className="p-6 bg-white border-border shadow-sm sticky top-24">
-                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary" /> 여행 달력
+              <Card className="p-5 bg-white border-border shadow-sm sticky top-20">
+                <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" /> 여행 캘린더
                 </h3>
                 <CalendarUI
                   mode="single"
                   selected={homeCalendarDate}
                   onSelect={handleHomeCalendarDateClick}
                   className="rounded-md border border-border w-full"
-                  modifiers={{
-                    hasPlan: datesWithPlans(),
-                  }}
-                  modifiersStyles={{
-                    hasPlan: {
-                      fontWeight: 'bold',
-                      backgroundColor: '#E0F2FE',
-                      color: '#0369A1',
-                      borderRadius: '50%',
-                    }
-                  }}
+                  modifiers={{ hasPlan: datesWithPlans() }}
+                  modifiersStyles={{ hasPlan: { fontWeight: 'bold', backgroundColor: '#E0F2FE', color: '#0369A1', borderRadius: '50%' } }}
                 />
-                <div className="mt-4 p-3 bg-secondary rounded-lg text-xs text-muted-foreground space-y-1">
-                  <p className="font-semibold">💡 달력 사용법</p>
-                  <p>파란색 날짜 = 여행 계획이 있는 날</p>
-                  <p>날짜 클릭 시 계획 미리보기를 볼 수 있습니다</p>
+                <div className="mt-4 space-y-2">
+                  {[
+                    { color: 'bg-sky-200', label: '여행 일정이 있는 날' },
+                    { color: 'bg-emerald-400', label: '진행 중인 여행' },
+                    { color: 'bg-blue-400', label: '예정된 여행' },
+                    { color: 'bg-slate-300', label: '완료된 여행' },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", item.color)} />
+                      {item.label}
+                    </div>
+                  ))}
                 </div>
               </Card>
             </div>
 
             {/* 오른쪽: 여행 계획 목록 */}
             <div className="lg:col-span-2">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-black text-foreground">내 여행 계획</h2>
-                  <p className="text-muted-foreground text-sm mt-1">{user?.name}님의 여행 목록</p>
-                </div>
-                <Button
-                  onClick={() => setShowNewPlanDialog(true)}
-                  className="gap-2 bg-primary hover:bg-secondary0 text-white rounded-full px-5 sm:hidden"
-                >
-                  <Plus className="w-4 h-4" />
-                  새 계획
-                </Button>
-              </div>
-
-              {travelPlans.length === 0 ? (
-                <Card className="p-12 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
-                  <Map className="w-16 h-16 text-border mb-4" />
-                  <h2 className="text-xl font-bold text-foreground mb-2">등록된 여행이 없습니다</h2>
-                  <p className="text-muted-foreground mb-6">첫 번째 여행 계획을 세워보세요!</p>
-                  <Button onClick={() => setShowNewPlanDialog(true)} className="bg-primary">시작하기</Button>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {travelPlans.map(plan => (
-                    <Card
-                      key={plan.id}
-                      className="group p-6 cursor-pointer hover:shadow-xl hover:shadow-border transition-all border-border hover:border-primary bg-white"
-                      onClick={() => setCurrentPlan(plan)}
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-black text-foreground">내 여행 계획</h2>
+                <div className="flex gap-1 bg-secondary p-1 rounded-xl">
+                  {(['all', '진행 중', '예정', '완료'] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setPlanFilter(f)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                        planFilter === f ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
                     >
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors flex-1 mr-2">{plan.title}</h3>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDeletePlan(plan.id); }}
-                          className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="space-y-2 text-sm text-slate-600">
-                        <p className="flex items-center gap-2"><Calendar className="w-4 h-4 text-primary" /> {plan.startDate} ~ {plan.endDate}</p>
-                        <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> 일정 {plan.schedules.length}개</p>
-                        <p className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> 예산 ₩{plan.budgets.reduce((sum, b) => sum + b.amount, 0).toLocaleString()}</p>
-                      </div>
-                      <div className="mt-4 flex items-center text-primary text-sm font-semibold">
-                        <span>자세히 보기</span>
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </div>
-                    </Card>
+                      {f === 'all' ? '전체' : f}
+                    </button>
                   ))}
                 </div>
-              )}
+              </div>
+
+              {(() => {
+                const filtered = planFilter === 'all' ? travelPlans : travelPlans.filter(p => getPlanStatus(p) === planFilter);
+                const PLAN_GRADIENTS = [
+                  'from-sky-400 to-blue-500',
+                  'from-emerald-400 to-teal-500',
+                  'from-orange-400 to-red-500',
+                  'from-purple-400 to-indigo-500',
+                  'from-pink-400 to-rose-500',
+                  'from-amber-400 to-orange-500',
+                ];
+                const STATUS_STYLES: Record<string, string> = {
+                  '진행 중': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                  '예정': 'bg-blue-100 text-blue-700 border-blue-200',
+                  '완료': 'bg-gray-100 text-gray-500 border-gray-200',
+                };
+
+                if (travelPlans.length === 0) {
+                  return (
+                    <Card className="p-12 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/60">
+                      <Map className="w-16 h-16 text-border mb-4" />
+                      <h2 className="text-xl font-bold text-foreground mb-2">등록된 여행이 없습니다</h2>
+                      <p className="text-muted-foreground mb-6">첫 번째 여행 계획을 세워보세요!</p>
+                      <Button onClick={() => setShowNewPlanDialog(true)} className="bg-primary">시작하기</Button>
+                    </Card>
+                  );
+                }
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-12 text-center">
+                      <p className="text-base font-semibold text-muted-foreground">'{planFilter}' 여행이 없습니다.</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    {filtered.map((plan, idx) => {
+                      const status = getPlanStatus(plan);
+                      const thumbnail = getPlanThumbnail(plan.id);
+                      const budget = plan.budgets.reduce((s, b) => s + b.amount, 0);
+                      return (
+                        <Card
+                          key={plan.id}
+                          className="flex gap-4 p-4 cursor-pointer hover:shadow-md transition-all bg-white border-border hover:border-primary/30 group"
+                          onClick={() => setCurrentPlan(plan)}
+                        >
+                          <div className="w-20 h-20 md:w-[88px] md:h-[88px] rounded-xl overflow-hidden flex-shrink-0">
+                            {thumbnail ? (
+                              <img src={thumbnail} alt={plan.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className={cn("w-full h-full bg-gradient-to-br flex items-center justify-center", PLAN_GRADIENTS[idx % PLAN_GRADIENTS.length])}>
+                                <Plane className="w-7 h-7 text-white/80" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h3 className="font-bold text-foreground text-[15px] leading-snug line-clamp-1 group-hover:text-primary transition-colors">{plan.title}</h3>
+                              <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0", STATUS_STYLES[status])}>
+                                {status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" /> {plan.startDate} ~ {plan.endDate}
+                            </p>
+                            <div className="flex items-center gap-3 mt-2 text-xs">
+                              <span className="text-muted-foreground">일정 {plan.schedules.length}개</span>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-primary font-semibold">예산 ₩{budget.toLocaleString()}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDeletePlan(plan.id); }}
+                            className="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0 self-start mt-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
-        ) : (
-          /* ===== 계획 상세 화면 ===== */
-          currentPlan && (
+
+          {/* ── 커뮤니티 인기 여행 ── */}
+          <div className="max-w-6xl mx-auto px-4 pb-12">
+            <CommunityTrending />
+          </div>
+        </>
+      ) : (
+        /* ===== 계획 상세 화면 ===== */
+        <main className="container mx-auto px-4 py-8">
+          {currentPlan && (
             <>
           <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -1192,50 +1293,42 @@ export default function Home() {
             </div>
           </div>
             </>
-          )
-        )}
-      
-      {/* 공유하기 다이얼로그 */}
-      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>공유 및 저장 옵션</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <Button 
-              onClick={() => {
-                generateComprehensivePDF();
-                setShowShareModal(false);
-              }}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" /> 통합 PDF로 저장 (일정/예산/쇼핑/준비물)
-            </Button>
-            <Button 
-              onClick={() => {
-                saveAsTextFile();
-                setShowShareModal(false);
-              }}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" /> 여행 계획 파일(.txt)로 저장
-            </Button>
-            <Button 
-              onClick={() => {
-                const shareUrl = window.location.href;
-                navigator.clipboard.writeText(shareUrl);
-                toast.success('공유 링크가 클립보드에 복사되었습니다!');
-                setShowShareModal(false);
-              }}
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2"
-            >
-              <Share2 className="w-4 h-4" /> 현재 페이지 링크 복사
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          )}
 
-      </main>
+          {/* 공유하기 다이얼로그 */}
+          <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>공유 및 저장 옵션</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <Button
+                  onClick={() => { generateComprehensivePDF(); setShowShareModal(false); }}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" /> 통합 PDF로 저장 (일정/예산/쇼핑/준비물)
+                </Button>
+                <Button
+                  onClick={() => { saveAsTextFile(); setShowShareModal(false); }}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" /> 여행 계획 파일(.txt)로 저장
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success('공유 링크가 클립보드에 복사되었습니다!');
+                    setShowShareModal(false);
+                  }}
+                  className="w-full bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" /> 현재 페이지 링크 복사
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </main>
+      )}
 
       {/* 메인 홈 달력 - 계획 미리보기 다이얼로그 */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
@@ -1862,10 +1955,145 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
       <Button onClick={handleSubmit} className="w-full bg-primary hover:bg-secondary0 text-white gap-2 h-11">
         <Plus className="w-4 h-4" /> 항목 추가
       </Button>
-    
-      
+
+
           )
 
     </div>
+  );
+}
+
+// ===== 커뮤니티 인기 여행 섹션 =====
+
+interface TrendingPost {
+  id: string;
+  title: string;
+  location: string;
+  photos: { url: string }[];
+  likes: string[];
+  commentCount: number;
+  viewCount: number;
+  score: number;
+  createdAt: string;
+  userId: string;
+}
+
+interface TrendingLocation {
+  location: string;
+  score: number;
+  searchCount: number;
+  postCount: number;
+  posts: TrendingPost[];
+}
+
+function CommunityTrending() {
+  const [, setLocation] = useLocation();
+
+  const allTrendingPosts = React.useMemo((): TrendingPost[] => {
+    try {
+      const diaries: any[] = JSON.parse(localStorage.getItem('travelDiaries') || '[]').filter((d: any) => d.isPublic);
+      if (diaries.length === 0) return [];
+      const comments: any[] = JSON.parse(localStorage.getItem('diaryComments') || '[]');
+      const views: Record<string, number> = JSON.parse(localStorage.getItem('diaryViews') || '{}');
+      const locationSearches: Record<string, number> = JSON.parse(localStorage.getItem('locationSearches') || '{}');
+
+      return diaries
+        .map(d => {
+          const cmtCount = comments.filter((c: any) => c.diaryId === d.id).length;
+          const viewCount = views[d.id] || 0;
+          const locBoost = (locationSearches[d.location] || 0) * 5;
+          return {
+            id: d.id,
+            title: d.title,
+            location: d.location,
+            photos: d.photos || [],
+            likes: d.likes || [],
+            commentCount: cmtCount,
+            viewCount,
+            score: (d.likes?.length || 0) * 3 + cmtCount * 2 + viewCount + locBoost,
+            createdAt: d.createdAt,
+            userId: d.userId,
+          };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 12);
+    } catch {
+      return [];
+    }
+  }, []);
+
+  if (allTrendingPosts.length === 0) return null;
+
+  const navigateToCommunity = (post?: TrendingPost) => {
+    if (post) { try { sessionStorage.setItem('trendingOpenDiaryId', post.id); } catch {} }
+    setLocation('/community');
+  };
+
+  return (
+    <section className="pt-2 pb-2">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-xl font-black text-foreground flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-md">
+              <Flame className="w-4 h-4 text-white" />
+            </div>
+            커뮤니티 인기 여행
+          </h2>
+          <p className="text-muted-foreground text-sm mt-0.5">검색량과 반응이 높은 인기 게시글</p>
+        </div>
+        <button
+          onClick={() => navigateToCommunity()}
+          className="text-sm text-primary font-semibold hover:underline flex items-center gap-1 flex-shrink-0"
+        >
+          전체 보기 <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* 가로 스크롤 카드 */}
+      <div className="flex gap-4 overflow-x-auto pb-3" style={{ scrollbarWidth: 'none' }}>
+        {allTrendingPosts.map((post, idx) => (
+          <button
+            key={post.id}
+            onClick={() => navigateToCommunity(post)}
+            className="flex-shrink-0 w-52 text-left group"
+          >
+            <div className="relative w-52 h-36 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-100 to-red-100 shadow-sm group-hover:shadow-md transition-shadow">
+              {post.photos[0] ? (
+                <img
+                  src={post.photos[0].url}
+                  alt={post.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BookOpen className="w-8 h-8 text-orange-300" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              {idx < 3 && (
+                <div className={cn(
+                  "absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shadow",
+                  idx === 0 ? "bg-amber-400 text-white" : idx === 1 ? "bg-slate-400 text-white" : "bg-amber-700 text-white"
+                )}>
+                  {idx + 1}
+                </div>
+              )}
+              <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/55 text-white text-xs px-2 py-0.5 rounded-full">
+                <Heart className="w-3 h-3 text-red-400 fill-red-400" />
+                {post.likes.length}
+              </div>
+            </div>
+            <div className="mt-2 px-0.5">
+              <p className="text-[13px] font-bold text-foreground line-clamp-2 leading-snug group-hover:text-orange-600 transition-colors">
+                {post.title}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> {post.location}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
