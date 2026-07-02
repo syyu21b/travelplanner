@@ -11,6 +11,7 @@ import TravelDiary from "./pages/TravelDiary";
 import Community from "./pages/Community";
 import AdminPage from "./pages/AdminPage";
 import MyPage from "./pages/MyPage";
+import Footer from "./components/Footer";
 import { Plane, BookOpen, Globe, User, LogOut, Shield, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -121,6 +122,7 @@ function SharedNav() {
 
 function ProtectedRouter() {
   const { user, isLoading } = useAuth();
+  const [location] = useLocation();
 
   if (isLoading) {
     return (
@@ -135,32 +137,35 @@ function ProtectedRouter() {
   }
 
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/diary"}>
-        <div className="min-h-screen bg-background">
-          <SharedNav />
-          <TravelDiary />
-        </div>
-      </Route>
-      <Route path={"/community"}>
-        <div className="min-h-screen bg-background">
-          <SharedNav />
-          <Community />
-        </div>
-      </Route>
-      <Route path={"/mypage"}>
-        <div className="min-h-screen bg-background">
-          <SharedNav />
-          <MyPage />
-        </div>
-      </Route>
-      <Route path={"/admin"}>
-        {user.isAdmin ? <AdminPage /> : <NotFound />}
-      </Route>
-      <Route path={"/404"} component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <Switch>
+        <Route path={"/"} component={Home} />
+        <Route path={"/diary"}>
+          <div className="min-h-screen bg-background">
+            <SharedNav />
+            <TravelDiary />
+          </div>
+        </Route>
+        <Route path={"/community"}>
+          <div className="min-h-screen bg-background">
+            <SharedNav />
+            <Community />
+          </div>
+        </Route>
+        <Route path={"/mypage"}>
+          <div className="min-h-screen bg-background">
+            <SharedNav />
+            <MyPage />
+          </div>
+        </Route>
+        <Route path={"/admin"}>
+          {user.isAdmin ? <AdminPage /> : <NotFound />}
+        </Route>
+        <Route path={"/404"} component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+      {location !== "/admin" && <Footer />}
+    </>
   );
 }
 

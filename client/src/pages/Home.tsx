@@ -12,7 +12,7 @@ import {
   Link as LinkIcon, Clock, Calendar, Edit2, Check, X,
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
-  TrendingUp, Heart, MessageCircle, Flame, Star,
+  TrendingUp, Heart, MessageCircle, Star,
   Search, Bell, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -2034,9 +2034,7 @@ function CommunityTrending() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="text-xl font-black text-foreground flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-md">
-              <Flame className="w-4 h-4 text-white" />
-            </div>
+            <Plane className="w-6 h-6 text-primary" fill="currentColor" strokeWidth={1} />
             커뮤니티 인기 여행
           </h2>
           <p className="text-muted-foreground text-sm mt-0.5">검색량과 반응이 높은 인기 게시글</p>
@@ -2057,7 +2055,7 @@ function CommunityTrending() {
             onClick={() => navigateToCommunity(post)}
             className="flex-shrink-0 w-52 text-left group"
           >
-            <div className="relative w-52 h-36 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-100 to-red-100 shadow-sm group-hover:shadow-md transition-shadow">
+            <div className="relative w-52 h-36 rounded-2xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-sm group-hover:shadow-md transition-shadow">
               {post.photos[0] ? (
                 <img
                   src={post.photos[0].url}
@@ -2066,7 +2064,7 @@ function CommunityTrending() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <BookOpen className="w-8 h-8 text-orange-300" />
+                  <BookOpen className="w-8 h-8 text-muted-foreground/40" />
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -2084,7 +2082,7 @@ function CommunityTrending() {
               </div>
             </div>
             <div className="mt-2 px-0.5">
-              <p className="text-[13px] font-bold text-foreground line-clamp-2 leading-snug group-hover:text-orange-600 transition-colors">
+              <p className="text-[13px] font-bold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
                 {post.title}
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
