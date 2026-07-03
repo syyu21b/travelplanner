@@ -16,6 +16,14 @@
  *
  * - Client ID는 VITE_NAVER_MAP_CLIENT_ID 환경 변수에서 읽어옵니다 (코드에 직접 작성하지 않음).
  * - 스크립트는 앱 전체에서 한 번만 로드되도록 모듈 레벨에서 중복 방지 처리합니다.
+ *
+ * 주소/장소 검색:
+ * ======
+ * geocode/reverseGeocode API를 함께 제공합니다 (geocoder submodule, 브라우저에서 직접 호출 —
+ * 별도 서버나 Client Secret 불필요).
+ *
+ * const results = await geocodeAddress("인천국제공항");
+ * const address = await reverseGeocodeToAddress(37.5665, 126.9780);
  */
 
 /// <reference types="@types/navermaps" />
@@ -58,7 +66,7 @@ function loadNaverMapsScript(): Promise<void> {
     }
 
     const script = document.createElement("script");
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_CLIENT_ID)}`;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_CLIENT_ID)}&submodules=geocoder`;
     script.async = true;
     script.setAttribute(SCRIPT_ATTR, "true");
     script.onload = () => resolve();
@@ -66,6 +74,68 @@ function loadNaverMapsScript(): Promise<void> {
     document.head.appendChild(script);
   });
   return naverMapsLoadPromise;
+}
+
+/** 다른 컴포넌트(예: 위치 검색창)에서 naver.maps.Service를 쓰기 전에 스크립트 로딩을 보장하기 위해 노출 */
+export function ensureNaverMapsReady(): Promise<void> {
+  return loadNaverMapsScript();
+}
+
+export interface GeocodeResult {
+  lat: number;
+  lng: number;
+  roadAddress: string;
+  jibunAddress: string;
+}
+
+/** 주소/장소명으로 검색해 좌표를 찾음 (geocoder submodule, 브라우저에서 직접 호출 가능 — 별도 서버/시크릿 불필요) */
+export function geocodeAddress(query: string): Promise<GeocodeResult[]> {
+  return ensureNaverMapsReady().then(
+    () =>
+      new Promise((resolve, reject) => {
+        const naverNs = window.naver;
+        if (!naverNs?.maps?.Service) {
+          reject(new Error("주소 검색 기능을 사용할 수 없습니다."));
+          return;
+        }
+        naverNs.maps.Service.geocode({ query }, (status, response) => {
+          if (status !== naverNs.maps.Service.Status.OK) {
+            resolve([]);
+            return;
+          }
+          resolve(
+            response.v2.addresses.map(a => ({
+              lat: parseFloat(a.y),
+              lng: parseFloat(a.x),
+              roadAddress: a.roadAddress,
+              jibunAddress: a.jibunAddress,
+            }))
+          );
+        });
+      })
+  );
+}
+
+/** 좌표로 주소를 역변환 (지도를 클릭/드래그해 고른 위치를 사람이 읽을 수 있는 주소로 보여줄 때 사용) */
+export function reverseGeocodeToAddress(lat: number, lng: number): Promise<string | null> {
+  return ensureNaverMapsReady().then(
+    () =>
+      new Promise((resolve) => {
+        const naverNs = window.naver;
+        if (!naverNs?.maps?.Service) {
+          resolve(null);
+          return;
+        }
+        naverNs.maps.Service.reverseGeocode({ coords: new naverNs.maps.LatLng(lat, lng) }, (status, response) => {
+          if (status !== naverNs.maps.Service.Status.OK) {
+            resolve(null);
+            return;
+          }
+          const addr = response.v2.address;
+          resolve(addr.roadAddress || addr.jibunAddress || null);
+        });
+      })
+  );
 }
 
 export interface MapMarker {
@@ -266,6 +336,8 @@ export function MapView({
     if (fitToMarkers && markers.length > 0) {
       if (markers.length === 1) {
         map.setCenter(new naverNs.maps.LatLng(markers[0].lat, markers[0].lng));
+        // 검색 등으로 멀리 줌아웃된 상태에서 위치를 옮긴 경우, 알아볼 수 있는 수준까지는 확대
+        if (map.getZoom() < 15) map.setZoom(16);
       } else {
         const bounds = new naverNs.maps.LatLngBounds(
           new naverNs.maps.LatLng(markers[0].lat, markers[0].lng),

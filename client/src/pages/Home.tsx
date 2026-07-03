@@ -1583,7 +1583,9 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
               onOpenChange={setShowPicker}
               initialLat={editData.lat}
               initialLng={editData.lng}
-              onConfirm={(pickedLat, pickedLng) => setEditData({ ...editData, lat: pickedLat, lng: pickedLng })}
+              onConfirm={(pickedLat, pickedLng, address) =>
+                setEditData({ ...editData, lat: pickedLat, lng: pickedLng, location: address || editData.location })
+              }
             />
           </div>
           <div className="space-y-1.5">
@@ -1858,7 +1860,11 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
           onOpenChange={setShowPicker}
           initialLat={lat}
           initialLng={lng}
-          onConfirm={(pickedLat, pickedLng) => { setLat(pickedLat); setLng(pickedLng); }}
+          onConfirm={(pickedLat, pickedLng, address) => {
+            setLat(pickedLat);
+            setLng(pickedLng);
+            if (address) setLocation(address);
+          }}
         />
       </div>
 
