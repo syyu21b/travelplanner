@@ -18,11 +18,12 @@ interface DiaryPhoto {
   id: string;
   url: string;
   caption?: string;
+  type?: 'photo' | 'video';
 }
 
 interface DiaryBlock {
   id: string;
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'video';
   content: string;
   caption?: string;
 }
@@ -168,8 +169,22 @@ export default function TravelDiary() {
   }, [currentDiary]);
 
   const saveDiaries = (updated: DiaryEntry[]) => {
-    localStorage.setItem('travelDiaries', JSON.stringify(updated));
-    setDiaries(updated);
+    try {
+      localStorage.setItem('travelDiaries', JSON.stringify(updated));
+      setDiaries(updated);
+    } catch {
+      toast.error('저장 공간이 부족합니다. 동영상 용량이나 개수를 줄여주세요.');
+    }
+  };
+
+  const MAX_VIDEO_MB = 15;
+
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => resolve(event.target?.result as string);
+      reader.readAsDataURL(file);
+    });
   };
 
   const compressImage = (base64Str: string): Promise<string> => {
@@ -206,58 +221,65 @@ export default function TravelDiary() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const files = Array.from(e.target.files || []);
     const currentPhotosCount = isEdit ? (editData?.photos.length || 0) : newPhotos.length;
-    
+
     if (currentPhotosCount + files.length > 15) {
-      toast.error('사진은 최대 15장까지 업로드 가능합니다.');
+      toast.error('사진/동영상은 최대 15개까지 업로드 가능합니다.');
       return;
     }
 
-    const toastId = toast.loading('사진을 처리 중입니다...');
-    
+    const toastId = toast.loading('사진/동영상을 처리 중입니다...');
+    let skipped = 0;
+
     try {
       for (const file of files) {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onload = (event) => resolve(event.target?.result as string);
-          reader.readAsDataURL(file);
-        });
-        
-        const compressed = await compressImage(base64);
+        const isVideo = file.type.startsWith('video/');
+        if (isVideo && file.size > MAX_VIDEO_MB * 1024 * 1024) {
+          skipped++;
+          continue;
+        }
+
+        const base64 = await readFileAsDataURL(file);
+        const finalUrl = isVideo ? base64 : await compressImage(base64);
         const photo: DiaryPhoto = {
           id: Date.now().toString() + Math.random(),
-          url: compressed,
+          url: finalUrl,
           caption: '',
+          type: isVideo ? 'video' : 'photo',
         };
 
         if (isEdit && editData) {
           const currentPhotos = editData.photos || [];
           const currentBlocks = editData.blocks || (editData.content ? [{ id: '1', type: 'text', content: editData.content }] : []);
-          
+
           if (editData.displayMode === 'blog') {
-            const newBlock: DiaryBlock = { id: Date.now().toString() + Math.random(), type: 'image', content: compressed };
-            setEditData(prev => prev ? { 
-              ...prev, 
-              blocks: [...currentBlocks, newBlock], 
-              photos: [...currentPhotos, photo] 
+            const newBlock: DiaryBlock = { id: Date.now().toString() + Math.random(), type: isVideo ? 'video' : 'image', content: finalUrl };
+            setEditData(prev => prev ? {
+              ...prev,
+              blocks: [...currentBlocks, newBlock],
+              photos: [...currentPhotos, photo]
             } : null);
           } else {
-            setEditData(prev => prev ? { 
-              ...prev, 
-              photos: [...currentPhotos, photo] 
+            setEditData(prev => prev ? {
+              ...prev,
+              photos: [...currentPhotos, photo]
             } : null);
           }
         } else {
           setNewPhotos(prev => [...prev, photo]);
         }
       }
-      toast.success('사진이 추가되었습니다!', { id: toastId });
+      if (skipped > 0) {
+        toast.error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 업로드 가능합니다. (${skipped}개 건너뜀)`, { id: toastId });
+      } else {
+        toast.success('추가되었습니다!', { id: toastId });
+      }
     } catch (error) {
-      toast.error('사진 업로드 중 에러가 발생했습니다.', { id: toastId });
+      toast.error('업로드 중 에러가 발생했습니다.', { id: toastId });
     }
     e.target.value = '';
   };
 
-  const handleAddBlock = (type: 'text' | 'image', imageUrl?: string) => {
+  const handleAddBlock = (type: 'text' | 'image' | 'video', imageUrl?: string) => {
     const newBlock: DiaryBlock = {
       id: Date.now().toString() + Math.random(),
       type,
@@ -278,28 +300,31 @@ export default function TravelDiary() {
   const handleBlockImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isVideo = file.type.startsWith('video/');
+    if (isVideo && file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      toast.error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 업로드 가능합니다.`);
+      e.target.value = '';
+      return;
+    }
 
-    const toastId = toast.loading('이미지를 처리 중입니다...');
+    const toastId = toast.loading(isVideo ? '동영상을 처리 중입니다...' : '이미지를 처리 중입니다...');
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve) => {
-        reader.onload = (event) => resolve(event.target?.result as string);
-        reader.readAsDataURL(file);
-      });
-      const compressed = await compressImage(base64);
-      
+      const base64 = await readFileAsDataURL(file);
+      const finalUrl = isVideo ? base64 : await compressImage(base64);
+
       const photo: DiaryPhoto = {
         id: Date.now().toString() + Math.random(),
-        url: compressed,
+        url: finalUrl,
         caption: '',
+        type: isVideo ? 'video' : 'photo',
       };
-      
+
       setNewPhotos(prev => [...prev, photo]);
-      handleAddBlock('image', compressed);
-      
-      toast.success('이미지가 추가되었습니다!', { id: toastId });
+      handleAddBlock(isVideo ? 'video' : 'image', finalUrl);
+
+      toast.success(isVideo ? '동영상이 추가되었습니다!' : '이미지가 추가되었습니다!', { id: toastId });
     } catch (error) {
-      toast.error('이미지 처리 중 에러가 발생했습니다.', { id: toastId });
+      toast.error('처리 중 에러가 발생했습니다.', { id: toastId });
     }
     e.target.value = '';
   };
@@ -307,26 +332,29 @@ export default function TravelDiary() {
   const handleEditBlockImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isVideo = file.type.startsWith('video/');
+    if (isVideo && file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      toast.error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 업로드 가능합니다.`);
+      e.target.value = '';
+      return;
+    }
 
-    const toastId = toast.loading('이미지를 처리 중입니다...');
+    const toastId = toast.loading(isVideo ? '동영상을 처리 중입니다...' : '이미지를 처리 중입니다...');
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve) => {
-        reader.onload = (event) => resolve(event.target?.result as string);
-        reader.readAsDataURL(file);
-      });
-      const compressed = await compressImage(base64);
+      const base64 = await readFileAsDataURL(file);
+      const finalUrl = isVideo ? base64 : await compressImage(base64);
 
       const photo: DiaryPhoto = {
         id: Date.now().toString() + Math.random(),
-        url: compressed,
+        url: finalUrl,
         caption: '',
+        type: isVideo ? 'video' : 'photo',
       };
 
       const newBlock: DiaryBlock = {
         id: Date.now().toString() + Math.random(),
-        type: 'image',
-        content: compressed,
+        type: isVideo ? 'video' : 'image',
+        content: finalUrl,
       };
 
       setEditData(prev => {
@@ -340,9 +368,9 @@ export default function TravelDiary() {
         };
       });
 
-      toast.success('이미지가 추가되었습니다!', { id: toastId });
+      toast.success(isVideo ? '동영상이 추가되었습니다!' : '이미지가 추가되었습니다!', { id: toastId });
     } catch (error) {
-      toast.error('이미지 처리 중 에러가 발생했습니다.', { id: toastId });
+      toast.error('처리 중 에러가 발생했습니다.', { id: toastId });
     }
     e.target.value = '';
   };
@@ -350,6 +378,11 @@ export default function TravelDiary() {
   const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.type.startsWith('video/')) {
+      toast.error('대표 사진은 이미지 파일만 가능합니다.');
+      e.target.value = '';
+      return;
+    }
 
     const toastId = toast.loading('메인 사진을 처리 중입니다...');
     try {
@@ -457,6 +490,7 @@ export default function TravelDiary() {
   if (currentDiary) {
     const diary = diaries.find(d => d.id === currentDiary.id) || currentDiary;
     const isOwner = diary.userId === user?.id;
+    const heroPhoto = diary.mainPhoto || diary.photos.find(p => p.type !== 'video') || diary.photos[0];
 
     if (isEditing && editData) {
       return (
@@ -512,6 +546,8 @@ export default function TravelDiary() {
                             }}
                             className="min-h-[80px] border-none focus-visible:ring-0 p-0 shadow-none text-sm"
                           />
+                        ) : block.type === 'video' ? (
+                          <video src={block.content} controls className="w-full max-h-40 rounded-lg bg-slate-50" />
                         ) : (
                           <img src={block.content} alt="" className="w-full max-h-40 object-contain rounded-lg bg-slate-50" />
                         )}
@@ -532,8 +568,8 @@ export default function TravelDiary() {
                         const newBlock: DiaryBlock = { id: Date.now().toString() + Math.random(), type: 'text', content: '' };
                         setEditData({ ...editData, blocks: [...currentBlocks, newBlock] });
                       }} className="h-8 text-xs"><Plus className="w-3 h-3 mr-1" /> 글 추가</Button>
-                      <Button variant="outline" size="sm" onClick={() => editBlockFileInputRef.current?.click()} className="h-8 text-xs"><ImageIcon className="w-3 h-3 mr-1" /> 사진 추가</Button>
-                      <input ref={editBlockFileInputRef} type="file" accept="image/*" onChange={handleEditBlockImageUpload} className="hidden" />
+                      <Button variant="outline" size="sm" onClick={() => editBlockFileInputRef.current?.click()} className="h-8 text-xs"><ImageIcon className="w-3 h-3 mr-1" /> 사진/동영상 추가</Button>
+                      <input ref={editBlockFileInputRef} type="file" accept="image/*,video/*" onChange={handleEditBlockImageUpload} className="hidden" />
                     </div>
                   </div>
                 ) : (
@@ -639,7 +675,11 @@ export default function TravelDiary() {
                     <div className="grid grid-cols-3 gap-3">
                       {editData.photos.map(photo => (
                         <div key={photo.id} className="relative group">
-                          <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-gray-100" />
+                          {photo.type === 'video' ? (
+                            <video src={photo.url} controls className="w-full h-28 object-cover rounded-lg border border-border bg-black" />
+                          ) : (
+                            <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-gray-100" />
+                          )}
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
                             <input
                               type="text"
@@ -669,11 +709,11 @@ export default function TravelDiary() {
                         <span className="text-xs">추가</span>
                       </button>
                     </div>
-                    <input ref={editFileInputRef} type="file" accept="image/*" multiple onChange={e => handlePhotoUpload(e, true)} className="hidden" />
+                    <input ref={editFileInputRef} type="file" accept="image/*,video/*" multiple onChange={e => handlePhotoUpload(e, true)} className="hidden" />
                   </>
                 ) : (
                   <div className="text-xs text-muted-foreground mt-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
-                    💡 블로그형 모드에서는 위 본문 에디터의 <strong className="text-primary">사진 추가</strong> 버튼으로 사진을 추가할 수 있습니다.
+                    💡 블로그형 모드에서는 위 본문 에디터의 <strong className="text-primary">사진/동영상 추가</strong> 버튼으로 사진이나 동영상을 추가할 수 있습니다.
                   </div>
                 )}
               </div>
@@ -742,9 +782,13 @@ export default function TravelDiary() {
     return (
       <div className="min-h-screen bg-background pb-16">
         {/* Hero section with first photo */}
-        {diary.mainPhoto || diary.photos.length > 0 ? (
+        {heroPhoto ? (
           <div className="relative h-[500px] w-full bg-slate-900 overflow-hidden">
-            <img src={diary.mainPhoto ? diary.mainPhoto.url : diary.photos[0].url} alt={diary.title} className="w-full h-full object-contain" />
+            {heroPhoto.type === 'video' ? (
+              <video src={heroPhoto.url} controls className="w-full h-full object-contain" />
+            ) : (
+              <img src={heroPhoto.url} alt={diary.title} className="w-full h-full object-contain" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
             <button
               onClick={() => setCurrentDiary(null)}
@@ -859,6 +903,11 @@ export default function TravelDiary() {
                     <div className="prose max-w-none text-foreground leading-relaxed whitespace-pre-wrap text-[16px] px-2">
                       {block.content}
                     </div>
+                  ) : block.type === 'video' ? (
+                    <div className="space-y-2">
+                      <video src={block.content} controls className="w-full rounded-2xl shadow-sm border border-border bg-black" />
+                      {block.caption && <p className="text-center text-sm text-muted-foreground">{block.caption}</p>}
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       <img src={block.content} alt={block.caption || ''} className="w-full rounded-2xl shadow-sm border border-border bg-slate-50" />
@@ -889,7 +938,11 @@ export default function TravelDiary() {
                 <div className="space-y-4">
                   {diary.photos.slice(1).map(photo => (
                     <div key={photo.id} className="relative rounded-2xl overflow-hidden shadow-sm border border-border">
-                      <img src={photo.url} alt={photo.caption || ''} className="w-full object-contain max-h-[700px] bg-slate-50" />
+                      {photo.type === 'video' ? (
+                        <video src={photo.url} controls className="w-full object-contain max-h-[700px] bg-black" />
+                      ) : (
+                        <img src={photo.url} alt={photo.caption || ''} className="w-full object-contain max-h-[700px] bg-slate-50" />
+                      )}
                       {photo.caption && (
                         <div className="p-4 bg-white border-t border-border">
                           <p className="text-sm text-foreground">{photo.caption}</p>
@@ -902,7 +955,11 @@ export default function TravelDiary() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {diary.photos.slice(1).map(photo => (
                     <div key={photo.id} className="relative group aspect-square">
-                      <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-gray-100" />
+                      {photo.type === 'video' ? (
+                        <video src={photo.url} controls className="w-full h-full object-cover rounded-xl border border-border bg-black" />
+                      ) : (
+                        <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-gray-100" />
+                      )}
                       {photo.caption && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
                           {photo.caption}
@@ -999,16 +1056,18 @@ export default function TravelDiary() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {myDiaries
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-              .map(diary => (
+              .map(diary => {
+                const cardThumb = diary.mainPhoto || diary.photos.find(p => p.type !== 'video');
+                return (
                 <Card
                   key={diary.id}
                   className="group cursor-pointer hover:shadow-xl transition-all border-border bg-white overflow-hidden"
                   onClick={() => setCurrentDiary(diary)}
                 >
-                  {(diary.mainPhoto || diary.photos.length > 0) ? (
+                  {cardThumb ? (
                     <div className="relative h-48 overflow-hidden">
                       <img
-                        src={diary.mainPhoto?.url || diary.photos[0].url}
+                        src={cardThumb.url}
                         alt={diary.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -1059,7 +1118,8 @@ export default function TravelDiary() {
                     )}
                   </div>
                 </Card>
-              ))}
+                );
+              })}
           </div>
         )}
       </div>
@@ -1204,7 +1264,7 @@ export default function TravelDiary() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Camera className="w-4 h-4" /> 사진 추가
+                  <Camera className="w-4 h-4" /> 사진/동영상 추가
                 </label>
                 <div className="flex bg-secondary p-1 rounded-lg">
                   <button
@@ -1249,6 +1309,10 @@ export default function TravelDiary() {
                           onChange={e => handleUpdateBlock(block.id, e.target.value)}
                           className="min-h-[100px] border-none focus-visible:ring-0 p-0 shadow-none text-sm"
                         />
+                      ) : block.type === 'video' ? (
+                        <div className="space-y-2">
+                          <video src={block.content} controls className="w-full max-h-60 rounded-lg bg-slate-50" />
+                        </div>
                       ) : (
                         <div className="space-y-2">
                           <img src={block.content} alt="" className="w-full max-h-60 object-contain rounded-lg bg-slate-50" />
@@ -1279,16 +1343,20 @@ export default function TravelDiary() {
                       onClick={() => blockFileInputRef.current?.click()}
                       className="gap-1.5 text-xs h-8"
                     >
-                      <ImageIcon className="w-3 h-3" /> 사진 추가
+                      <ImageIcon className="w-3 h-3" /> 사진/동영상 추가
                     </Button>
-                    <input ref={blockFileInputRef} type="file" accept="image/*" onChange={handleBlockImageUpload} className="hidden" />
+                    <input ref={blockFileInputRef} type="file" accept="image/*,video/*" onChange={handleBlockImageUpload} className="hidden" />
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
                   {newPhotos.map(photo => (
                     <div key={photo.id} className="relative group">
-                      <img src={photo.url} alt="" className="w-full h-20 object-cover rounded-lg border border-border" />
+                      {photo.type === 'video' ? (
+                        <video src={photo.url} controls className="w-full h-20 object-cover rounded-lg border border-border bg-black" />
+                      ) : (
+                        <img src={photo.url} alt="" className="w-full h-20 object-cover rounded-lg border border-border" />
+                      )}
                       <button
                         onClick={() => setNewPhotos(prev => prev.filter(p => p.id !== photo.id))}
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1306,7 +1374,7 @@ export default function TravelDiary() {
                   </button>
                 </div>
               )}
-              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={e => handlePhotoUpload(e, false)} className="hidden" />
+              <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={e => handlePhotoUpload(e, false)} className="hidden" />
             </div>
 
             <div className="space-y-1.5">

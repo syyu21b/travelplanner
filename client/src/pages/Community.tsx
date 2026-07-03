@@ -18,6 +18,7 @@ interface DiaryPhoto {
   id: string;
   url: string;
   caption?: string;
+  type?: 'photo' | 'video';
 }
 
 interface DiaryEntry {
@@ -29,6 +30,7 @@ interface DiaryEntry {
   endDate: string;
   content: string;
   rating: number;
+  mainPhoto?: DiaryPhoto;
   photos: DiaryPhoto[];
   tags: string[];
   isPublic: boolean;
@@ -462,11 +464,19 @@ export default function Community() {
           {diary.photos.length > 0 && (
             <div className="mb-6">
               <div className="relative rounded-2xl overflow-hidden mb-2">
+                {diary.photos[activePhotoIndex].type === 'video' ? (
+                  <video
+                    src={diary.photos[activePhotoIndex].url}
+                    controls
+                    className="w-full aspect-[4/3] sm:aspect-[16/9] bg-slate-900"
+                  />
+                ) : (
                 <img
                   src={diary.photos[activePhotoIndex].url}
                   alt={diary.photos[activePhotoIndex].caption || ''}
                   className="w-full aspect-[4/3] sm:aspect-[16/9] object-contain bg-slate-900"
                 />
+                )}
                 {diary.photos.length > 1 && (
                   <>
                     <button
@@ -509,7 +519,11 @@ export default function Community() {
                         activePhotoIndex === i ? "border-primary" : "border-transparent"
                       )}
                     >
-                      <img src={photo.url} alt="" className="w-full h-full object-contain bg-gray-100" />
+                      {photo.type === 'video' ? (
+                        <video src={photo.url} muted className="w-full h-full object-contain bg-black" />
+                      ) : (
+                        <img src={photo.url} alt="" className="w-full h-full object-contain bg-gray-100" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -905,6 +919,7 @@ export default function Community() {
                   const cmtCount = diaryComments(diary.id).length;
                   const isLiked = diary.likes.includes(user!.id);
                   const isSaved = savedDiaries.includes(diary.id);
+                  const coverPhoto = diary.mainPhoto || diary.photos.find(p => p.type !== 'video');
 
                   return (
                     <Card
@@ -948,14 +963,14 @@ export default function Community() {
                       </div>
 
                       {/* Cover photo */}
-                      {diary.photos.length > 0 && (
+                      {coverPhoto && (
                         <button
                           className="w-full block"
                           onClick={() => handleViewDiary(diary)}
                         >
                           <div className="relative">
                             <img
-                              src={diary.mainPhoto?.url || diary.photos[0].url}
+                              src={coverPhoto.url}
                               alt={diary.title}
                               className="w-full h-64 object-cover bg-gray-100 hover:opacity-95 transition"
                             />

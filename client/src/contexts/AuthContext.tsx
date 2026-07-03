@@ -1,4 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  encryptPassportInfo, decryptPassportInfo,
+  type PassportInfo, type EncryptedPayload,
+} from '@/lib/passportCrypto';
 
 interface User {
   id: string;
@@ -41,9 +45,14 @@ interface AuthContextType {
   resetPassword: (username: string, email: string, newPassword: string) => { success: boolean; message: string };
   withdrawAccount: () => { success: boolean; message: string };
   updateProfile: (updates: { nickname?: string; email?: string }) => { success: boolean; message: string };
-  changePassword: (currentPassword: string, newPassword: string) => { success: boolean; message: string };
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   getProfilePhoto: (userId: string) => string | null;
   setProfilePhoto: (photo: string | null) => void;
+  verifyPassword: (password: string) => boolean;
+  hasPassportInfo: () => boolean;
+  savePassportInfo: (password: string, data: PassportInfo) => Promise<{ success: boolean; message: string }>;
+  loadPassportInfo: (password: string) => Promise<{ success: boolean; message: string; data?: PassportInfo }>;
+  deletePassportInfo: (password: string) => { success: boolean; message: string };
   // 관리자 전용
   getAllUsers: () => PublicUser[];
   adminUpdateUser: (userId: string, updates: { nickname?: string; email?: string; password?: string }) => { success: boolean; message: string };
@@ -64,6 +73,20 @@ function getStoredUsers(): StoredUser[] {
 
 function saveStoredUsers(users: StoredUser[]) {
   localStorage.setItem('registeredUsers', JSON.stringify(users));
+}
+
+type PassportVault = Record<string, EncryptedPayload & { updatedAt: string }>;
+
+function getPassportVault(): PassportVault {
+  try {
+    return JSON.parse(localStorage.getItem('passportVault') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function savePassportVault(vault: PassportVault) {
+  localStorage.setItem('passportVault', JSON.stringify(vault));
 }
 
 function toPublicUser(stored: StoredUser): User {
@@ -184,6 +207,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user.isAdmin) return { success: false, message: '관리자 계정은 탈퇴할 수 없습니다.' };
     const users = getStoredUsers().filter(u => u.id !== user.id);
     saveStoredUsers(users);
+    const vault = getPassportVault();
+    delete vault[user.id];
+    savePassportVault(vault);
     setUser(null);
     localStorage.removeItem('currentUser');
     return { success: true, message: '회원 탈퇴가 완료되었습니다.' };
@@ -212,16 +238,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true, message: '프로필이 업데이트되었습니다.' };
   };
 
-  const changePassword = (currentPassword: string, newPassword: string): { success: boolean; message: string } => {
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: '로그인 상태가 아닙니다.' };
     const users = getStoredUsers();
     const idx = users.findIndex(u => u.id === user.id);
     if (idx === -1) return { success: false, message: '사용자를 찾을 수 없습니다.' };
     if (users[idx].password !== currentPassword) return { success: false, message: '현재 비밀번호가 일치하지 않습니다.' };
     if (newPassword.length < 6) return { success: false, message: '새 비밀번호는 6자 이상이어야 합니다.' };
+
+    // 여권 정보는 비밀번호로 암호화되어 있으므로, 비밀번호 변경 시 새 비밀번호로 다시 암호화
+    const vault = getPassportVault();
+    const entry = vault[user.id];
+    if (entry) {
+      const decrypted = await decryptPassportInfo(entry, currentPassword);
+      if (decrypted) {
+        vault[user.id] = { ...(await encryptPassportInfo(decrypted, newPassword)), updatedAt: new Date().toISOString() };
+        savePassportVault(vault);
+      }
+    }
+
     users[idx].password = newPassword;
     saveStoredUsers(users);
     return { success: true, message: '비밀번호가 변경되었습니다.' };
+  };
+
+  const verifyPassword = (password: string): boolean => {
+    if (!user) return false;
+    const users = getStoredUsers();
+    const found = users.find(u => u.id === user.id);
+    return !!found && found.password === password;
+  };
+
+  const hasPassportInfo = (): boolean => {
+    if (!user) return false;
+    return !!getPassportVault()[user.id];
+  };
+
+  const savePassportInfo = async (password: string, data: PassportInfo): Promise<{ success: boolean; message: string }> => {
+    if (!user) return { success: false, message: '로그인 상태가 아닙니다.' };
+    if (!verifyPassword(password)) return { success: false, message: '비밀번호가 일치하지 않습니다.' };
+    const vault = getPassportVault();
+    vault[user.id] = { ...(await encryptPassportInfo(data, password)), updatedAt: new Date().toISOString() };
+    savePassportVault(vault);
+    return { success: true, message: '여권 정보가 안전하게 저장되었습니다.' };
+  };
+
+  const loadPassportInfo = async (password: string): Promise<{ success: boolean; message: string; data?: PassportInfo }> => {
+    if (!user) return { success: false, message: '로그인 상태가 아닙니다.' };
+    if (!verifyPassword(password)) return { success: false, message: '비밀번호가 일치하지 않습니다.' };
+    const entry = getPassportVault()[user.id];
+    if (!entry) return { success: false, message: '저장된 여권 정보가 없습니다.' };
+    const data = await decryptPassportInfo(entry, password);
+    if (!data) return { success: false, message: '복호화에 실패했습니다.' };
+    return { success: true, message: '확인되었습니다.', data };
+  };
+
+  const deletePassportInfo = (password: string): { success: boolean; message: string } => {
+    if (!user) return { success: false, message: '로그인 상태가 아닙니다.' };
+    if (!verifyPassword(password)) return { success: false, message: '비밀번호가 일치하지 않습니다.' };
+    const vault = getPassportVault();
+    delete vault[user.id];
+    savePassportVault(vault);
+    return { success: true, message: '여권 정보가 삭제되었습니다.' };
   };
 
   const getProfilePhoto = (userId: string): string | null => {
@@ -271,6 +349,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const users = getStoredUsers();
     if (!users.some(u => u.id === userId)) return { success: false, message: '사용자를 찾을 수 없습니다.' };
     saveStoredUsers(users.filter(u => u.id !== userId));
+    const vault = getPassportVault();
+    delete vault[userId];
+    savePassportVault(vault);
     return { success: true, message: '회원이 삭제되었습니다.' };
   };
 
@@ -282,6 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       findUsernameByEmail, resetPassword,
       withdrawAccount,
       updateProfile, changePassword, getProfilePhoto, setProfilePhoto,
+      verifyPassword, hasPassportInfo, savePassportInfo, loadPassportInfo, deletePassportInfo,
       getAllUsers, adminUpdateUser, adminDeleteUser,
     }}>
       {children}

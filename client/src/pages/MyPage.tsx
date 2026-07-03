@@ -6,12 +6,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   User, Mail, Lock, Trash2, Camera, Edit2, Check, X, Shield,
   BookOpen, Plane, Bookmark, MessageCircle, Heart, Calendar,
-  KeyRound, UserX, ChevronRight, Eye, EyeOff, Star, MapPin, Crown
+  KeyRound, UserX, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
+  IdCard, Stamp, Globe2, ShieldCheck, Save
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'wouter';
+import type { PassportInfo } from '@/lib/passportCrypto';
+
+const EMPTY_PASSPORT: PassportInfo = {
+  passportNumber: '', fullNameEnglish: '', nationality: '',
+  dateOfBirth: '', sex: '', issueDate: '', expiryDate: '', issuingCountry: '',
+};
 
 function compressProfilePhoto(file: File): Promise<string> {
   return new Promise((resolve) => {
@@ -38,12 +45,26 @@ function compressProfilePhoto(file: File): Promise<string> {
   });
 }
 
-type TabType = 'info' | 'activity' | 'security' | 'account';
+type TabType = 'info' | 'activity' | 'security' | 'passport' | 'account';
 
 export default function MyPage() {
-  const { user, updateProfile, changePassword, withdrawAccount, getProfilePhoto, setProfilePhoto } = useAuth();
+  const {
+    user, updateProfile, changePassword, withdrawAccount, getProfilePhoto, setProfilePhoto,
+    verifyPassword, hasPassportInfo, savePassportInfo, loadPassportInfo, deletePassportInfo,
+  } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('info');
+
+  // 여권 정보
+  const [passportExists, setPassportExists] = useState(() => hasPassportInfo());
+  const [passportUnlocked, setPassportUnlocked] = useState(false);
+  const [passportChecking, setPassportChecking] = useState(false);
+  const [passportGatePw, setPassportGatePw] = useState('');
+  const [showPassportGatePw, setShowPassportGatePw] = useState(false);
+  const [passportSessionPw, setPassportSessionPw] = useState('');
+  const [passportForm, setPassportForm] = useState<PassportInfo>(EMPTY_PASSPORT);
+  const [passportSaving, setPassportSaving] = useState(false);
+  const [showDeletePassport, setShowDeletePassport] = useState(false);
 
   // 프로필 사진
   const [profilePhoto, setProfilePhotoState] = useState<string | null>(() =>
@@ -135,15 +156,79 @@ export default function MyPage() {
     else toast.error(result.message);
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!currentPw) { toast.error('현재 비밀번호를 입력해주세요.'); return; }
     if (!newPw) { toast.error('새 비밀번호를 입력해주세요.'); return; }
     if (newPw.length < 6) { toast.error('새 비밀번호는 6자 이상이어야 합니다.'); return; }
     if (newPw !== confirmPw) { toast.error('새 비밀번호가 일치하지 않습니다.'); return; }
-    const result = changePassword(currentPw, newPw);
+    const result = await changePassword(currentPw, newPw);
     if (result.success) {
       toast.success(result.message);
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const handleLockPassport = () => {
+    setPassportUnlocked(false);
+    setPassportSessionPw('');
+    setPassportForm(EMPTY_PASSPORT);
+  };
+
+  const handleUnlockOrCreatePassport = async () => {
+    if (!passportGatePw) { toast.error('비밀번호를 입력해주세요.'); return; }
+    setPassportChecking(true);
+    try {
+      if (passportExists) {
+        const result = await loadPassportInfo(passportGatePw);
+        if (result.success && result.data) {
+          setPassportForm(result.data);
+          setPassportSessionPw(passportGatePw);
+          setPassportUnlocked(true);
+          setPassportGatePw('');
+        } else {
+          toast.error(result.message);
+        }
+      } else {
+        if (!verifyPassword(passportGatePw)) {
+          toast.error('비밀번호가 일치하지 않습니다.');
+        } else {
+          setPassportForm(EMPTY_PASSPORT);
+          setPassportSessionPw(passportGatePw);
+          setPassportUnlocked(true);
+          setPassportGatePw('');
+        }
+      }
+    } finally {
+      setPassportChecking(false);
+    }
+  };
+
+  const handleSavePassport = async () => {
+    if (!passportForm.passportNumber.trim() || !passportForm.fullNameEnglish.trim()) {
+      toast.error('여권번호와 영문 성명은 필수입니다.');
+      return;
+    }
+    setPassportSaving(true);
+    const result = await savePassportInfo(passportSessionPw, passportForm);
+    setPassportSaving(false);
+    if (result.success) {
+      toast.success(result.message);
+      setPassportExists(true);
+    } else {
+      toast.error(result.message);
+      if (result.message.includes('일치하지')) handleLockPassport();
+    }
+  };
+
+  const handleDeletePassport = () => {
+    const result = deletePassportInfo(passportSessionPw);
+    setShowDeletePassport(false);
+    if (result.success) {
+      toast.success(result.message);
+      setPassportExists(false);
+      handleLockPassport();
     } else {
       toast.error(result.message);
     }
@@ -156,6 +241,13 @@ export default function MyPage() {
     else toast.error(result.message);
     setShowWithdraw(false);
   };
+
+  // 보안: 여권 정보 탭을 벗어나면 메모리에 올라온 복호화 데이터를 잠금 처리
+  useEffect(() => {
+    if (activeTab !== 'passport' && passportUnlocked) {
+      handleLockPassport();
+    }
+  }, [activeTab]);
 
   const pwStrength = (pw: string): { level: number; label: string; color: string } => {
     if (!pw) return { level: 0, label: '', color: '' };
@@ -175,6 +267,7 @@ export default function MyPage() {
     { id: 'info', label: '내 정보', icon: <User className="w-4 h-4" /> },
     { id: 'activity', label: '내 활동', icon: <Star className="w-4 h-4" /> },
     { id: 'security', label: '보안 설정', icon: <KeyRound className="w-4 h-4" /> },
+    { id: 'passport', label: '여권 정보', icon: <IdCard className="w-4 h-4" /> },
     { id: 'account', label: '계정 관리', icon: <Shield className="w-4 h-4" /> },
   ];
 
@@ -422,7 +515,7 @@ export default function MyPage() {
                       .slice(0, 5)
                       .map((d: any) => (
                         <div key={d.id} className="flex items-center gap-4 py-3">
-                          {d.photos?.[0] ? (
+                          {d.photos?.[0] && d.photos[0].type !== 'video' ? (
                             <img src={d.photos[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
@@ -476,7 +569,7 @@ export default function MyPage() {
                   <div className="divide-y divide-border">
                     {savedDiaries.slice(0, 5).map((d: any) => (
                       <div key={d.id} className="flex items-center gap-4 py-3">
-                        {d.photos?.[0] ? (
+                        {d.photos?.[0] && d.photos[0].type !== 'video' ? (
                           <img src={d.photos[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
@@ -640,6 +733,147 @@ export default function MyPage() {
             </div>
           )}
 
+          {/* ── 여권 정보 탭 ── */}
+          {activeTab === 'passport' && (
+            <div className="max-w-2xl">
+              {!passportUnlocked ? (
+                <Card className="p-8 bg-white text-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <Lock className="w-7 h-7 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground mb-2">
+                    {passportExists ? '여권 정보가 암호화되어 있습니다' : '여권 정보 등록'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {passportExists
+                      ? '본인 확인을 위해 비밀번호를 한 번 더 입력해주세요.'
+                      : '여권 정보는 비밀번호로 암호화되어 저장됩니다. 등록을 시작하려면 비밀번호를 입력하세요.'}
+                  </p>
+                  <div className="max-w-xs mx-auto space-y-3">
+                    <div className="relative">
+                      <Input
+                        type={showPassportGatePw ? 'text' : 'password'}
+                        value={passportGatePw}
+                        onChange={e => setPassportGatePw(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleUnlockOrCreatePassport(); }}
+                        placeholder="비밀번호 입력"
+                        className="h-11 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassportGatePw(!showPassportGatePw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassportGatePw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <Button
+                      onClick={handleUnlockOrCreatePassport}
+                      disabled={passportChecking}
+                      className="w-full bg-primary text-white h-11 gap-2"
+                    >
+                      <ShieldCheck className="w-4 h-4" /> {passportExists ? '확인하기' : '등록 시작하기'}
+                    </Button>
+                  </div>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {/* 여권 스타일 카드 */}
+                  <div
+                    className="relative rounded-2xl overflow-hidden shadow-xl border border-[#0d1b2e]"
+                    style={{ background: 'linear-gradient(135deg, #0d1b2e 0%, #1a3a5c 100%)' }}
+                  >
+                    <div className="p-6 sm:p-8 text-[#e8dcc0]">
+                      <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#e8dcc0]/20">
+                        <div className="flex items-center gap-3">
+                          <Globe2 className="w-7 h-7 text-[#d4af37] flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] tracking-[0.25em] text-[#d4af37] font-bold">TRAVEL PLANNER</p>
+                            <p className="text-lg font-black tracking-[0.2em]">PASSPORT</p>
+                          </div>
+                        </div>
+                        <Stamp className="w-8 h-8 text-[#d4af37]/40 flex-shrink-0" />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        {[
+                          { key: 'passportNumber' as const, label: 'PASSPORT NO. (여권번호)', type: 'text' },
+                          { key: 'fullNameEnglish' as const, label: 'NAME (영문 성명)', type: 'text' },
+                          { key: 'nationality' as const, label: 'NATIONALITY (국적)', type: 'text' },
+                          { key: 'dateOfBirth' as const, label: 'DATE OF BIRTH (생년월일)', type: 'date' },
+                          { key: 'issueDate' as const, label: 'DATE OF ISSUE (발급일)', type: 'date' },
+                          { key: 'expiryDate' as const, label: 'DATE OF EXPIRY (만료일)', type: 'date' },
+                          { key: 'issuingCountry' as const, label: 'ISSUING COUNTRY (발급국가)', type: 'text' },
+                        ].map(field => (
+                          <div key={field.key}>
+                            <label className="block text-[10px] tracking-widest text-[#d4af37]/80 font-bold mb-1">
+                              {field.label}
+                            </label>
+                            <input
+                              type={field.type}
+                              value={passportForm[field.key]}
+                              onChange={e => setPassportForm({ ...passportForm, [field.key]: e.target.value })}
+                              className="w-full bg-transparent border-b border-[#e8dcc0]/30 focus:border-[#d4af37] outline-none text-[#f5eee0] text-sm py-1.5 placeholder:text-[#e8dcc0]/30"
+                              placeholder="-"
+                            />
+                          </div>
+                        ))}
+                        <div>
+                          <label className="block text-[10px] tracking-widest text-[#d4af37]/80 font-bold mb-1">
+                            SEX (성별)
+                          </label>
+                          <select
+                            value={passportForm.sex}
+                            onChange={e => setPassportForm({ ...passportForm, sex: e.target.value as PassportInfo['sex'] })}
+                            className="w-full bg-transparent border-b border-[#e8dcc0]/30 focus:border-[#d4af37] outline-none text-[#f5eee0] text-sm py-1.5 [&>option]:text-black"
+                          >
+                            <option value="">-</option>
+                            <option value="M">M</option>
+                            <option value="F">F</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 pt-4 border-t border-[#e8dcc0]/20 font-mono text-[10px] sm:text-xs tracking-[0.15em] text-[#e8dcc0]/30 break-all leading-relaxed select-none">
+                        P&lt;{(passportForm.nationality || 'XXX').toUpperCase().slice(0, 3).padEnd(3, '<')}
+                        {(passportForm.fullNameEnglish || 'TRAVELER').toUpperCase().replace(/[^A-Z]/g, '<').padEnd(20, '<')}
+                        <br />
+                        {(passportForm.passportNumber || '0000000000').toUpperCase().padEnd(12, '<')}
+                        {(passportForm.nationality || 'XXX').toUpperCase().slice(0, 3).padEnd(3, '<')}
+                        {'<'.repeat(20)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button onClick={handleSavePassport} disabled={passportSaving} className="flex-1 bg-primary text-white h-11 gap-2">
+                      <Save className="w-4 h-4" /> 저장하기
+                    </Button>
+                    <Button onClick={handleLockPassport} variant="outline" className="h-11 gap-2">
+                      <Lock className="w-4 h-4" /> 잠그기
+                    </Button>
+                    {passportExists && (
+                      <Button
+                        onClick={() => setShowDeletePassport(true)}
+                        variant="outline"
+                        className="h-11 gap-2 text-red-500 border-red-200 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <Card className="p-4 bg-blue-50 border-blue-200">
+                    <p className="text-xs text-blue-700 flex items-start gap-2">
+                      <Shield className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      여권 정보는 비밀번호로부터 생성된 암호키로 안전하게 암호화되어 저장됩니다. 비밀번호를 변경하면 자동으로 재암호화되며, 다른 탭으로 이동하면 화면에서 자동으로 잠깁니다.
+                    </p>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── 계정 관리 탭 ── */}
           {activeTab === 'account' && (
             <div className="max-w-lg space-y-4">
@@ -728,6 +962,30 @@ export default function MyPage() {
               </Button>
               <Button onClick={handleWithdraw} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
                 <UserX className="w-4 h-4 mr-1" /> 탈퇴하기
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 여권 정보 삭제 다이얼로그 */}
+      <Dialog open={showDeletePassport} onOpenChange={setShowDeletePassport}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> 여권 정보 삭제
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+              저장된 여권 정보를 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowDeletePassport(false)} className="flex-1">
+                취소
+              </Button>
+              <Button onClick={handleDeletePassport} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
+                <Trash2 className="w-4 h-4 mr-1" /> 삭제하기
               </Button>
             </div>
           </div>

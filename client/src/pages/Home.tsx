@@ -599,8 +599,8 @@ export default function Home() {
   const getPlanThumbnail = (planId: string): string | null => {
     try {
       const diaries = JSON.parse(localStorage.getItem('travelDiaries') || '[]');
-      const linked = diaries.find((d: any) => d.linkedPlanId === planId && d.photos?.length > 0);
-      return linked?.photos[0]?.url || null;
+      const linked = diaries.find((d: any) => d.linkedPlanId === planId && d.photos?.some((p: any) => p.type !== 'video'));
+      return linked?.photos.find((p: any) => p.type !== 'video')?.url || null;
     } catch { return null; }
   };
 
@@ -1969,7 +1969,7 @@ interface TrendingPost {
   id: string;
   title: string;
   location: string;
-  photos: { url: string }[];
+  photos: { url: string; type?: 'photo' | 'video' }[];
   likes: string[];
   commentCount: number;
   viewCount: number;
@@ -2056,7 +2056,7 @@ function CommunityTrending() {
             className="flex-shrink-0 w-52 text-left group"
           >
             <div className="relative w-52 h-36 rounded-2xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-sm group-hover:shadow-md transition-shadow">
-              {post.photos[0] ? (
+              {post.photos[0] && post.photos[0].type !== 'video' ? (
                 <img
                   src={post.photos[0].url}
                   alt={post.title}
