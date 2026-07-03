@@ -22,6 +22,8 @@ import html2canvas from 'html2canvas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
+import { MapView, type MapMarker } from '@/components/Map';
+import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 
 interface ScheduleItem {
   id: string;
@@ -30,6 +32,8 @@ interface ScheduleItem {
   title: string;
   category: 'accommodation' | 'transport' | 'meal' | 'activity' | 'other';
   location?: string;
+  lat?: number;
+  lng?: number;
   cost?: number;
   link?: string;
   notes?: string;
@@ -1072,8 +1076,9 @@ export default function Home() {
               {/* 메인: 탭 컨텐츠 */}
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 bg-secondary/50 p-1 rounded-2xl mb-6">
+                  <TabsList className="grid w-full grid-cols-5 bg-secondary/50 p-1 rounded-2xl mb-6">
                     <TabsTrigger value="schedule" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">일정</TabsTrigger>
+                    <TabsTrigger value="map" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">지도</TabsTrigger>
                     <TabsTrigger value="budget" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">예산</TabsTrigger>
                     <TabsTrigger value="shopping" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">쇼핑</TabsTrigger>
                     <TabsTrigger value="summary" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">준비물</TabsTrigger>
@@ -1120,6 +1125,49 @@ export default function Home() {
                           ))
                       )}
                     </div>
+                  </TabsContent>
+
+                  {/* 지도 탭 */}
+                  <TabsContent value="map" className="space-y-4">
+                    <Card className="p-6 bg-white border-border">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                          <Map className="w-5 h-5 text-primary" /> 일정 지도
+                        </h3>
+                        <span className="text-sm text-muted-foreground">
+                          위치 등록됨 {currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined).length}개
+                        </span>
+                      </div>
+                      {(() => {
+                        const pinned = currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined);
+                        if (pinned.length === 0) {
+                          return (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <MapPin className="w-10 h-10 mx-auto mb-3 text-border" />
+                              <p className="text-sm">아직 지도에 등록된 일정이 없습니다.</p>
+                              <p className="text-xs mt-1">일정 추가/수정 시 "지도" 버튼으로 위치를 선택해보세요.</p>
+                            </div>
+                          );
+                        }
+                        const markers: MapMarker[] = pinned.map(s => ({
+                          id: s.id,
+                          lat: s.lat as number,
+                          lng: s.lng as number,
+                          title: `${s.date} ${s.time} · ${s.title}`,
+                          draggable: false,
+                        }));
+                        return (
+                          <MapView
+                            markers={markers}
+                            fitToMarkers
+                            onMarkerDelete={(id) => {
+                              const target = currentPlan.schedules.find(s => s.id === id);
+                              if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
+                            }}
+                          />
+                        );
+                      })()}
+                    </Card>
                   </TabsContent>
 
                   {/* 예산 탭 */}
@@ -1461,6 +1509,7 @@ export default function Home() {
 function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCancel, getCategoryColor, getCategoryLabel }: any) {
   const [editData, setEditData] = React.useState(schedule);
   const [newPrep, setNewPrep] = React.useState('');
+  const [showPicker, setShowPicker] = React.useState(false);
 
   const addPrep = () => {
     if (!newPrep.trim()) return;
@@ -1515,7 +1564,27 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">위치</label>
-            <Input value={editData.location || ''} onChange={e => setEditData({ ...editData, location: e.target.value })} placeholder="위치 입력" className="h-11" />
+            <div className="flex gap-2">
+              <Input value={editData.location || ''} onChange={e => setEditData({ ...editData, location: e.target.value })} placeholder="위치 입력" className="h-11" />
+              <Button type="button" variant="outline" onClick={() => setShowPicker(true)} className="h-11 gap-1.5 flex-shrink-0">
+                <MapPin className="w-4 h-4" /> 지도
+              </Button>
+            </div>
+            {editData.lat !== undefined && editData.lng !== undefined && (
+              <p className="text-xs text-primary flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> 좌표 선택됨 ({editData.lat.toFixed(5)}, {editData.lng.toFixed(5)})
+                <button type="button" onClick={() => setEditData({ ...editData, lat: undefined, lng: undefined })} className="text-red-400 hover:text-red-600 ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </p>
+            )}
+            <LocationPickerDialog
+              open={showPicker}
+              onOpenChange={setShowPicker}
+              initialLat={editData.lat}
+              initialLng={editData.lng}
+              onConfirm={(pickedLat, pickedLng) => setEditData({ ...editData, lat: pickedLat, lng: pickedLng })}
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">비용 (원)</label>
@@ -1701,6 +1770,9 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
   const [time, setTime] = useState('');
   const [category, setCategory] = useState<ScheduleItem['category']>('activity');
   const [location, setLocation] = useState('');
+  const [lat, setLat] = useState<number | undefined>(undefined);
+  const [lng, setLng] = useState<number | undefined>(undefined);
+  const [showPicker, setShowPicker] = useState(false);
   const [cost, setCost] = useState('');
   const [link, setLink] = useState('');
   const [notes, setNotes] = useState('');
@@ -1712,12 +1784,13 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
       id: Date.now().toString(),
       title, date, time, category,
       location: location || undefined,
+      lat, lng,
       cost: cost ? parseInt(cost) : undefined,
       link: link || undefined,
       notes: notes || undefined,
       preparations: preps ? preps.split(',').map(p => p.trim()).filter(Boolean) : []
     });
-    setTitle(''); setDate(''); setTime(''); setLocation(''); setCost(''); setLink(''); setNotes(''); setPreps('');
+    setTitle(''); setDate(''); setTime(''); setLocation(''); setLat(undefined); setLng(undefined); setCost(''); setLink(''); setNotes(''); setPreps('');
   };
 
   return (
@@ -1761,11 +1834,31 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
 
       <div className="space-y-1.5">
         <label className="text-sm font-semibold text-foreground">위치 <span className="text-slate-400 font-normal">(선택)</span></label>
-        <Input
-          placeholder="예: 인천국제공항 제1터미널"
-          value={location}
-          onChange={e => setLocation(e.target.value)}
-          className="h-11"
+        <div className="flex gap-2">
+          <Input
+            placeholder="예: 인천국제공항 제1터미널"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            className="h-11"
+          />
+          <Button type="button" variant="outline" onClick={() => setShowPicker(true)} className="h-11 gap-1.5 flex-shrink-0">
+            <MapPin className="w-4 h-4" /> 지도
+          </Button>
+        </div>
+        {lat !== undefined && lng !== undefined && (
+          <p className="text-xs text-primary flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> 좌표 선택됨 ({lat.toFixed(5)}, {lng.toFixed(5)})
+            <button type="button" onClick={() => { setLat(undefined); setLng(undefined); }} className="text-red-400 hover:text-red-600 ml-1">
+              <X className="w-3 h-3" />
+            </button>
+          </p>
+        )}
+        <LocationPickerDialog
+          open={showPicker}
+          onOpenChange={setShowPicker}
+          initialLat={lat}
+          initialLng={lng}
+          onConfirm={(pickedLat, pickedLng) => { setLat(pickedLat); setLng(pickedLng); }}
         />
       </div>
 

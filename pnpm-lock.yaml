@@ -197,6 +197,9 @@ importers:
       '@types/google.maps':
         specifier: ^3.58.1
         version: 3.58.1
+      '@types/navermaps':
+        specifier: ^3.9.2
+        version: 3.9.2
       '@types/node':
         specifier: ^24.7.0
         version: 24.7.0
@@ -1716,6 +1719,9 @@ packages:
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
+
+  '@types/navermaps@3.9.2':
+    resolution: {integrity: sha512-pPO38MFRRY+2wka0VdG3U9RlwLEVBwJVYy50KtQzwxNdJVVfas8Qlv4USx3wxvly7GNX9Cew2qfjdKEmLoQPKQ==}
 
   '@types/node@24.7.0':
     resolution: {integrity: sha512-IbKooQVqUBrlzWTi79E8Fw78l8k1RNtlDDNWsFZs7XonuQSJ8oNYfEeclhprUldXISRMLzBpILuKgPlIxm+/Yw==}
@@ -5020,6 +5026,10 @@ snapshots:
   '@types/mime@1.3.5': {}
 
   '@types/ms@2.1.0': {}
+
+  '@types/navermaps@3.9.2':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@types/node@24.7.0':
     dependencies:
