@@ -175,6 +175,16 @@ export interface MapMarker {
   lng: number;
   title?: string;
   draggable?: boolean;
+  /** 지정하면 마커에 번호/짧은 텍스트 배지가 표시됨 (예: 일정 목록과 대응되는 순번) */
+  label?: string;
+}
+
+function buildMarkerIcon(naverNs: typeof naver, label: string): naver.maps.HtmlIcon {
+  return {
+    content: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#4f7cff;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.35);border:2px solid #fff;"><span style="transform:rotate(45deg);color:#fff;font-weight:700;font-size:12px;line-height:1;">${label}</span></div>`,
+    size: new naverNs.maps.Size(28, 28),
+    anchor: new naverNs.maps.Point(14, 28),
+  };
 }
 
 interface MapViewProps {
@@ -215,6 +225,7 @@ export function MapView({
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<naver.maps.Map | null>(null);
   const markerObjsRef = useRef<globalThis.Map<string, naver.maps.Marker>>(new globalThis.Map());
+  const markerDataRef = useRef<globalThis.Map<string, MapMarker>>(new globalThis.Map());
   const currentLocationMarkerRef = useRef<naver.maps.Marker | null>(null);
   const infoWindowRef = useRef<naver.maps.InfoWindow | null>(null);
 
@@ -277,6 +288,7 @@ export function MapView({
         markerObjsRef.current.forEach(m => m.setMap(null));
       } catch { /* noop */ }
       markerObjsRef.current.clear();
+      markerDataRef.current.clear();
       try {
         currentLocationMarkerRef.current?.setMap(null);
       } catch { /* noop */ }
@@ -303,12 +315,18 @@ export function MapView({
       if (!incomingIds.has(id)) {
         markerObj.setMap(null);
         markerObjsRef.current.delete(id);
+        markerDataRef.current.delete(id);
       }
     });
 
     markers.forEach(m => {
+      // 최신 데이터를 별도로 보관 — 클릭 리스너는 마커 생성 시 1번만 등록되므로,
+      // 리스너 내부에서 title/label이 이후 바뀌어도 최신 값을 읽을 수 있도록 함
+      markerDataRef.current.set(m.id, m);
+
       const position = new naverNs.maps.LatLng(m.lat, m.lng);
       let markerObj = markerObjsRef.current.get(m.id);
+      const icon = m.label ? buildMarkerIcon(naverNs, m.label) : undefined;
 
       if (!markerObj) {
         markerObj = new naverNs.maps.Marker({
@@ -316,10 +334,12 @@ export function MapView({
           position,
           title: m.title,
           draggable: m.draggable !== false,
+          icon,
         });
         markerObjsRef.current.set(m.id, markerObj);
 
         naverNs.maps.Event.addListener(markerObj, "click", () => {
+          const current = markerDataRef.current.get(m.id);
           callbacksRef.current.onMarkerClick?.(m.id);
 
           infoWindowRef.current?.close();
@@ -327,7 +347,7 @@ export function MapView({
           content.style.cssText = "padding:10px 14px;min-width:140px;font-family:inherit;";
           const titleEl = document.createElement("p");
           titleEl.style.cssText = "font-weight:700;font-size:13px;margin:0 0 6px;color:#1f2937;";
-          titleEl.textContent = m.title || "선택한 위치";
+          titleEl.textContent = current?.title || "선택한 위치";
           content.appendChild(titleEl);
 
           if (callbacksRef.current.onMarkerDelete) {
@@ -361,6 +381,7 @@ export function MapView({
         markerObj.setPosition(position);
         markerObj.setTitle(m.title || "");
         markerObj.setDraggable(m.draggable !== false);
+        if (icon) markerObj.setIcon(icon);
       }
     });
 

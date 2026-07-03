@@ -158,6 +158,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   const pdfRef = useRef<HTMLDivElement>(null);
+  const scheduleMapRef = useRef<naver.maps.Map | null>(null);
 
   // LocalStorage에 데이터 저장 (유저별)
   const savePlans = (plans: TravelPlan[]) => {
@@ -1139,7 +1140,9 @@ export default function Home() {
                         </span>
                       </div>
                       {(() => {
-                        const pinned = currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined);
+                        const pinned = [...currentPlan.schedules]
+                          .filter(s => s.lat !== undefined && s.lng !== undefined)
+                          .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
                         if (pinned.length === 0) {
                           return (
                             <div className="text-center py-12 text-muted-foreground">
@@ -1149,22 +1152,68 @@ export default function Home() {
                             </div>
                           );
                         }
-                        const markers: MapMarker[] = pinned.map(s => ({
+                        const markers: MapMarker[] = pinned.map((s, i) => ({
                           id: s.id,
                           lat: s.lat as number,
                           lng: s.lng as number,
-                          title: `${s.date} ${s.time} · ${s.title}`,
+                          title: `${i + 1}. ${s.title} (${s.date} ${s.time})`,
                           draggable: false,
+                          label: String(i + 1),
                         }));
+                        const panToSchedule = (s: (typeof pinned)[number]) => {
+                          const map = scheduleMapRef.current;
+                          if (!map || s.lat === undefined || s.lng === undefined || !window.naver) return;
+                          map.morph(new window.naver.maps.LatLng(s.lat, s.lng), Math.max(map.getZoom(), 15));
+                        };
                         return (
-                          <MapView
-                            markers={markers}
-                            fitToMarkers
-                            onMarkerDelete={(id) => {
-                              const target = currentPlan.schedules.find(s => s.id === id);
-                              if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
-                            }}
-                          />
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <div className="lg:col-span-2">
+                              <MapView
+                                markers={markers}
+                                fitToMarkers
+                                onMapReady={map => {
+                                  scheduleMapRef.current = map;
+                                }}
+                                onMarkerDelete={id => {
+                                  const target = currentPlan.schedules.find(s => s.id === id);
+                                  if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                              <p className="text-xs font-semibold text-muted-foreground px-1 mb-1">
+                                번호를 눌러 지도에서 위치를 확인하세요
+                              </p>
+                              {pinned.map((s, i) => (
+                                <button
+                                  key={s.id}
+                                  type="button"
+                                  onClick={() => panToSchedule(s)}
+                                  className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                                >
+                                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                                    {i + 1}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <p className="text-sm font-bold text-foreground">{s.title}</p>
+                                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0", getCategoryColor(s.category))}>
+                                        {getCategoryLabel(s.category)}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                      <Calendar className="w-3 h-3 flex-shrink-0" /> {s.date} {s.time}
+                                    </p>
+                                    {s.location && (
+                                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                                        <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                                      </p>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         );
                       })()}
                     </Card>
