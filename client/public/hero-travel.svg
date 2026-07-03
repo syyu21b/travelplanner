@@ -49,6 +49,15 @@
   <filter id="fNear"> <feGaussianBlur stdDeviation="1"/></filter>
   <filter id="fGlow"> <feGaussianBlur stdDeviation="3"/></filter>
 
+  <!-- 열기구 부양 애니메이션 (진폭별 3단계) -->
+  <style>
+    <![CDATA[
+    @keyframes balloonFloatS { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes balloonFloatM { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes balloonFloatL { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+    ]]>
+  </style>
+
   <!-- 열기구 심볼 (기본형) -->
   <symbol id="balloon" viewBox="-40 -80 80 130">
     <!-- 외형 -->
@@ -153,6 +162,7 @@
 <!-- 이미지 기준으로 위치/크기 배치 -->
 
 <!-- [B1] 오른쪽 대형 - 베이지/크림 줄무늬 (이미지에서 가장 크고 우측에 위치) -->
+<g style="animation: balloonFloatL 7.2s ease-in-out infinite; animation-delay: -1s;">
 <g transform="translate(1318, 108) scale(0.95)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z"
         fill="#c8b8a0"/>
@@ -180,8 +190,10 @@
   <line x1="-24" y1="99" x2="24"  y2="99"  stroke="#9a7050" stroke-width="1" opacity="0.5"/>
   <line x1="-24" y1="107" x2="24" y2="107" stroke="#9a7050" stroke-width="1" opacity="0.5"/>
 </g>
+</g>
 
 <!-- [B2] 오른쪽 상단 - 작은 흰/크림색 열기구 -->
+<g style="animation: balloonFloatM 6.4s ease-in-out infinite; animation-delay: -3.6s;">
 <g transform="translate(1168, 52) scale(0.52)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#ddd0c0"/>
   <path d="M0,-82 Q12,-78 16,-50 Q16,0 10,40 Q4,64 0,82 Q-4,64 -10,40 Q-16,0 -16,-50 Q-12,-78 0,-82 Z" fill="#e8ddd0" opacity="0.6"/>
@@ -192,8 +204,10 @@
   <line x1="28"  y1="70" x2="18"  y2="88" stroke="#8a6848" stroke-width="1.5"/>
   <rect x="-20" y="87" width="40" height="18" rx="4" fill="#7a5838" opacity="0.88"/>
 </g>
+</g>
 
 <!-- [B3] 우중간 - 핑크/베이지 줄무늬 열기구 -->
+<g style="animation: balloonFloatM 6.9s ease-in-out infinite; animation-delay: -0.6s;">
 <g transform="translate(1090, 88) scale(0.60)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#d4b8a0"/>
   <path d="M0,-82 Q10,-78 14,-50 Q14,0 8,40 Q4,64 0,82 Q-4,64 -8,40 Q-14,0 -14,-50 Q-10,-78 0,-82 Z" fill="#e4cdb8" opacity="0.65"/>
@@ -204,8 +218,10 @@
   <line x1="28"  y1="70" x2="18"  y2="88" stroke="#8a6848" stroke-width="1.6"/>
   <rect x="-20" y="87" width="40" height="18" rx="4" fill="#7a5838" opacity="0.88"/>
 </g>
+</g>
 
 <!-- [B4] 중앙 우측 - 흰색/회색 줄무늬 -->
+<g style="animation: balloonFloatM 7.6s ease-in-out infinite; animation-delay: -2.3s;">
 <g transform="translate(980, 65) scale(0.50)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#d8d0c4"/>
   <!-- 세로 줄무늬 (회색) -->
@@ -218,8 +234,10 @@
   <line x1="28"  y1="70" x2="18"  y2="88" stroke="#8a6848" stroke-width="1.4"/>
   <rect x="-20" y="87" width="40" height="18" rx="4" fill="#7a5838" opacity="0.85"/>
 </g>
+</g>
 
 <!-- [B5] 중앙 - 적갈색/빨간 줄무늬 열기구 -->
+<g style="animation: balloonFloatM 6.6s ease-in-out infinite; animation-delay: -4.1s;">
 <g transform="translate(862, 95) scale(0.48)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#c0a888"/>
   <!-- 빨간 줄무늬 패널 -->
@@ -232,8 +250,10 @@
   <line x1="28"  y1="70" x2="18"  y2="88" stroke="#8a6848" stroke-width="1.4"/>
   <rect x="-20" y="87" width="40" height="18" rx="4" fill="#7a5838" opacity="0.88"/>
 </g>
+</g>
 
 <!-- [B6] 중앙 좌측 - 연한 핑크 열기구 -->
+<g style="animation: balloonFloatS 5.9s ease-in-out infinite; animation-delay: -1.7s;">
 <g transform="translate(740, 78) scale(0.44)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#d4c0b0"/>
   <path d="M-24,-74 Q-14,-52 -12,-14 Q-12,22 -18,54 Q-26,72 -38,76 Q-50,56 -54,-14 Q-50,-48 -38,-64 Z" fill="#c8b0a0" opacity="0.7"/>
@@ -244,8 +264,10 @@
   <line x1="28"  y1="70" x2="18"  y2="88" stroke="#8a6848" stroke-width="1.3"/>
   <rect x="-20" y="87" width="40" height="18" rx="4" fill="#7a5838" opacity="0.86"/>
 </g>
+</g>
 
 <!-- [B7] 좌측 중간 - 베이지/갈색 열기구 -->
+<g style="animation: balloonFloatM 7.3s ease-in-out infinite; animation-delay: -3.2s;">
 <g transform="translate(616, 108) scale(0.55)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#c8b898"/>
   <path d="M0,-82 Q12,-78 16,-50 Q16,0 10,40 Q4,64 0,82 Q-4,64 -10,40 Q-16,0 -16,-50 Q-12,-78 0,-82 Z" fill="#d8c8a8" opacity="0.6"/>
@@ -256,8 +278,10 @@
   <line x1="30"  y1="70" x2="20"  y2="90" stroke="#8a6848" stroke-width="1.5"/>
   <rect x="-22" y="89" width="44" height="20" rx="4" fill="#7a5838" opacity="0.88"/>
 </g>
+</g>
 
 <!-- [B8] 좌측 - 작은 흰 열기구 -->
+<g style="animation: balloonFloatS 6.2s ease-in-out infinite; animation-delay: -0.8s;">
 <g transform="translate(510, 95) scale(0.40)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#ddd4c8"/>
   <path d="M-24,-74 Q-14,-52 -12,-12 Q-12,24 -18,56 Q-26,72 -38,76 Q-50,56 -54,-12 Q-50,-48 -38,-64 Z" fill="#c8c0b4" opacity="0.65"/>
@@ -267,32 +291,43 @@
   <line x1="26"  y1="70" x2="16"  y2="86" stroke="#8a6848" stroke-width="1.3"/>
   <rect x="-18" y="85" width="36" height="16" rx="4" fill="#7a5838" opacity="0.85"/>
 </g>
+</g>
 
 <!-- [B9] 아주 먼 거리 - 지평선 근처 극소형들 -->
 <!-- 극소 B9a -->
+<g style="animation: balloonFloatS 5.6s ease-in-out infinite; animation-delay: -2.5s;">
 <g transform="translate(950, 162) scale(0.24)" opacity="0.7" filter="url(#fNear)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#c8b8a8"/>
   <rect x="-14" y="87" width="28" height="14" rx="3" fill="#7a5838"/>
 </g>
+</g>
 <!-- 극소 B9b -->
+<g style="animation: balloonFloatS 6.1s ease-in-out infinite; animation-delay: -1.1s;">
 <g transform="translate(1050, 150) scale(0.22)" opacity="0.65" filter="url(#fNear)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#d0a898"/>
   <rect x="-14" y="87" width="28" height="14" rx="3" fill="#7a5838"/>
 </g>
+</g>
 <!-- 극소 B9c -->
+<g style="animation: balloonFloatS 5.4s ease-in-out infinite; animation-delay: -3.8s;">
 <g transform="translate(840, 155) scale(0.20)" opacity="0.6" filter="url(#fNear)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#c0c8b8"/>
   <rect x="-14" y="87" width="28" height="14" rx="3" fill="#7a5838"/>
 </g>
+</g>
 <!-- 극소 B9d -->
+<g style="animation: balloonFloatS 6.7s ease-in-out infinite; animation-delay: -0.3s;">
 <g transform="translate(1140, 158) scale(0.20)" opacity="0.55" filter="url(#fNear)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#d4c0b0"/>
   <rect x="-14" y="87" width="28" height="14" rx="3" fill="#7a5838"/>
 </g>
+</g>
 <!-- 극소 B9e -->
+<g style="animation: balloonFloatS 5.8s ease-in-out infinite; animation-delay: -2.9s;">
 <g transform="translate(700, 148) scale(0.18)" opacity="0.55" filter="url(#fNear)">
   <path d="M0,-82 Q30,-80 50,-60 Q65,-40 66,-15 Q66,12 55,36 Q40,60 18,72 Q8,80 0,82 Q-8,80 -18,72 Q-40,60 -55,36 Q-66,12 -66,-15 Q-65,-40 -50,-60 Q-30,-80 0,-82 Z" fill="#c8b0a0"/>
   <rect x="-14" y="87" width="28" height="14" rx="3" fill="#7a5838"/>
+</g>
 </g>
 
 <!-- ══════════════ MIST / ATMOSPHERE OVERLAY ══════════════ -->
