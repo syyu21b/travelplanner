@@ -46,7 +46,9 @@ const SCRIPT_ATTR = "data-naver-maps-loader";
 let naverMapsLoadPromise: Promise<void> | null = null;
 
 function loadNaverMapsScript(): Promise<void> {
-  if (typeof window !== "undefined" && window.naver?.maps) {
+  // .Service(geocoder submodule)까지 확인 — naver.maps만 있고 Service가 없으면
+  // (예: 이 기능이 추가되기 전 스크립트가 이미 로드된 경우) 다시 로드해야 함
+  if (typeof window !== "undefined" && window.naver?.maps?.Service) {
     return Promise.resolve();
   }
   if (naverMapsLoadPromise) {
@@ -95,11 +97,26 @@ export function geocodeAddress(query: string): Promise<GeocodeResult[]> {
       new Promise((resolve, reject) => {
         const naverNs = window.naver;
         if (!naverNs?.maps?.Service) {
-          reject(new Error("주소 검색 기능을 사용할 수 없습니다."));
+          reject(new Error("주소 검색 기능을 사용할 수 없습니다. (geocoder submodule 로드 실패)"));
           return;
         }
+
+        // NCP 콘솔에서 Geocoding이 비활성화되어 있거나 도메인이 등록되지 않은 경우,
+        // SDK 콜백이 아예 호출되지 않을 수 있어 타임아웃으로 방어
+        let settled = false;
+        const timeoutId = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          reject(new Error("주소 검색 응답이 없습니다. NCP 콘솔에서 Geocoding이 활성화되어 있는지, 이 도메인이 등록되어 있는지 확인해주세요."));
+        }, 8000);
+
         naverNs.maps.Service.geocode({ query }, (status, response) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timeoutId);
+
           if (status !== naverNs.maps.Service.Status.OK) {
+            console.error("[naver geocode] 실패, status:", status, response);
             resolve([]);
             return;
           }

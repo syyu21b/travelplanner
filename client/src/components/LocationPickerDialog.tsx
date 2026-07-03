@@ -74,8 +74,9 @@ export function LocationPickerDialog({
       } else {
         setSearchResults(results.slice(0, 5));
       }
-    } catch {
-      toast.error("주소 검색 중 오류가 발생했습니다.");
+    } catch (err) {
+      console.error("[LocationPickerDialog] 주소 검색 실패:", err);
+      toast.error(err instanceof Error ? err.message : "주소 검색 중 오류가 발생했습니다.");
     } finally {
       setSearching(false);
     }
