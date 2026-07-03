@@ -115,9 +115,19 @@ export function geocodeAddress(query: string): Promise<GeocodeResult[]> {
           settled = true;
           window.clearTimeout(timeoutId);
 
+          console.log("[naver geocode] status:", status, "response:", response);
+
           if (status !== naverNs.maps.Service.Status.OK) {
-            console.error("[naver geocode] 실패, status:", status, response);
-            resolve([]);
+            reject(
+              new Error(
+                `네이버 지도 검색 요청이 실패했습니다 (status: ${status}). NCP 콘솔에서 이 애플리케이션에 Geocoding이 활성화되어 있는지, 이 도메인이 서비스 URL로 등록되어 있는지 확인해주세요.`
+              )
+            );
+            return;
+          }
+          if (response.v2.status !== "OK" || !response.v2.addresses || response.v2.addresses.length === 0) {
+            const reason = response.v2.errorMessage ? ` (사유: ${response.v2.errorMessage})` : "";
+            reject(new Error(`검색 결과가 없습니다${reason}. NCP 콘솔의 Geocoding 활성화 여부도 확인해보세요.`));
             return;
           }
           resolve(
