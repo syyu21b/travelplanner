@@ -67,9 +67,7 @@ export function LocationPickerDialog({
     setSearchResults([]);
     try {
       const results = await geocodeAddress(query);
-      if (results.length === 0) {
-        toast.error("검색 결과가 없습니다. 다른 주소나 장소명으로 시도해보세요.");
-      } else if (results.length === 1) {
+      if (results.length === 1) {
         selectLocation(results[0].lat, results[0].lng, results[0].roadAddress || results[0].jibunAddress);
       } else {
         setSearchResults(results.slice(0, 5));
@@ -107,8 +105,8 @@ export function LocationPickerDialog({
         </DialogHeader>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            주소나 장소명으로 검색하거나, 지도를 클릭해 위치를 지정하세요. 마커를 드래그해 조정하거나 클릭해 삭제할 수
-            있습니다.
+            도로명 주소 또는 지번 주소로 검색하거나(건물명·상호명 검색은 아직 지원되지 않습니다), 지도를 클릭해 위치를
+            지정하세요. 마커를 드래그해 조정하거나 클릭해 삭제할 수 있습니다.
           </p>
 
           {/* 검색 */}
@@ -123,7 +121,7 @@ export function LocationPickerDialog({
                     handleSearch();
                   }
                 }}
-                placeholder="예: 인천국제공항, 서울특별시 중구 세종대로 110"
+                placeholder="예: 서울특별시 중구 세종대로 110"
                 className="h-11"
               />
               <Button type="button" onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="h-11 gap-1.5 flex-shrink-0">

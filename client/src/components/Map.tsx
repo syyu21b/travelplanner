@@ -127,7 +127,11 @@ export function geocodeAddress(query: string): Promise<GeocodeResult[]> {
           }
           if (response.v2.status !== "OK" || !response.v2.addresses || response.v2.addresses.length === 0) {
             const reason = response.v2.errorMessage ? ` (사유: ${response.v2.errorMessage})` : "";
-            reject(new Error(`검색 결과가 없습니다${reason}. NCP 콘솔의 Geocoding 활성화 여부도 확인해보세요.`));
+            reject(
+              new Error(
+                `검색 결과가 없습니다${reason}. 정확한 도로명 주소나 지번 주소로 검색해보세요 (건물명·상호명 검색은 아직 지원되지 않습니다).`
+              )
+            );
             return;
           }
           resolve(
