@@ -517,6 +517,18 @@ export default function Home() {
     return labels[category] || '기타';
   };
 
+  const getCategoryDotColor = (category: string) => {
+    const colors: Record<string, string> = {
+      accommodation: 'bg-blue-500',
+      transport: 'bg-purple-500',
+      meal: 'bg-emerald-500',
+      activity: 'bg-indigo-500',
+      shopping: 'bg-orange-500',
+      other: 'bg-slate-400',
+    };
+    return colors[category] || colors.other;
+  };
+
   const totalBudget = currentPlan?.budgets?.reduce((sum, b) => sum + b.amount, 0) || 0;
 
   const handleCalcNumber = (num: string) => setCalcDisplay(prev => prev === '0' ? num : prev + num);
@@ -1104,13 +1116,14 @@ export default function Home() {
               {/* 메인: 탭 컨텐츠 */}
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6 bg-secondary/50 p-1 rounded-2xl mb-6">
+                  <TabsList className="grid w-full grid-cols-7 bg-secondary/50 p-1 rounded-2xl mb-6">
                     <TabsTrigger value="schedule" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">일정</TabsTrigger>
                     <TabsTrigger value="map" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">지도</TabsTrigger>
                     <TabsTrigger value="weather" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">날씨</TabsTrigger>
                     <TabsTrigger value="budget" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">예산</TabsTrigger>
                     <TabsTrigger value="shopping" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">쇼핑</TabsTrigger>
                     <TabsTrigger value="summary" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">준비물</TabsTrigger>
+                    <TabsTrigger value="timeline" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">타임라인</TabsTrigger>
                   </TabsList>
 
                   {/* 일정 탭 */}
@@ -1363,6 +1376,71 @@ export default function Home() {
                           ))
                         )}
                       </div>
+                    </Card>
+                  </TabsContent>
+
+                  {/* 타임라인 탭 */}
+                  <TabsContent value="timeline" className="space-y-4">
+                    <Card className="p-6 bg-white border-border">
+                      <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-primary" /> 일정 타임라인
+                      </h3>
+                      {currentPlan.schedules.length === 0 ? (
+                        <div className="text-center py-12 bg-secondary rounded-2xl">
+                          <p className="text-slate-400">아직 등록된 일정이 없습니다. "일정" 탭에서 일정을 추가해보세요.</p>
+                        </div>
+                      ) : (() => {
+                        const sorted = [...currentPlan.schedules].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+                        const grouped = sorted.reduce<Record<string, ScheduleItem[]>>((acc, s) => {
+                          (acc[s.date] ??= []).push(s);
+                          return acc;
+                        }, {});
+                        const dates = Object.keys(grouped).sort();
+                        const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                        return (
+                          <div className="space-y-8">
+                            {dates.map((date, dayIdx) => (
+                              <div key={date}>
+                                <div className="flex items-center gap-2 mb-4">
+                                  <span className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                                    {dayIdx + 1}
+                                  </span>
+                                  <p className="font-bold text-foreground">
+                                    {date}{' '}
+                                    <span className="text-muted-foreground font-normal text-sm">
+                                      ({weekdays[new Date(date + 'T00:00:00').getDay()]}요일)
+                                    </span>
+                                  </p>
+                                </div>
+                                <div className="relative pl-6 border-l-2 border-border space-y-6">
+                                  {grouped[date].map(s => (
+                                    <div key={s.id} className="relative">
+                                      <span className={cn("absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2 border-white shadow", getCategoryDotColor(s.category))} />
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-bold text-primary mb-0.5">{s.time}</p>
+                                          <p className="font-bold text-foreground truncate">{s.title}</p>
+                                          {s.location && (
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                                              <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0", getCategoryColor(s.category))}>
+                                          {getCategoryLabel(s.category)}
+                                        </span>
+                                      </div>
+                                      {!!s.cost && (
+                                        <p className="text-xs text-muted-foreground mt-1">₩{s.cost.toLocaleString()}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </Card>
                   </TabsContent>
                 </Tabs>
