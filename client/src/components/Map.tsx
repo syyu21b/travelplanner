@@ -32,6 +32,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { LocateFixed, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { recordNaverMapsUsage } from "@/lib/naverMapsUsage";
 
 declare global {
   interface Window {
@@ -110,6 +111,7 @@ export function geocodeAddress(query: string): Promise<GeocodeResult[]> {
           reject(new Error("주소 검색 응답이 없습니다. NCP 콘솔에서 Geocoding이 활성화되어 있는지, 이 도메인이 등록되어 있는지 확인해주세요."));
         }, 8000);
 
+        recordNaverMapsUsage("geocoding");
         naverNs.maps.Service.geocode({ query }, (status, response) => {
           if (settled) return;
           settled = true;
@@ -157,6 +159,7 @@ export function reverseGeocodeToAddress(lat: number, lng: number): Promise<strin
           resolve(null);
           return;
         }
+        recordNaverMapsUsage("geocoding");
         naverNs.maps.Service.reverseGeocode({ coords: new naverNs.maps.LatLng(lat, lng) }, (status, response) => {
           if (status !== naverNs.maps.Service.Status.OK) {
             resolve(null);
@@ -263,6 +266,7 @@ export function MapView({
           draggable: true,
         });
         mapRef.current = map;
+        recordNaverMapsUsage("dynamicMap");
 
         naverNs.maps.Event.addListener(map, "click", (e: naver.maps.PointerEvent) => {
           const coord = e.coord as naver.maps.LatLng;

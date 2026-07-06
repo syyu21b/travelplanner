@@ -10,6 +10,7 @@ import {
   Eye, EyeOff, X, CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { NaverMapsUsagePanel } from '@/components/NaverMapsUsagePanel';
 
 export default function AdminPage() {
   const { user, getAllUsers, adminUpdateUser, adminDeleteUser } = useAuth();
@@ -157,6 +158,8 @@ export default function AdminPage() {
             </div>
           </Card>
         </div>
+
+        <NaverMapsUsagePanel />
 
         {/* 회원 목록 */}
         <Card className="bg-white border-[#DED6CC]">
