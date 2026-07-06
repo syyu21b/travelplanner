@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
 import { MapView, type MapMarker } from '@/components/Map';
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
+import { WeatherWidget } from '@/components/WeatherWidget';
 
 interface ScheduleItem {
   id: string;
@@ -1077,9 +1078,10 @@ export default function Home() {
               {/* 메인: 탭 컨텐츠 */}
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5 bg-secondary/50 p-1 rounded-2xl mb-6">
+                  <TabsList className="grid w-full grid-cols-6 bg-secondary/50 p-1 rounded-2xl mb-6">
                     <TabsTrigger value="schedule" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">일정</TabsTrigger>
                     <TabsTrigger value="map" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">지도</TabsTrigger>
+                    <TabsTrigger value="weather" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">날씨</TabsTrigger>
                     <TabsTrigger value="budget" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">예산</TabsTrigger>
                     <TabsTrigger value="shopping" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">쇼핑</TabsTrigger>
                     <TabsTrigger value="summary" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">준비물</TabsTrigger>
@@ -1217,6 +1219,11 @@ export default function Home() {
                         );
                       })()}
                     </Card>
+                  </TabsContent>
+
+                  {/* 날씨 탭 */}
+                  <TabsContent value="weather" className="space-y-4">
+                    <WeatherWidget />
                   </TabsContent>
 
                   {/* 예산 탭 */}
