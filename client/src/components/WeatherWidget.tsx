@@ -10,6 +10,11 @@ import {
 import { cn } from "@/lib/utils";
 import { getWeatherInfo, getUvLevel } from "@/lib/weatherCodes";
 import { searchKoreaCities } from "@/lib/koreaCities";
+import { OVERSEAS_CITIES } from "@/lib/overseasCities";
+
+interface WeatherWidgetProps {
+  scope: "domestic" | "overseas";
+}
 
 interface CityPreset {
   name: string;
@@ -84,27 +89,47 @@ interface OpenMeteoResponse {
   daily: DailyWeather;
 }
 
-async function searchKoreanCity(query: string, signal?: AbortSignal): Promise<GeoResult[]> {
+interface OpenMeteoGeocodeResult {
+  name: string;
+  latitude: number;
+  longitude: number;
+  country_code?: string;
+  country?: string;
+  admin1?: string;
+  admin2?: string;
+}
+
+async function geocodeSearch(query: string, signal?: AbortSignal): Promise<OpenMeteoGeocodeResult[]> {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=ko&format=json`;
   const res = await fetch(url, { signal });
   if (!res.ok) {
     throw new Error(`위치 검색 요청이 실패했습니다. (status: ${res.status})`);
   }
   const data = await res.json();
-  const results = (data.results ?? []) as Array<{
-    name: string;
-    latitude: number;
-    longitude: number;
-    country_code?: string;
-    admin1?: string;
-    admin2?: string;
-  }>;
+  return (data.results ?? []) as OpenMeteoGeocodeResult[];
+}
+
+async function searchDomesticGeocode(query: string, signal?: AbortSignal): Promise<GeoResult[]> {
+  const results = await geocodeSearch(query, signal);
   const kr = results.filter(r => r.country_code === "KR");
   if (kr.length === 0) {
     throw new Error("대한민국 내 검색 결과가 없습니다. 다른 지명으로 검색해보세요.");
   }
   return kr.map(r => ({
     name: [r.name, r.admin1].filter(Boolean).join(", "),
+    lat: r.latitude,
+    lng: r.longitude,
+  }));
+}
+
+async function searchOverseasGeocode(query: string, signal?: AbortSignal): Promise<GeoResult[]> {
+  const results = await geocodeSearch(query, signal);
+  const overseas = results.filter(r => r.country_code !== "KR");
+  if (overseas.length === 0) {
+    throw new Error("해외 검색 결과가 없습니다. 영문 지명이나 정확한 도시명으로 검색해보세요.");
+  }
+  return overseas.map(r => ({
+    name: [r.name, r.admin1, r.country].filter(Boolean).join(", "),
     lat: r.latitude,
     lng: r.longitude,
   }));
@@ -128,7 +153,7 @@ async function fetchWeather(lat: number, lng: number, signal?: AbortSignal): Pro
       "sunrise", "sunset", "uv_index_max", "precipitation_sum",
       "snowfall_sum", "precipitation_probability_max", "wind_speed_10m_max",
     ].join(","),
-    timezone: "Asia/Seoul",
+    timezone: "auto",
     forecast_days: "7",
   });
   const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { signal });
@@ -155,8 +180,9 @@ function formatTime(iso: string): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-export function WeatherWidget() {
-  const [selectedCity, setSelectedCity] = useState<CityPreset>(PRESET_CITIES[0]);
+export function WeatherWidget({ scope }: WeatherWidgetProps) {
+  const presetCities = scope === "domestic" ? PRESET_CITIES : OVERSEAS_CITIES;
+  const [selectedCity, setSelectedCity] = useState<CityPreset>(() => presetCities[0]);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<GeoResult[]>([]);
@@ -192,21 +218,23 @@ export function WeatherWidget() {
     setSearchError(null);
     setSearchResults([]);
 
-    // 국내 주요 도시는 자체 목록에서 먼저 찾는다 (Open-Meteo 지오코딩은 한글 지명 검색이 불안정함)
-    const localMatches = searchKoreaCities(q);
-    if (localMatches.length === 1) {
-      setSelectedCity(localMatches[0]);
-      setQuery("");
-      return;
-    }
-    if (localMatches.length > 1) {
-      setSearchResults(localMatches.slice(0, 6));
-      return;
+    if (scope === "domestic") {
+      // 국내 주요 도시는 자체 목록에서 먼저 찾는다 (Open-Meteo 지오코딩은 한글 지명 검색이 불안정함)
+      const localMatches = searchKoreaCities(q);
+      if (localMatches.length === 1) {
+        setSelectedCity(localMatches[0]);
+        setQuery("");
+        return;
+      }
+      if (localMatches.length > 1) {
+        setSearchResults(localMatches.slice(0, 6));
+        return;
+      }
     }
 
     setSearching(true);
     try {
-      const results = await searchKoreanCity(q);
+      const results = scope === "domestic" ? await searchDomesticGeocode(q) : await searchOverseasGeocode(q);
       if (results.length === 1) {
         setSelectedCity({ name: results[0].name, lat: results[0].lat, lng: results[0].lng });
         setQuery("");
@@ -253,7 +281,7 @@ export function WeatherWidget() {
     <Card className="p-6 bg-white border-border space-y-5">
       <div>
         <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-3">
-          <Sun className="w-5 h-5 text-primary" /> 국내 날씨
+          <Sun className="w-5 h-5 text-primary" /> {scope === "domestic" ? "국내 날씨" : "해외 날씨"}
         </h3>
         <div className="relative">
           <div className="flex gap-2">
@@ -266,7 +294,7 @@ export function WeatherWidget() {
                   handleSearch();
                 }
               }}
-              placeholder="예: 서울, 부산, 강릉, 제주"
+              placeholder={scope === "domestic" ? "예: 서울, 부산, 강릉, 제주" : "예: 도쿄, 파리, 방콕, New York"}
               className="h-11"
             />
             <Button type="button" onClick={handleSearch} disabled={searching || !query.trim()} className="h-11 gap-1.5 flex-shrink-0">
@@ -296,7 +324,7 @@ export function WeatherWidget() {
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-3">
-          {PRESET_CITIES.map(city => (
+          {presetCities.map(city => (
             <button
               key={city.name}
               type="button"

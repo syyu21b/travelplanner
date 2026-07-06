@@ -1223,7 +1223,18 @@ export default function Home() {
 
                   {/* 날씨 탭 */}
                   <TabsContent value="weather" className="space-y-4">
-                    <WeatherWidget />
+                    <Tabs defaultValue="domestic" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 rounded-2xl mb-4">
+                        <TabsTrigger value="domestic" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">국내 날씨</TabsTrigger>
+                        <TabsTrigger value="overseas" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">해외 날씨</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="domestic">
+                        <WeatherWidget scope="domestic" />
+                      </TabsContent>
+                      <TabsContent value="overseas">
+                        <WeatherWidget scope="overseas" />
+                      </TabsContent>
+                    </Tabs>
                   </TabsContent>
 
                   {/* 예산 탭 */}
