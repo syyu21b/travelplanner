@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Heart, MessageCircle, Share2, Search, Globe, MapPin,
-  Calendar, Camera, Bookmark, BookmarkCheck, ChevronLeft,
+  Calendar, Camera, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight,
   Send, Trash2, Flag, TrendingUp, Clock, Users, Star,
   Filter, SortAsc, Plane, BookOpen, Edit2, Check, X, Shield
 } from 'lucide-react';
@@ -69,6 +69,8 @@ export default function Community() {
   const [sortBy, setSortBy] = useState<SortType>('latest');
   const [filterBy, setFilterBy] = useState<FilterType>('all');
   const [selectedTag, setSelectedTag] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const POSTS_PER_PAGE = 10;
   const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null);
   const [commentText, setCommentText] = useState('');
   const [savedDiaries, setSavedDiaries] = useState<string[]>([]);
@@ -180,6 +182,11 @@ export default function Community() {
       localStorage.setItem(`commentDraft_${selectedDiary.id}`, JSON.stringify(commentText));
     }
   }, [commentText, selectedDiary]);
+
+  // 검색어/태그/정렬이 바뀌면 1페이지로 돌아감
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedTag, sortBy]);
 
   const saveSaved = (ids: string[]) => {
     const all = JSON.parse(localStorage.getItem('savedDiaries') || '{}');
@@ -350,6 +357,14 @@ export default function Community() {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
+
+  // 페이징: 10개 초과 시 페이지 단위로 나눠서 표시
+  const totalPages = Math.max(1, Math.ceil(filteredDiaries.length / POSTS_PER_PAGE));
+  const currentPageSafe = Math.min(currentPage, totalPages);
+  const paginatedDiaries = filteredDiaries.slice(
+    (currentPageSafe - 1) * POSTS_PER_PAGE,
+    currentPageSafe * POSTS_PER_PAGE
+  );
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -914,8 +929,9 @@ export default function Community() {
                 </p>
               </Card>
             ) : (
+              <>
               <div className="space-y-6">
-                {filteredDiaries.map(diary => {
+                {paginatedDiaries.map(diary => {
                   const cmtCount = diaryComments(diary.id).length;
                   const isLiked = diary.likes.includes(user!.id);
                   const isSaved = savedDiaries.includes(diary.id);
@@ -1058,6 +1074,41 @@ export default function Community() {
                   );
                 })}
               </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1.5 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPageSafe === 1}
+                    className="w-9 h-9 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={cn(
+                        "w-9 h-9 flex items-center justify-center rounded-full text-sm font-bold transition",
+                        page === currentPageSafe ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPageSafe === totalPages}
+                    className="w-9 h-9 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              </>
             )}
           </div>
         </div>
