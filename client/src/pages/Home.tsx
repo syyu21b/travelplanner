@@ -602,6 +602,24 @@ export default function Home() {
     return '예정';
   };
 
+  // 여행 시작일까지 남은(혹은 지난) 일수를 D-day 형태로 계산
+  const getDday = (plan: TravelPlan): string => {
+    if (!plan.startDate || !plan.endDate) return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(plan.startDate + 'T00:00:00');
+    const end = new Date(plan.endDate + 'T00:00:00');
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const daysUntilStart = Math.round((start.getTime() - today.getTime()) / MS_PER_DAY);
+
+    if (daysUntilStart > 0) return `D-${daysUntilStart}`;
+    if (daysUntilStart === 0) return 'D-DAY';
+
+    const daysUntilEnd = Math.round((end.getTime() - today.getTime()) / MS_PER_DAY);
+    if (daysUntilEnd >= 0) return `여행 ${Math.abs(daysUntilStart) + 1}일째`;
+    return `D+${Math.abs(daysUntilEnd)}`;
+  };
+
   const getPlanThumbnail = (planId: string): string | null => {
     try {
       const diaries = JSON.parse(localStorage.getItem('travelDiaries') || '[]');
@@ -909,9 +927,14 @@ export default function Home() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <h3 className="font-bold text-foreground text-[15px] leading-snug line-clamp-1 group-hover:text-primary transition-colors">{plan.title}</h3>
-                              <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0", STATUS_STYLES[status])}>
-                                {status}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-primary">
+                                  {getDday(plan)}
+                                </span>
+                                <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full border", STATUS_STYLES[status])}>
+                                  {status}
+                                </span>
+                              </div>
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                               <Calendar className="w-3 h-3" /> {plan.startDate} ~ {plan.endDate}
@@ -990,6 +1013,9 @@ export default function Home() {
                     >
                       <Edit2 className="w-5 h-5" />
                     </button>
+                    <span className="text-sm font-bold px-3 py-1 rounded-full bg-primary text-white shadow-sm shadow-primary/30 flex-shrink-0">
+                      {getDday(currentPlan)}
+                    </span>
                   </div>
                 )}
 
@@ -1462,6 +1488,10 @@ export default function Home() {
                   <div>
                     <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">여행 기간</p>
                     <p className="font-bold text-foreground">{previewPlan.startDate} ~ {previewPlan.endDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">D-day</p>
+                    <p className="font-bold text-primary">{getDday(previewPlan)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">총 예산</p>
