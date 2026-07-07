@@ -998,31 +998,31 @@ export default function Home() {
                           className="flex flex-row gap-4 p-4 cursor-pointer hover:shadow-md transition-all bg-white border-border hover:border-primary/30 group"
                           onClick={() => setCurrentPlan(plan)}
                         >
-                          <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-xl overflow-hidden flex-shrink-0">
+                          <div className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-xl overflow-hidden flex-shrink-0">
                             {thumbnail ? (
                               <img src={thumbnail} alt={plan.title} className="w-full h-full object-cover" />
                             ) : (
                               <div className={cn("w-full h-full bg-gradient-to-br flex items-center justify-center", PLAN_GRADIENTS[idx % PLAN_GRADIENTS.length])}>
-                                <Plane className="w-9 h-9 text-white/80" />
+                                <Plane className="w-10 h-10 text-white/80" />
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <h3 className="font-bold text-foreground text-[15px] leading-snug line-clamp-1 group-hover:text-primary transition-colors">{plan.title}</h3>
+                            <div className="flex items-start justify-between gap-2 mb-1.5">
+                              <h3 className="font-bold text-foreground text-xl leading-snug line-clamp-1 group-hover:text-primary transition-colors">{plan.title}</h3>
                               <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-primary">
+                                <span className="text-xs font-bold px-2.5 py-1 rounded-full border border-primary/20 bg-primary/10 text-primary">
                                   {getDday(plan)}
                                 </span>
-                                <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full border", STATUS_STYLES[status])}>
+                                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border", STATUS_STYLES[status])}>
                                   {status}
                                 </span>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                              <Calendar className="w-3 h-3" /> {plan.startDate} ~ {plan.endDate}
+                            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                              <Calendar className="w-4 h-4" /> {plan.startDate} ~ {plan.endDate}
                             </p>
-                            <div className="flex items-center gap-3 mt-2 text-xs">
+                            <div className="flex items-center gap-3 mt-2.5 text-sm">
                               <span className="text-muted-foreground">일정 {plan.schedules.length}개</span>
                               <span className="text-muted-foreground">·</span>
                               <span className="text-primary font-semibold">예산 ₩{budget.toLocaleString()}</span>
