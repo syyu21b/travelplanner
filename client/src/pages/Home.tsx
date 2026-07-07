@@ -39,6 +39,7 @@ interface ScheduleItem {
   link?: string;
   notes?: string;
   preparations?: string[];
+  completed?: boolean;
 }
 
 interface Budget {
@@ -290,6 +291,14 @@ export default function Home() {
     toast.success('일정이 삭제되었습니다!');
   };
 
+  const handleToggleScheduleComplete = (scheduleId: string) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({
+      ...currentPlan,
+      schedules: currentPlan.schedules.map(s => s.id === scheduleId ? { ...s, completed: !s.completed } : s),
+    });
+  };
+
   const handleAddBudget = (budget: Budget) => {
     if (!currentPlan) return;
     updateCurrentPlan({ ...currentPlan, budgets: [...currentPlan.budgets, budget] });
@@ -517,18 +526,6 @@ export default function Home() {
     return labels[category] || '기타';
   };
 
-  const getCategoryDotColor = (category: string) => {
-    const colors: Record<string, string> = {
-      accommodation: 'bg-blue-500',
-      transport: 'bg-purple-500',
-      meal: 'bg-emerald-500',
-      activity: 'bg-indigo-500',
-      shopping: 'bg-orange-500',
-      other: 'bg-slate-400',
-    };
-    return colors[category] || colors.other;
-  };
-
   const totalBudget = currentPlan?.budgets?.reduce((sum, b) => sum + b.amount, 0) || 0;
 
   const handleCalcNumber = (num: string) => setCalcDisplay(prev => prev === '0' ? num : prev + num);
@@ -679,28 +676,28 @@ export default function Home() {
             <h1 className="text-xl font-extrabold text-foreground tracking-tight hidden sm:block">Travel Planner</h1>
           </button>
 
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
             <Link href="/">
-              <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-sm">
+              <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-sm whitespace-nowrap">
                 <Plane className="w-4 h-4" />
                 <span className="hidden sm:inline">여행 계획</span>
               </button>
             </Link>
             <Link href="/diary">
-              <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all text-muted-foreground hover:bg-secondary hover:text-foreground">
+              <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all text-muted-foreground hover:bg-secondary hover:text-foreground whitespace-nowrap">
                 <BookOpen className="w-4 h-4" />
                 <span className="hidden sm:inline">여행 기록</span>
               </button>
             </Link>
             <Link href="/community">
-              <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all text-muted-foreground hover:bg-secondary hover:text-foreground">
+              <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all text-muted-foreground hover:bg-secondary hover:text-foreground whitespace-nowrap">
                 <Globe className="w-4 h-4" />
                 <span className="hidden sm:inline">커뮤니티</span>
               </button>
             </Link>
             {user?.isAdmin && (
               <Link href="/admin">
-                <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all text-amber-600 hover:bg-amber-50">
+                <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all text-amber-600 hover:bg-amber-50 whitespace-nowrap">
                   <Shield className="w-4 h-4" />
                   <span className="hidden sm:inline">관리자</span>
                 </button>
@@ -709,10 +706,10 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
+            <button className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
               <Search className="w-4 h-4" />
             </button>
-            <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
+            <button className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
               <Bell className="w-4 h-4" />
             </button>
             <DropdownMenu>
@@ -1116,14 +1113,17 @@ export default function Home() {
               {/* 메인: 탭 컨텐츠 */}
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
-                  <TabsList className="grid w-full grid-cols-7 bg-secondary/50 p-1 rounded-2xl mb-6">
-                    <TabsTrigger value="schedule" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">일정</TabsTrigger>
-                    <TabsTrigger value="map" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">지도</TabsTrigger>
-                    <TabsTrigger value="weather" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">날씨</TabsTrigger>
-                    <TabsTrigger value="budget" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">예산</TabsTrigger>
-                    <TabsTrigger value="shopping" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">쇼핑</TabsTrigger>
-                    <TabsTrigger value="summary" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">준비물</TabsTrigger>
-                    <TabsTrigger value="timeline" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">타임라인</TabsTrigger>
+                  <TabsList
+                    className="flex sm:grid w-full sm:grid-cols-7 gap-1 overflow-x-auto sm:overflow-visible bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
+                    style={{ scrollbarWidth: 'none' }}
+                  >
+                    <TabsTrigger value="schedule" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">일정</TabsTrigger>
+                    <TabsTrigger value="map" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">지도</TabsTrigger>
+                    <TabsTrigger value="weather" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">날씨</TabsTrigger>
+                    <TabsTrigger value="budget" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">예산</TabsTrigger>
+                    <TabsTrigger value="shopping" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">쇼핑</TabsTrigger>
+                    <TabsTrigger value="summary" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">준비물</TabsTrigger>
+                    <TabsTrigger value="timeline" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">타임라인</TabsTrigger>
                   </TabsList>
 
                   {/* 일정 탭 */}
@@ -1382,9 +1382,21 @@ export default function Home() {
                   {/* 타임라인 탭 */}
                   <TabsContent value="timeline" className="space-y-4">
                     <Card className="p-6 bg-white border-border">
-                      <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-primary" /> 일정 타임라인
-                      </h3>
+                      <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-primary" /> 일정 타임라인
+                          {currentPlan.schedules.length > 0 && (
+                            <span className="text-sm font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                              {Math.round((currentPlan.schedules.filter(s => s.completed).length / currentPlan.schedules.length) * 100)}% 완료
+                            </span>
+                          )}
+                        </h3>
+                        {currentPlan.schedules.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {currentPlan.schedules.filter(s => s.completed).length} / {currentPlan.schedules.length}개 완료
+                          </span>
+                        )}
+                      </div>
                       {currentPlan.schedules.length === 0 ? (
                         <div className="text-center py-12 bg-secondary rounded-2xl">
                           <p className="text-slate-400">아직 등록된 일정이 없습니다. "일정" 탭에서 일정을 추가해보세요.</p>
@@ -1415,11 +1427,21 @@ export default function Home() {
                                 <div className="relative pl-6 border-l-2 border-border space-y-6">
                                   {grouped[date].map(s => (
                                     <div key={s.id} className="relative">
-                                      <span className={cn("absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2 border-white shadow", getCategoryDotColor(s.category))} />
-                                      <div className="flex items-start justify-between gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleScheduleComplete(s.id)}
+                                        aria-label={s.completed ? '완료 취소' : '완료 표시'}
+                                        className={cn(
+                                          "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
+                                          s.completed ? "bg-primary border-primary" : "bg-white border-border hover:border-primary"
+                                        )}
+                                      >
+                                        {s.completed && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                                      </button>
+                                      <div className={cn("flex items-start justify-between gap-2 transition-opacity", s.completed && "opacity-50")}>
                                         <div className="min-w-0">
                                           <p className="text-xs font-bold text-primary mb-0.5">{s.time}</p>
-                                          <p className="font-bold text-foreground truncate">{s.title}</p>
+                                          <p className={cn("font-bold text-foreground truncate", s.completed && "line-through")}>{s.title}</p>
                                           {s.location && (
                                             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
                                               <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
@@ -1431,7 +1453,7 @@ export default function Home() {
                                         </span>
                                       </div>
                                       {!!s.cost && (
-                                        <p className="text-xs text-muted-foreground mt-1">₩{s.cost.toLocaleString()}</p>
+                                        <p className={cn("text-xs text-muted-foreground mt-1", s.completed && "opacity-50")}>₩{s.cost.toLocaleString()}</p>
                                       )}
                                     </div>
                                   ))}

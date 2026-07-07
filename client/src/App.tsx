@@ -34,10 +34,10 @@ function SharedNav() {
           <span className="text-xl font-extrabold text-foreground tracking-tight hidden sm:block">Travel Planner</span>
         </button>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           <Link href="/">
             <button className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all",
+              "flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap",
               location === "/" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}>
               <Plane className="w-4 h-4" />
@@ -46,7 +46,7 @@ function SharedNav() {
           </Link>
           <Link href="/diary">
             <button className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all",
+              "flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap",
               location === "/diary" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}>
               <BookOpen className="w-4 h-4" />
@@ -55,7 +55,7 @@ function SharedNav() {
           </Link>
           <Link href="/community">
             <button className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all",
+              "flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap",
               location === "/community" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}>
               <Globe className="w-4 h-4" />
@@ -65,7 +65,7 @@ function SharedNav() {
           {user?.isAdmin && (
             <Link href="/admin">
               <button className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all",
+                "flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap",
                 location === "/admin" ? "bg-amber-500 text-white shadow-sm" : "text-amber-600 hover:bg-amber-50"
               )}>
                 <Shield className="w-4 h-4" />

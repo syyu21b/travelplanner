@@ -206,7 +206,7 @@ export default function AuthPage() {
         {BG}
         <div className="relative w-full max-w-md">
           {Logo}
-          <Card className="p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
+          <Card className="p-5 sm:p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
             <button
               onClick={() => switchMode('login')}
               className="flex items-center gap-1 text-[#A68B77] text-sm font-semibold mb-6 hover:text-[#7D6B5D] transition-colors"
@@ -382,7 +382,7 @@ export default function AuthPage() {
       <div className="relative w-full max-w-md">
         {Logo}
 
-        <Card className="p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
+        <Card className="p-5 sm:p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
           {/* 탭 */}
           <div className="mb-6">
             <div className="flex bg-[#E8E2D9] rounded-xl p-1 gap-1">

@@ -108,7 +108,7 @@ export default function TravelDiary() {
   const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
   const [userPlans] = useState<TravelPlan[]>(loadUserPlans);
   const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(loadCurrentDiary);
-  const [showNewDialog, setShowNewDialog] = useState(draft ? true : false);
+  const [showNewDialog, setShowNewDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   // New diary form state

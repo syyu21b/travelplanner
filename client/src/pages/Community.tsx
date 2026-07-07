@@ -497,7 +497,7 @@ export default function Community() {
                     <button
                       onClick={() => setActivePhotoIndex(i => Math.max(0, i - 1))}
                       className={cn(
-                        "absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-1 hover:bg-black/60 transition",
+                        "absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/60 transition",
                         activePhotoIndex === 0 && "opacity-30 pointer-events-none"
                       )}
                     >
@@ -506,7 +506,7 @@ export default function Community() {
                     <button
                       onClick={() => setActivePhotoIndex(i => Math.min(diary.photos.length - 1, i + 1))}
                       className={cn(
-                        "absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-1 hover:bg-black/60 transition",
+                        "absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/60 transition",
                         activePhotoIndex === diary.photos.length - 1 && "opacity-30 pointer-events-none"
                       )}
                     >
@@ -1076,12 +1076,12 @@ export default function Community() {
               </div>
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-1.5 mt-8">
+                <div className="flex items-center justify-center flex-wrap gap-1.5 mt-8">
                   <button
                     type="button"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPageSafe === 1}
-                    className="w-9 h-9 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -1091,7 +1091,7 @@ export default function Community() {
                       type="button"
                       onClick={() => setCurrentPage(page)}
                       className={cn(
-                        "w-9 h-9 flex items-center justify-center rounded-full text-sm font-bold transition",
+                        "w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full text-sm font-bold transition",
                         page === currentPageSafe ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
                       )}
                     >
@@ -1102,7 +1102,7 @@ export default function Community() {
                     type="button"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPageSafe === totalPages}
-                    className="w-9 h-9 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

@@ -442,17 +442,17 @@ export function WeatherWidget({ scope }: WeatherWidgetProps) {
               {weather.daily.time.map((day, i) => {
                 const info = getWeatherInfo(weather.daily.weather_code[i]);
                 return (
-                  <div key={day} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-secondary/40 transition-colors">
-                    <span className="text-xs font-bold text-foreground w-16 flex-shrink-0">{i === 0 ? "오늘" : formatDay(day)}</span>
-                    <span className="text-xl w-8 flex-shrink-0">{info.emoji}</span>
+                  <div key={day} className="flex items-center gap-1.5 sm:gap-3 px-1.5 sm:px-3 py-2 rounded-xl hover:bg-secondary/40 transition-colors">
+                    <span className="text-[11px] sm:text-xs font-bold text-foreground w-9 sm:w-16 flex-shrink-0">{i === 0 ? "오늘" : formatDay(day)}</span>
+                    <span className="text-lg sm:text-xl w-6 sm:w-8 flex-shrink-0">{info.emoji}</span>
                     <span className="text-xs text-muted-foreground flex-1 min-w-0 truncate hidden sm:block">{info.label}</span>
-                    <span className="text-xs text-blue-500 font-semibold flex items-center gap-0.5 w-12 flex-shrink-0">
+                    <span className="text-[10px] sm:text-xs text-blue-500 font-semibold flex items-center gap-0.5 w-9 sm:w-12 flex-shrink-0">
                       <CloudRain className="w-3 h-3" /> {weather.daily.precipitation_probability_max[i]}%
                     </span>
-                    <span className={cn("text-xs font-semibold w-10 flex-shrink-0", getUvLevel(weather.daily.uv_index_max[i]).color)}>
+                    <span className={cn("text-xs font-semibold w-10 flex-shrink-0 hidden sm:block", getUvLevel(weather.daily.uv_index_max[i]).color)}>
                       UV {Math.round(weather.daily.uv_index_max[i])}
                     </span>
-                    <span className="text-sm font-bold text-foreground w-20 text-right flex-shrink-0">
+                    <span className="text-xs sm:text-sm font-bold text-foreground w-16 sm:w-20 text-right flex-shrink-0">
                       {Math.round(weather.daily.temperature_2m_max[i])}° / {Math.round(weather.daily.temperature_2m_min[i])}°
                     </span>
                   </div>

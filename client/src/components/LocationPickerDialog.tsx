@@ -149,7 +149,7 @@ export function LocationPickerDialog({
           </div>
 
           <MapView
-            className="h-[400px]"
+            className="h-[260px] sm:h-[400px]"
             initialCenter={picked ?? DEFAULT_CENTER}
             initialZoom={picked ? 16 : 12}
             markers={markers}
