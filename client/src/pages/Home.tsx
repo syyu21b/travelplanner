@@ -76,7 +76,7 @@ function compressPlanCoverPhoto(file: File): Promise<string> {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX = 800;
+        const MAX = 1400;
         let { width, height } = img;
         if (width > height) {
           if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
@@ -86,7 +86,7 @@ function compressPlanCoverPhoto(file: File): Promise<string> {
         canvas.width = width;
         canvas.height = height;
         canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
       };
       img.src = e.target!.result as string;
     };
@@ -998,16 +998,16 @@ export default function Home() {
                           className="flex gap-4 p-4 cursor-pointer hover:shadow-md transition-all bg-white border-border hover:border-primary/30 group"
                           onClick={() => setCurrentPlan(plan)}
                         >
-                          <div className="w-20 h-20 md:w-[88px] md:h-[88px] rounded-xl overflow-hidden flex-shrink-0">
+                          <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-xl overflow-hidden flex-shrink-0">
                             {thumbnail ? (
                               <img src={thumbnail} alt={plan.title} className="w-full h-full object-cover" />
                             ) : (
                               <div className={cn("w-full h-full bg-gradient-to-br flex items-center justify-center", PLAN_GRADIENTS[idx % PLAN_GRADIENTS.length])}>
-                                <Plane className="w-7 h-7 text-white/80" />
+                                <Plane className="w-9 h-9 text-white/80" />
                               </div>
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <h3 className="font-bold text-foreground text-[15px] leading-snug line-clamp-1 group-hover:text-primary transition-colors">{plan.title}</h3>
                               <div className="flex items-center gap-1.5 flex-shrink-0">
