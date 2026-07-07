@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  Search, Bell, ChevronDown
+  Search, Bell, ChevronDown, Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as QRCodeLib from 'qrcode.react';
@@ -63,9 +63,35 @@ interface TravelPlan {
   title: string;
   startDate: string;
   endDate: string;
+  coverPhoto?: string;
   schedules: ScheduleItem[];
   budgets: Budget[];
   shoppingList: ShoppingItem[];
+}
+
+function compressPlanCoverPhoto(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 800;
+        let { width, height } = img;
+        if (width > height) {
+          if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
+        } else {
+          if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = e.target!.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function Home() {
@@ -139,6 +165,11 @@ export default function Home() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState('');
 
+  // 날짜 수정 상태
+  const [editingDates, setEditingDates] = useState(false);
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editingShoppingId, setEditingShoppingId] = useState<string | null>(null);
@@ -161,6 +192,7 @@ export default function Home() {
 
   const pdfRef = useRef<HTMLDivElement>(null);
   const scheduleMapRef = useRef<naver.maps.Map | null>(null);
+  const planPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // LocalStorage에 데이터 저장 (유저별)
   const savePlans = (plans: TravelPlan[]) => {
@@ -264,6 +296,48 @@ export default function Home() {
   const handleCancelEditTitle = () => {
     setEditingTitle(false);
     setEditTitleValue('');
+  };
+
+  // 날짜 수정
+  const handleStartEditDates = () => {
+    if (!currentPlan) return;
+    setEditStartDate(currentPlan.startDate);
+    setEditEndDate(currentPlan.endDate);
+    setEditingDates(true);
+  };
+
+  const handleSaveDates = () => {
+    if (!currentPlan || !editStartDate || !editEndDate) {
+      toast.error('시작일과 종료일을 모두 입력해주세요');
+      return;
+    }
+    if (editStartDate > editEndDate) {
+      toast.error('종료일은 시작일보다 빠를 수 없습니다');
+      return;
+    }
+    updateCurrentPlan({ ...currentPlan, startDate: editStartDate, endDate: editEndDate });
+    setEditingDates(false);
+    toast.success('날짜가 수정되었습니다!');
+  };
+
+  const handleCancelEditDates = () => {
+    setEditingDates(false);
+    setEditStartDate('');
+    setEditEndDate('');
+  };
+
+  // 여행 대표 사진 업로드
+  const handlePlanPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !currentPlan) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드할 수 있습니다');
+      return;
+    }
+    const compressed = await compressPlanCoverPhoto(file);
+    updateCurrentPlan({ ...currentPlan, coverPhoto: compressed });
+    toast.success('대표 사진이 설정되었습니다!');
   };
 
   const handleAddSchedule = (schedule: ScheduleItem) => {
@@ -916,7 +990,7 @@ export default function Home() {
                   <div className="space-y-3">
                     {filtered.map((plan, idx) => {
                       const status = getPlanStatus(plan);
-                      const thumbnail = getPlanThumbnail(plan.id);
+                      const thumbnail = plan.coverPhoto || getPlanThumbnail(plan.id);
                       const budget = plan.budgets.reduce((s, b) => s + b.amount, 0);
                       return (
                         <Card
@@ -981,56 +1055,117 @@ export default function Home() {
             <>
           <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
+              <div className="flex items-start gap-4">
+                {/* 대표 사진 */}
                 <button
-                  onClick={() => { setCurrentPlan(null); setEditingTitle(false); }}
-                  className="text-primary font-semibold text-sm hover:underline mb-2 flex items-center gap-1"
+                  type="button"
+                  onClick={() => planPhotoInputRef.current?.click()}
+                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-border group/cover"
+                  title="대표 사진 설정"
                 >
-                  ← 목록으로 돌아가기
+                  {currentPlan.coverPhoto ? (
+                    <img src={currentPlan.coverPhoto} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <Plane className="w-7 h-7 text-primary/50" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover/cover:bg-black/40 transition-colors flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-white opacity-0 group-hover/cover:opacity-100 transition-opacity" />
+                  </div>
                 </button>
+                <input
+                  ref={planPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePlanPhotoUpload}
+                  className="hidden"
+                />
 
-                {/* 제목 수정 영역 */}
-                {editingTitle ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={editTitleValue}
-                      onChange={e => setEditTitleValue(e.target.value)}
-                      className="text-2xl font-black h-12 text-foreground border-primary"
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleSaveTitle();
-                        if (e.key === 'Escape') handleCancelEditTitle();
-                      }}
-                      autoFocus
-                    />
-                    <Button onClick={handleSaveTitle} size="sm" className="bg-primary text-white gap-1">
-                      <Check className="w-4 h-4" /> 저장
-                    </Button>
-                    <Button onClick={handleCancelEditTitle} size="sm" variant="outline" className="gap-1">
-                      <X className="w-4 h-4" /> 취소
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-4xl font-black text-foreground flex items-center gap-3">
-                      {currentPlan.title}
-                      <Plane className="text-primary" />
-                    </h2>
-                    <button
-                      onClick={handleStartEditTitle}
-                      className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                      title="제목 수정"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <span className="text-sm font-bold px-3 py-1 rounded-full bg-primary text-white shadow-sm shadow-primary/30 flex-shrink-0">
-                      {getDday(currentPlan)}
-                    </span>
-                  </div>
-                )}
+                <div>
+                  <button
+                    onClick={() => { setCurrentPlan(null); setEditingTitle(false); setEditingDates(false); }}
+                    className="text-primary font-semibold text-sm hover:underline mb-2 flex items-center gap-1"
+                  >
+                    ← 목록으로 돌아가기
+                  </button>
 
-                <p className="text-muted-foreground font-medium mt-1 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" /> {currentPlan.startDate} ~ {currentPlan.endDate}
-                </p>
+                  {/* 제목 수정 영역 */}
+                  {editingTitle ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editTitleValue}
+                        onChange={e => setEditTitleValue(e.target.value)}
+                        className="text-2xl font-black h-12 text-foreground border-primary"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleSaveTitle();
+                          if (e.key === 'Escape') handleCancelEditTitle();
+                        }}
+                        autoFocus
+                      />
+                      <Button onClick={handleSaveTitle} size="sm" className="bg-primary text-white gap-1">
+                        <Check className="w-4 h-4" /> 저장
+                      </Button>
+                      <Button onClick={handleCancelEditTitle} size="sm" variant="outline" className="gap-1">
+                        <X className="w-4 h-4" /> 취소
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-4xl font-black text-foreground flex items-center gap-3">
+                        {currentPlan.title}
+                        <Plane className="text-primary" />
+                      </h2>
+                      <button
+                        onClick={handleStartEditTitle}
+                        className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary"
+                        title="제목 수정"
+                      >
+                        <Edit2 className="w-5 h-5" />
+                      </button>
+                      <span className="text-sm font-bold px-3 py-1 rounded-full bg-primary text-white shadow-sm shadow-primary/30 flex-shrink-0">
+                        {getDday(currentPlan)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 날짜 수정 영역 */}
+                  {editingDates ? (
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <Input
+                        type="date"
+                        value={editStartDate}
+                        onChange={e => setEditStartDate(e.target.value)}
+                        className="h-9 w-auto"
+                        autoFocus
+                      />
+                      <span className="text-muted-foreground">~</span>
+                      <Input
+                        type="date"
+                        value={editEndDate}
+                        onChange={e => setEditEndDate(e.target.value)}
+                        className="h-9 w-auto"
+                      />
+                      <Button onClick={handleSaveDates} size="sm" className="bg-primary text-white gap-1">
+                        <Check className="w-4 h-4" /> 저장
+                      </Button>
+                      <Button onClick={handleCancelEditDates} size="sm" variant="outline" className="gap-1">
+                        <X className="w-4 h-4" /> 취소
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground font-medium mt-1 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" /> {currentPlan.startDate} ~ {currentPlan.endDate}
+                      <button
+                        onClick={handleStartEditDates}
+                        className="p-1 text-slate-400 hover:text-primary transition-colors rounded hover:bg-secondary"
+                        title="날짜 수정"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="flex gap-3">
                 <Button onClick={generateComprehensivePDF} className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-100">
