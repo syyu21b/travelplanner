@@ -26,12 +26,12 @@ function SharedNav() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-2">
         <button
           onClick={() => setLocation("/")}
-          className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+          className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
         >
-          <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
-            <Plane className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
+            <Plane className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <span className="text-xl font-extrabold text-foreground tracking-tight hidden sm:block">Travel Planner</span>
+          <span className="text-base sm:text-xl font-extrabold text-foreground tracking-tight whitespace-nowrap">Travel Planner</span>
         </button>
 
         <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
