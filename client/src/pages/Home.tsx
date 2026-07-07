@@ -995,7 +995,7 @@ export default function Home() {
                       return (
                         <Card
                           key={plan.id}
-                          className="flex gap-4 p-4 cursor-pointer hover:shadow-md transition-all bg-white border-border hover:border-primary/30 group"
+                          className="flex flex-row gap-4 p-4 cursor-pointer hover:shadow-md transition-all bg-white border-border hover:border-primary/30 group"
                           onClick={() => setCurrentPlan(plan)}
                         >
                           <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-xl overflow-hidden flex-shrink-0">
