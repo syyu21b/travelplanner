@@ -5,6 +5,9 @@ import { Route, Switch, Link, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import NotificationBell from "./components/NotificationBell";
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import TravelDiary from "./pages/TravelDiary";
@@ -18,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 function SharedNav() {
   const { user, logout, getProfilePhoto } = useAuth();
+  const { t } = useLanguage();
   const [location, setLocation] = useLocation();
   const profilePhoto = user ? getProfilePhoto(user.id) : null;
 
@@ -41,7 +45,7 @@ function SharedNav() {
               location === "/" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}>
               <Plane className="w-4 h-4" />
-              <span className="hidden sm:inline">여행 계획</span>
+              <span className="hidden sm:inline">{t("nav.plan")}</span>
             </button>
           </Link>
           <Link href="/diary">
@@ -50,7 +54,7 @@ function SharedNav() {
               location === "/diary" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}>
               <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">여행 기록</span>
+              <span className="hidden sm:inline">{t("nav.diary")}</span>
             </button>
           </Link>
           <Link href="/community">
@@ -59,7 +63,7 @@ function SharedNav() {
               location === "/community" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}>
               <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">커뮤니티</span>
+              <span className="hidden sm:inline">{t("nav.community")}</span>
             </button>
           </Link>
           {user?.isAdmin && (
@@ -69,13 +73,14 @@ function SharedNav() {
                 location === "/admin" ? "bg-amber-500 text-white shadow-sm" : "text-amber-600 hover:bg-amber-50"
               )}>
                 <Shield className="w-4 h-4" />
-                <span className="hidden sm:inline">관리자</span>
+                <span className="hidden sm:inline">{t("nav.admin")}</span>
               </button>
             </Link>
           )}
         </nav>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          <NotificationBell />
           {/* 마이페이지 (프로필 아바타/이름 클릭) */}
           <Link href="/mypage">
             <button className={cn(
@@ -112,7 +117,7 @@ function SharedNav() {
             className="text-slate-500 hover:text-red-500 gap-1.5"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">로그아웃</span>
+            <span className="hidden sm:inline">{t("nav.logout")}</span>
           </Button>
         </div>
       </div>
@@ -122,12 +127,13 @@ function SharedNav() {
 
 function ProtectedRouter() {
   const { user, isLoading } = useAuth();
+  const { t } = useLanguage();
   const [location] = useLocation();
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F9F7F2] flex items-center justify-center">
-        <div className="text-[#A68B77] text-lg font-semibold">로딩 중...</div>
+        <div className="text-[#A68B77] text-lg font-semibold">{t("nav.loading")}</div>
       </div>
     );
   }
@@ -172,14 +178,18 @@ function ProtectedRouter() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <AuthProvider>
-            <ProtectedRouter />
-          </AuthProvider>
-        </TooltipProvider>
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider defaultTheme="light">
+          <TooltipProvider>
+            <Toaster />
+            <AuthProvider>
+              <NotificationProvider>
+                <ProtectedRouter />
+              </NotificationProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

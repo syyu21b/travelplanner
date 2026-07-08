@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface DiaryPhoto {
   id: string;
@@ -65,6 +67,8 @@ type FilterType = 'all' | 'following';
 
 export default function Community() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
+  const { notify } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortType>('latest');
   const [filterBy, setFilterBy] = useState<FilterType>('all');
@@ -200,6 +204,9 @@ export default function Community() {
   const diaryComments = (diaryId: string) => comments.filter(c => c.diaryId === diaryId);
 
   const handleToggleLike = (diaryId: string) => {
+    const target = diaries.find(d => d.id === diaryId);
+    const wasLiked = target ? target.likes.includes(user!.id) : false;
+    const prevLikeCount = target ? target.likes.length : 0;
     const updated = diaries.map(d => {
       if (d.id !== diaryId) return d;
       const likes = d.likes.includes(user!.id)
@@ -213,6 +220,15 @@ export default function Community() {
       const found = updated.find(d => d.id === diaryId);
       if (found) setSelectedDiary(found);
     }
+    if (target && !wasLiked) {
+      const newTarget = updated.find(d => d.id === diaryId);
+      if (user!.id !== target.userId) {
+        notify({ recipientId: target.userId, type: 'like', actorName: user!.name, diaryId: target.id, diaryTitle: target.title });
+      }
+      if (newTarget && prevLikeCount < 5 && newTarget.likes.length >= 5) {
+        notify({ recipientId: target.userId, type: 'popular', diaryId: target.id, diaryTitle: target.title });
+      }
+    }
   };
 
   const handleToggleSave = (diaryId: string) => {
@@ -220,7 +236,7 @@ export default function Community() {
       ? savedDiaries.filter(id => id !== diaryId)
       : [...savedDiaries, diaryId];
     saveSaved(newSaved);
-    toast.success(savedDiaries.includes(diaryId) ? '저장 취소되었습니다.' : '저장되었습니다!');
+    toast.success(savedDiaries.includes(diaryId) ? t('community.actions.unsaveToast') : t('community.actions.saveToast'));
   };
 
   const handleAddComment = (diaryId: string) => {
@@ -239,14 +255,18 @@ export default function Community() {
     setComments(updated);
     setCommentText('');
     localStorage.removeItem(`commentDraft_${diaryId}`);
-    toast.success('댓글이 등록되었습니다!');
+    toast.success(t('community.comments.addSuccess'));
+    const target = diaries.find(d => d.id === diaryId);
+    if (target && user!.id !== target.userId) {
+      notify({ recipientId: target.userId, type: 'comment', actorName: user!.name, diaryId: target.id, diaryTitle: target.title });
+    }
   };
 
   const handleDeleteComment = (commentId: string) => {
     const updated = comments.filter(c => c.id !== commentId);
     localStorage.setItem('diaryComments', JSON.stringify(updated));
     setComments(updated);
-    toast.success('댓글이 삭제되었습니다.');
+    toast.success(t('community.comments.deleteSuccess'));
   };
 
   const handleEditComment = (comment: Comment) => {
@@ -263,7 +283,7 @@ export default function Community() {
     setComments(updated);
     setEditingCommentId(null);
     setEditingCommentText('');
-    toast.success('댓글이 수정되었습니다!');
+    toast.success(t('community.comments.editSuccess'));
   };
 
   const handleCancelEditComment = () => {
@@ -278,7 +298,7 @@ export default function Community() {
     setDiaries(updated);
     if (selectedDiary?.id === diaryId) setSelectedDiary(null);
     setDeleteDiaryId(null);
-    toast.success('게시글이 삭제되었습니다.');
+    toast.success(t('community.admin.deleteSuccess'));
   };
 
   // ── 관리자 게시글 수정 열기
@@ -292,7 +312,7 @@ export default function Community() {
   // ── 관리자 게시글 수정 저장
   const handleSaveEditDiary = () => {
     if (!editingDiary || !editDiaryTitle.trim() || !editDiaryContent.trim()) {
-      toast.error('제목과 내용을 입력해주세요.'); return;
+      toast.error(t('community.admin.saveError')); return;
     }
     const updated = diaries.map(d =>
       d.id === editingDiary.id
@@ -305,7 +325,7 @@ export default function Community() {
       setSelectedDiary(updated.find(d => d.id === editingDiary.id) || null);
     }
     setEditingDiary(null);
-    toast.success('게시글이 수정되었습니다.');
+    toast.success(t('community.admin.editSuccess'));
   };
 
   const handleLikeComment = (commentId: string) => {
@@ -321,9 +341,9 @@ export default function Community() {
   };
 
   const getUserName = (userId: string): string => {
-    if (userId === user?.id) return user?.name || '나';
+    if (userId === user?.id) return user?.name || t('community.userName.me');
     const users = getUsers();
-    return users.find(u => u.id === userId)?.name || '여행자';
+    return users.find(u => u.id === userId)?.name || t('community.userName.traveler');
   };
 
   // Get all tags from public diaries
@@ -371,11 +391,11 @@ export default function Community() {
     const mins = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-    if (mins < 1) return '방금 전';
-    if (mins < 60) return `${mins}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
-    return new Date(dateStr).toLocaleDateString('ko-KR');
+    if (mins < 1) return t('community.time.justNow');
+    if (mins < 60) return t('community.time.minutesAgo', { n: mins });
+    if (hours < 24) return t('community.time.hoursAgo', { n: hours });
+    if (days < 7) return t('community.time.daysAgo', { n: days });
+    return new Date(dateStr).toLocaleDateString(language === 'en' ? 'en-US' : 'ko-KR');
   };
 
   if (selectedDiary) {
@@ -401,7 +421,7 @@ export default function Community() {
               onClick={() => { setSelectedDiary(null); setActivePhotoIndex(0); }}
               className="text-primary font-semibold text-sm hover:underline flex items-center gap-1"
             >
-              <ChevronLeft className="w-4 h-4" /> 커뮤니티
+              <ChevronLeft className="w-4 h-4" /> {t('community.detail.back')}
             </button>
             <span className="text-border">›</span>
             <span className="text-foreground font-semibold text-sm truncate">{diary.title}</span>
@@ -426,14 +446,14 @@ export default function Community() {
                   <button
                     onClick={() => openEditDiary(diary)}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition text-xs font-semibold"
-                    title="관리자: 게시글 수정"
+                    title={t('community.admin.editTooltip')}
                   >
                     <Shield className="w-3.5 h-3.5" /><Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setDeleteDiaryId(diary.id)}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition text-xs font-semibold"
-                    title="관리자: 게시글 삭제"
+                    title={t('community.admin.deleteTooltip')}
                   >
                     <Shield className="w-3.5 h-3.5" /><Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -445,7 +465,7 @@ export default function Community() {
                   "p-2 rounded-full border transition",
                   isSaved ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground hover:border-primary hover:text-primary"
                 )}
-                title={isSaved ? '저장 취소' : '저장하기'}
+                title={isSaved ? t('community.actions.unsaveTooltip') : t('community.actions.saveTooltip')}
               >
                 {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
               </button>
@@ -558,7 +578,7 @@ export default function Community() {
             <div className="mb-6 p-4 bg-secondary rounded-xl border border-border flex items-center gap-3">
               <Plane className="w-5 h-5 text-primary flex-shrink-0" />
               <div>
-                <p className="text-xs text-muted-foreground">연결된 여행 계획</p>
+                <p className="text-xs text-muted-foreground">{t('community.detail.linkedPlan')}</p>
                 <p className="font-semibold text-foreground">{diary.linkedPlanTitle}</p>
               </div>
             </div>
@@ -574,20 +594,20 @@ export default function Community() {
               )}
             >
               <Heart className={cn("w-5 h-5", isLiked && "fill-red-500")} />
-              {diary.likes.length > 0 ? diary.likes.length : ''} 좋아요
+              {diary.likes.length > 0 ? diary.likes.length : ''} {t('community.detail.likes')}
             </button>
             <button
               className="flex items-center gap-2 font-semibold text-sm text-muted-foreground hover:text-primary transition"
             >
               <MessageCircle className="w-5 h-5" />
-              {cmts.length > 0 ? cmts.length : ''} 댓글
+              {cmts.length > 0 ? cmts.length : ''} {t('community.detail.comments')}
             </button>
           </div>
 
           {/* Comments section */}
           <div className="space-y-4">
             <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-primary" /> 댓글 ({cmts.length})
+              <MessageCircle className="w-5 h-5 text-primary" /> {t('community.detail.commentsHeading', { count: cmts.length })}
             </h3>
 
             <div className="flex gap-2">
@@ -596,7 +616,7 @@ export default function Community() {
               </div>
               <div className="flex-1 flex gap-2">
                 <Textarea
-                  placeholder="댓글을 입력하세요..."
+                  placeholder={t('community.detail.commentPlaceholder')}
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
                   className="min-h-[80px] resize-none text-sm"
@@ -616,7 +636,7 @@ export default function Community() {
 
             {cmts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
-                첫 번째 댓글을 남겨보세요! 💬
+                {t('community.detail.noComments')}
               </div>
             ) : (
               <div className="space-y-4">
@@ -641,7 +661,7 @@ export default function Community() {
                                 size="sm"
                                 className="bg-primary text-white h-7 px-3 text-xs"
                               >
-                                <Check className="w-3 h-3 mr-1" /> 저장
+                                <Check className="w-3 h-3 mr-1" /> {t('community.common.save')}
                               </Button>
                               <Button
                                 onClick={handleCancelEditComment}
@@ -649,7 +669,7 @@ export default function Community() {
                                 variant="outline"
                                 className="h-7 px-3 text-xs"
                               >
-                                <X className="w-3 h-3 mr-1" /> 취소
+                                <X className="w-3 h-3 mr-1" /> {t('community.common.cancel')}
                               </Button>
                             </div>
                           </div>
@@ -657,7 +677,7 @@ export default function Community() {
                           <div className="bg-secondary rounded-2xl rounded-tl-none px-4 py-3">
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-bold text-foreground text-sm">{comment.userName}</span>
-                              <span className="text-xs text-muted-foreground">{timeAgo(comment.updatedAt || comment.createdAt)}{comment.updatedAt && comment.updatedAt !== comment.createdAt ? ' (수정됨)' : ''}</span>
+                              <span className="text-xs text-muted-foreground">{timeAgo(comment.updatedAt || comment.createdAt)}{comment.updatedAt && comment.updatedAt !== comment.createdAt ? ` ${t('community.detail.edited')}` : ''}</span>
                             </div>
                             <p className="text-foreground text-sm leading-relaxed">{comment.content}</p>
                           </div>
@@ -677,7 +697,7 @@ export default function Community() {
                             <>
                               {user?.isAdmin && comment.userId !== user.id && (
                                 <span className="text-xs text-amber-600 flex items-center gap-0.5 font-semibold">
-                                  <Shield className="w-3 h-3" /> 관리
+                                  <Shield className="w-3 h-3" /> {t('community.admin.badge')}
                                 </span>
                               )}
                               <button
@@ -689,13 +709,13 @@ export default function Community() {
                                     : "text-muted-foreground hover:text-primary"
                                 )}
                               >
-                                <Edit2 className="w-3 h-3" /> 수정
+                                <Edit2 className="w-3 h-3" /> {t('community.common.edit')}
                               </button>
                               <button
                                 onClick={() => handleDeleteComment(comment.id)}
                                 className="text-xs text-muted-foreground hover:text-red-500 transition flex items-center gap-1"
                               >
-                                <Trash2 className="w-3 h-3" /> 삭제
+                                <Trash2 className="w-3 h-3" /> {t('community.common.delete')}
                               </button>
                             </>
                           )}
@@ -714,12 +734,12 @@ export default function Community() {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-amber-700">
-                <Shield className="w-5 h-5" /> 관리자 게시글 수정
+                <Shield className="w-5 h-5" /> {t('community.admin.editModalTitle')}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">제목</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">{t('community.admin.fieldTitle')}</label>
                 <input
                   value={editDiaryTitle}
                   onChange={e => setEditDiaryTitle(e.target.value)}
@@ -727,7 +747,7 @@ export default function Community() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">여행지</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">{t('community.admin.fieldLocation')}</label>
                 <input
                   value={editDiaryLocation}
                   onChange={e => setEditDiaryLocation(e.target.value)}
@@ -735,7 +755,7 @@ export default function Community() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">내용</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">{t('community.admin.fieldContent')}</label>
                 <textarea
                   value={editDiaryContent}
                   onChange={e => setEditDiaryContent(e.target.value)}
@@ -745,10 +765,10 @@ export default function Community() {
               </div>
               <div className="flex gap-2 pt-1">
                 <Button variant="outline" onClick={() => setEditingDiary(null)} className="flex-1">
-                  <X className="w-4 h-4 mr-1" /> 취소
+                  <X className="w-4 h-4 mr-1" /> {t('community.common.cancel')}
                 </Button>
                 <Button onClick={handleSaveEditDiary} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white">
-                  <Check className="w-4 h-4 mr-1" /> 저장
+                  <Check className="w-4 h-4 mr-1" /> {t('community.common.save')}
                 </Button>
               </div>
             </div>
@@ -760,20 +780,20 @@ export default function Community() {
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-red-600">
-                <Trash2 className="w-5 h-5" /> 게시글 삭제
+                <Trash2 className="w-5 h-5" /> {t('community.admin.deleteModalTitle')}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                <p className="font-semibold">이 게시글을 삭제하시겠습니까?</p>
-                <p className="text-xs mt-1 text-red-500">삭제된 게시글은 복구할 수 없습니다.</p>
+                <p className="font-semibold">{t('community.admin.deleteConfirm')}</p>
+                <p className="text-xs mt-1 text-red-500">{t('community.admin.deleteWarning')}</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setDeleteDiaryId(null)} className="flex-1">
-                  취소
+                  {t('community.common.cancel')}
                 </Button>
                 <Button onClick={() => deleteDiaryId && handleDeleteDiary(deleteDiaryId)} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-                  <Trash2 className="w-4 h-4 mr-1" /> 삭제
+                  <Trash2 className="w-4 h-4 mr-1" /> {t('community.common.delete')}
                 </Button>
               </div>
             </div>
@@ -789,28 +809,28 @@ export default function Community() {
         {/* Header */}
         <div className="mb-8">
           <h2 className="text-3xl font-black text-foreground flex items-center gap-3">
-            <Globe className="w-8 h-8 text-primary" /> 커뮤니티
+            <Globe className="w-8 h-8 text-primary" /> {t('community.header.title')}
           </h2>
-          <p className="text-muted-foreground mt-1">여행자들의 생생한 여행 이야기를 만나보세요</p>
+          <p className="text-muted-foreground mt-1">{t('community.header.subtitle')}</p>
         </div>
 
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <Card className="p-4 bg-white border-border text-center">
             <p className="text-2xl font-black text-primary">{publicDiaries.length}</p>
-            <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1"><BookOpen className="w-3 h-3" /> 총 후기</p>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1"><BookOpen className="w-3 h-3" /> {t('community.stats.totalReviews')}</p>
           </Card>
           <Card className="p-4 bg-white border-border text-center">
             <p className="text-2xl font-black text-primary">
               {[...new Set(publicDiaries.map(d => d.userId))].length}
             </p>
-            <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> 여행자</p>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> {t('community.stats.travelers')}</p>
           </Card>
           <Card className="p-4 bg-white border-border text-center">
             <p className="text-2xl font-black text-primary">
               {[...new Set(publicDiaries.map(d => d.location))].length}
             </p>
-            <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1"><MapPin className="w-3 h-3" /> 여행지</p>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1"><MapPin className="w-3 h-3" /> {t('community.stats.destinations')}</p>
           </Card>
         </div>
 
@@ -821,7 +841,7 @@ export default function Community() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="여행지, 제목 검색..."
+                placeholder={t('community.search.placeholder')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="pl-10 h-11"
@@ -831,13 +851,13 @@ export default function Community() {
             {/* Sort */}
             <Card className="p-4 bg-white border-border">
               <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-                <SortAsc className="w-4 h-4 text-primary" /> 정렬
+                <SortAsc className="w-4 h-4 text-primary" /> {t('community.sort.title')}
               </h4>
               <div className="space-y-2">
                 {([
-                  { value: 'latest', label: '최신순', icon: Clock },
-                  { value: 'popular', label: '인기순', icon: TrendingUp },
-                  { value: 'comments', label: '댓글 많은순', icon: MessageCircle },
+                  { value: 'latest', label: t('community.sort.latest'), icon: Clock },
+                  { value: 'popular', label: t('community.sort.popular'), icon: TrendingUp },
+                  { value: 'comments', label: t('community.sort.comments'), icon: MessageCircle },
                 ] as const).map(({ value, label, icon: Icon }) => (
                   <button
                     key={value}
@@ -859,7 +879,7 @@ export default function Community() {
             {allTags.length > 0 && (
               <Card className="p-4 bg-white border-border">
                 <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-primary" /> 인기 태그
+                  <Filter className="w-4 h-4 text-primary" /> {t('community.tags.title')}
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedTag && (
@@ -867,7 +887,7 @@ export default function Community() {
                       onClick={() => setSelectedTag('')}
                       className="px-3 py-1 rounded-full text-xs font-semibold bg-secondary text-muted-foreground border border-border hover:border-primary transition flex items-center gap-1"
                     >
-                      전체 <span className="text-red-400">×</span>
+                      {t('community.common.all')} <span className="text-red-400">×</span>
                     </button>
                   )}
                   {allTags.map(tag => (
@@ -892,7 +912,7 @@ export default function Community() {
             {savedDiaries.length > 0 && (
               <Card className="p-4 bg-white border-border">
                 <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-                  <Bookmark className="w-4 h-4 text-primary" /> 저장한 글 ({savedDiaries.length})
+                  <Bookmark className="w-4 h-4 text-primary" /> {t('community.saved.title', { count: savedDiaries.length })}
                 </h4>
                 <div className="space-y-2">
                   {publicDiaries
@@ -920,12 +940,12 @@ export default function Community() {
               <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
                 <Globe className="w-16 h-16 text-border mb-4" />
                 <h3 className="text-xl font-bold text-foreground mb-2">
-                  {publicDiaries.length === 0 ? '아직 공유된 여행 기록이 없어요' : '검색 결과가 없습니다'}
+                  {publicDiaries.length === 0 ? t('community.empty.noPostsTitle') : t('community.empty.noResultsTitle')}
                 </h3>
                 <p className="text-muted-foreground text-center">
                   {publicDiaries.length === 0
-                    ? '여행 기록을 작성하고 공개 설정을 켜면 커뮤니티에 공유됩니다!'
-                    : '다른 검색어나 태그로 시도해보세요.'}
+                    ? t('community.empty.noPostsSubtitle')
+                    : t('community.empty.noResultsSubtitle')}
                 </p>
               </Card>
             ) : (
@@ -961,7 +981,7 @@ export default function Community() {
                             <button
                               onClick={e => { e.stopPropagation(); setDeleteDiaryId(diary.id); }}
                               className="p-1.5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition"
-                              title="관리자: 게시글 삭제"
+                              title={t('community.admin.deleteTooltip')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1057,7 +1077,13 @@ export default function Community() {
                             {cmtCount > 0 && cmtCount}
                           </button>
                           <button
-                            onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('링크 복사!'); }}
+                            onClick={() => {
+                              navigator.clipboard.writeText(window.location.href);
+                              toast.success(t('community.actions.shareToast'));
+                              if (user!.id !== diary.userId) {
+                                notify({ recipientId: diary.userId, type: 'share', actorName: user!.name, diaryId: diary.id, diaryTitle: diary.title });
+                              }
+                            }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-primary transition ml-auto"
                           >
                             <Share2 className="w-4 h-4" />
@@ -1066,7 +1092,7 @@ export default function Community() {
                             onClick={() => handleViewDiary(diary)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-white transition"
                           >
-                            자세히 보기 →
+                            {t('community.card.viewDetail')}
                           </button>
                         </div>
                       </div>
@@ -1119,18 +1145,18 @@ export default function Community() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="w-5 h-5" /> 게시글 삭제
+              <Trash2 className="w-5 h-5" /> {t('community.admin.deleteModalTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              <p className="font-semibold">이 게시글을 삭제하시겠습니까?</p>
-              <p className="text-xs mt-1 text-red-500">삭제된 게시글은 복구할 수 없습니다.</p>
+              <p className="font-semibold">{t('community.admin.deleteConfirm')}</p>
+              <p className="text-xs mt-1 text-red-500">{t('community.admin.deleteWarning')}</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setDeleteDiaryId(null)} className="flex-1">취소</Button>
+              <Button variant="outline" onClick={() => setDeleteDiaryId(null)} className="flex-1">{t('community.common.cancel')}</Button>
               <Button onClick={() => deleteDiaryId && handleDeleteDiary(deleteDiaryId)} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-                <Trash2 className="w-4 h-4 mr-1" /> 삭제
+                <Trash2 className="w-4 h-4 mr-1" /> {t('community.common.delete')}
               </Button>
             </div>
           </div>

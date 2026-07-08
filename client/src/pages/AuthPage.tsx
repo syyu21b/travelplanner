@@ -4,12 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plane, Mail, Lock, User, Eye, EyeOff, AtSign, CheckCircle, XCircle, Shield, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 type Mode = 'login' | 'register' | 'findId' | 'findPassword';
 
+const STRENGTH_KEYS = ['', 'veryWeak', 'weak', 'normal', 'strong', 'veryStrong'] as const;
+
 function getPasswordStrength(pw: string) {
-  if (!pw) return { score: 0, label: '', color: '', bgColor: '' };
+  if (!pw) return { score: 0, color: '', bgColor: '' };
   let score = 0;
   if (pw.length >= 8) score++;
   if (/[A-Z]/.test(pw)) score++;
@@ -17,12 +20,12 @@ function getPasswordStrength(pw: string) {
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   const levels = [
-    { label: '', color: '', bgColor: '' },
-    { label: '매우 약함', color: 'text-red-500', bgColor: 'bg-red-500' },
-    { label: '약함', color: 'text-orange-500', bgColor: 'bg-orange-400' },
-    { label: '보통', color: 'text-yellow-600', bgColor: 'bg-yellow-400' },
-    { label: '강함', color: 'text-blue-600', bgColor: 'bg-blue-400' },
-    { label: '매우 강함', color: 'text-green-600', bgColor: 'bg-green-500' },
+    { color: '', bgColor: '' },
+    { color: 'text-red-500', bgColor: 'bg-red-500' },
+    { color: 'text-orange-500', bgColor: 'bg-orange-400' },
+    { color: 'text-yellow-600', bgColor: 'bg-yellow-400' },
+    { color: 'text-blue-600', bgColor: 'bg-blue-400' },
+    { color: 'text-green-600', bgColor: 'bg-green-500' },
   ];
   return { score, ...levels[score] };
 }
@@ -34,24 +37,29 @@ const BG = (
   </div>
 );
 
-const Logo = (
-  <div className="text-center mb-8">
-    <div className="inline-flex items-center justify-center w-16 h-16 bg-[#A68B77] rounded-2xl shadow-lg mb-4">
-      <Plane className="w-8 h-8 text-white" />
+function Logo({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="text-center mb-8">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-[#A68B77] rounded-2xl shadow-lg mb-4">
+        <Plane className="w-8 h-8 text-white" />
+      </div>
+      <h1 className="text-4xl font-bold text-[#7D6B5D]">Travel Planner</h1>
+      <p className="text-[#A68B77] mt-2 font-light">{t('auth.tagline')}</p>
     </div>
-    <h1 className="text-4xl font-bold text-[#7D6B5D]">Travel Planner</h1>
-    <p className="text-[#A68B77] mt-2 font-light">나만의 여행 계획을 시작해보세요</p>
-  </div>
-);
+  );
+}
 
-const Footer = (
-  <p className="text-center text-[#A68B77] text-xs mt-6">
-    Travel Planner © 2025 · 나만의 여행을 계획하세요
-  </p>
-);
+function Footer({ t }: { t: (key: string) => string }) {
+  return (
+    <p className="text-center text-[#A68B77] text-xs mt-6">
+      Travel Planner © 2025 · {t('auth.footerTagline')}
+    </p>
+  );
+}
 
 export default function AuthPage() {
   const { login, register, checkUsername, checkNickname, findUsernameByEmail, resetPassword } = useAuth();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<Mode>('login');
 
   // ── Login
@@ -107,60 +115,60 @@ export default function AuthPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError('');
-    if (!loginId || !loginPw) { setLoginError('아이디와 비밀번호를 입력해주세요.'); return; }
+    if (!loginId || !loginPw) { setLoginError(t('auth.errors.loginRequired')); return; }
     setIsLoading(true);
     try {
       const result = await login(loginId, loginPw);
       if (result.success) toast.success(result.message);
-      else setLoginError('아이디 또는 비밀번호가 일치하지 않습니다.');
+      else setLoginError(t('auth.errors.loginFailed'));
     } finally {
       setIsLoading(false);
     }
   }
 
   function handleCheckNickname() {
-    if (!nickname.trim()) { toast.error('닉네임을 입력해주세요.'); return; }
-    if (nickname.length < 2 || nickname.length > 10) { toast.error('닉네임은 2~10자로 입력해주세요.'); return; }
+    if (!nickname.trim()) { toast.error(t('auth.errors.nicknameRequired')); return; }
+    if (nickname.length < 2 || nickname.length > 10) { toast.error(t('auth.errors.nicknameLength')); return; }
     const ok = checkNickname(nickname);
     setNicknameOk(ok);
-    toast[ok ? 'success' : 'error'](ok ? '사용 가능한 닉네임입니다.' : '이미 사용 중인 닉네임입니다.');
+    toast[ok ? 'success' : 'error'](ok ? t('auth.register.nicknameAvailable') : t('auth.register.nicknameTaken'));
   }
 
   function handleCheckUsername() {
-    if (!username.trim()) { toast.error('아이디를 입력해주세요.'); return; }
-    if (!/^[a-zA-Z0-9_]{4,20}$/.test(username)) { toast.error('4~20자의 영문, 숫자, 밑줄(_)만 사용 가능합니다.'); return; }
+    if (!username.trim()) { toast.error(t('auth.errors.usernameRequired')); return; }
+    if (!/^[a-zA-Z0-9_]{4,20}$/.test(username)) { toast.error(t('auth.errors.usernameFormat')); return; }
     const ok = checkUsername(username);
     setUsernameOk(ok);
-    toast[ok ? 'success' : 'error'](ok ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.');
+    toast[ok ? 'success' : 'error'](ok ? t('auth.register.usernameAvailable') : t('auth.register.usernameTaken'));
   }
 
   function handleSendCode() {
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error('올바른 이메일을 입력해주세요.'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error(t('auth.errors.emailInvalid')); return; }
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setSentCode(code);
     setCodeSent(true);
     setEmailVerified(false);
     setInputCode('');
-    toast.success(`인증코드가 발송되었습니다. (테스트 코드: ${code})`);
+    toast.success(t('auth.errors.codeSent', { code }));
   }
 
   function handleVerifyCode() {
     if (inputCode === sentCode) {
       setEmailVerified(true);
-      toast.success('이메일 인증이 완료되었습니다!');
+      toast.success(t('auth.errors.emailVerifySuccess'));
     } else {
-      toast.error('인증코드가 올바르지 않습니다.');
+      toast.error(t('auth.errors.codeInvalid'));
     }
   }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (nicknameOk !== true) { toast.error('닉네임 중복 확인을 완료해주세요.'); return; }
-    if (usernameOk !== true) { toast.error('아이디 중복 확인을 완료해주세요.'); return; }
-    if (regPw.length < 8) { toast.error('비밀번호는 8자 이상이어야 합니다.'); return; }
-    if (pwStrength.score < 3) { toast.error('비밀번호 보안이 너무 약합니다. 대문자, 숫자, 특수문자를 포함해주세요.'); return; }
-    if (regPw !== regPwConfirm) { toast.error('비밀번호가 일치하지 않습니다.'); return; }
-    if (!emailVerified) { toast.error('이메일 인증을 완료해주세요.'); return; }
+    if (nicknameOk !== true) { toast.error(t('auth.errors.nicknameCheckRequired')); return; }
+    if (usernameOk !== true) { toast.error(t('auth.errors.usernameCheckRequired')); return; }
+    if (regPw.length < 8) { toast.error(t('auth.errors.passwordTooShort')); return; }
+    if (pwStrength.score < 3) { toast.error(t('auth.errors.passwordTooWeak')); return; }
+    if (regPw !== regPwConfirm) { toast.error(t('auth.errors.passwordMismatch')); return; }
+    if (!emailVerified) { toast.error(t('auth.errors.emailVerifyRequired')); return; }
     setIsLoading(true);
     try {
       const result = await register({ username, nickname, email, password: regPw });
@@ -172,28 +180,28 @@ export default function AuthPage() {
   }
 
   function handleFindId() {
-    if (!findEmail) { toast.error('이메일을 입력해주세요.'); return; }
+    if (!findEmail) { toast.error(t('auth.errors.emailRequired')); return; }
     const id = findUsernameByEmail(findEmail);
     setFindIdSearched(true);
     setFoundId(id);
-    if (!id) toast.error('해당 이메일로 등록된 계정이 없습니다.');
+    if (!id) toast.error(t('auth.errors.emailNotFound'));
   }
 
   function handleFpVerify() {
-    if (!fpId || !fpEmail) { toast.error('아이디와 이메일을 모두 입력해주세요.'); return; }
+    if (!fpId || !fpEmail) { toast.error(t('auth.errors.findPwFieldsRequired')); return; }
     const id = findUsernameByEmail(fpEmail);
     if (id === fpId) {
       setFpVerified(true);
-      toast.success('본인 확인이 완료되었습니다. 새 비밀번호를 설정해주세요.');
+      toast.success(t('auth.errors.findPwVerifySuccess'));
     } else {
-      toast.error('아이디 또는 이메일이 올바르지 않습니다.');
+      toast.error(t('auth.errors.findPwVerifyFailed'));
     }
   }
 
   function handleFpReset() {
-    if (fpNewPw.length < 8) { toast.error('비밀번호는 8자 이상이어야 합니다.'); return; }
-    if (fpPwStrength.score < 3) { toast.error('비밀번호 보안이 너무 약합니다.'); return; }
-    if (fpNewPw !== fpNewPwConfirm) { toast.error('비밀번호가 일치하지 않습니다.'); return; }
+    if (fpNewPw.length < 8) { toast.error(t('auth.errors.passwordTooShort')); return; }
+    if (fpPwStrength.score < 3) { toast.error(t('auth.errors.passwordTooWeakShort')); return; }
+    if (fpNewPw !== fpNewPwConfirm) { toast.error(t('auth.errors.passwordMismatch')); return; }
     const result = resetPassword(fpId, fpEmail, fpNewPw);
     if (result.success) { toast.success(result.message); switchMode('login'); }
     else toast.error(result.message);
@@ -205,28 +213,28 @@ export default function AuthPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#F9F7F2] via-white to-[#E8E2D9] flex items-center justify-center p-4 py-8">
         {BG}
         <div className="relative w-full max-w-md">
-          {Logo}
+          <Logo t={t} />
           <Card className="p-5 sm:p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
             <button
               onClick={() => switchMode('login')}
               className="flex items-center gap-1 text-[#A68B77] text-sm font-semibold mb-6 hover:text-[#7D6B5D] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
-              로그인으로 돌아가기
+              {t('auth.backToLogin')}
             </button>
 
             {mode === 'findId' ? (
               <div className="space-y-4">
-                <h2 className="text-xl font-bold text-[#7D6B5D]">아이디 찾기</h2>
-                <p className="text-sm text-[#A68B77]">가입 시 등록한 이메일을 입력해주세요.</p>
+                <h2 className="text-xl font-bold text-[#7D6B5D]">{t('auth.findId.title')}</h2>
+                <p className="text-sm text-[#A68B77]">{t('auth.findId.description')}</p>
 
                 <div>
-                  <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">이메일</label>
+                  <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.emailLabel')}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                     <Input
                       type="email"
-                      placeholder="example@email.com"
+                      placeholder={t('auth.common.emailPlaceholder')}
                       value={findEmail}
                       onChange={(e) => { setFindEmail(e.target.value); setFindIdSearched(false); setFoundId(null); }}
                       className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -238,24 +246,24 @@ export default function AuthPage() {
                   onClick={handleFindId}
                   className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold"
                 >
-                  아이디 찾기
+                  {t('auth.findId.submit')}
                 </Button>
 
                 {findIdSearched && (
                   <div className={`p-4 rounded-xl text-sm border ${foundId ? 'bg-[#F9F7F2] border-[#DED6CC]' : 'bg-red-50 border-red-200'}`}>
                     {foundId ? (
                       <>
-                        <p className="text-xs text-[#A68B77] mb-1">회원님의 아이디</p>
+                        <p className="text-xs text-[#A68B77] mb-1">{t('auth.findId.resultLabel')}</p>
                         <p className="text-lg font-bold text-[#7D6B5D] tracking-wide">{foundId}</p>
                         <button
                           onClick={() => switchMode('login')}
                           className="mt-3 text-xs text-[#A68B77] underline hover:text-[#7D6B5D]"
                         >
-                          로그인하러 가기
+                          {t('auth.findId.goToLogin')}
                         </button>
                       </>
                     ) : (
-                      <p className="text-red-600">해당 이메일로 등록된 계정이 없습니다.</p>
+                      <p className="text-red-600">{t('auth.errors.emailNotFound')}</p>
                     )}
                   </div>
                 )}
@@ -263,18 +271,18 @@ export default function AuthPage() {
             ) : (
               /* Find Password */
               <div className="space-y-4">
-                <h2 className="text-xl font-bold text-[#7D6B5D]">비밀번호 찾기</h2>
+                <h2 className="text-xl font-bold text-[#7D6B5D]">{t('auth.findPassword.title')}</h2>
 
                 {!fpVerified ? (
                   <>
-                    <p className="text-sm text-[#A68B77]">아이디와 가입 시 등록한 이메일을 입력해주세요.</p>
+                    <p className="text-sm text-[#A68B77]">{t('auth.findPassword.description')}</p>
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">아이디</label>
+                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.idLabel')}</label>
                       <div className="relative">
                         <AtSign className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                         <Input
                           type="text"
-                          placeholder="아이디 입력"
+                          placeholder={t('auth.common.idPlaceholder')}
                           value={fpId}
                           onChange={(e) => setFpId(e.target.value)}
                           className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -282,12 +290,12 @@ export default function AuthPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">이메일</label>
+                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.emailLabel')}</label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                         <Input
                           type="email"
-                          placeholder="example@email.com"
+                          placeholder={t('auth.common.emailPlaceholder')}
                           value={fpEmail}
                           onChange={(e) => setFpEmail(e.target.value)}
                           className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -298,23 +306,23 @@ export default function AuthPage() {
                       onClick={handleFpVerify}
                       className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold"
                     >
-                      본인 확인
+                      {t('auth.findPassword.verify')}
                     </Button>
                   </>
                 ) : (
                   <>
                     <p className="text-sm text-green-600 font-medium flex items-center gap-1.5">
                       <CheckCircle className="w-4 h-4" />
-                      본인 확인 완료. 새 비밀번호를 설정해주세요.
+                      {t('auth.findPassword.verified')}
                     </p>
 
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">새 비밀번호</label>
+                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.findPassword.newPasswordLabel')}</label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                         <Input
                           type={showFpPw ? 'text' : 'password'}
-                          placeholder="8자 이상, 대소문자+숫자+특수문자"
+                          placeholder={t('auth.common.newPasswordPlaceholder')}
                           value={fpNewPw}
                           onChange={(e) => setFpNewPw(e.target.value)}
                           className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -331,19 +339,19 @@ export default function AuthPage() {
                             ))}
                           </div>
                           <p className={`text-xs font-medium flex items-center gap-1 ${fpPwStrength.color}`}>
-                            <Shield className="w-3 h-3" />{fpPwStrength.label}
+                            <Shield className="w-3 h-3" />{fpPwStrength.score > 0 ? t(`auth.passwordStrength.${STRENGTH_KEYS[fpPwStrength.score]}`) : ''}
                           </p>
                         </div>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">새 비밀번호 확인</label>
+                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.findPassword.newPasswordConfirmLabel')}</label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                         <Input
                           type={showFpPw ? 'text' : 'password'}
-                          placeholder="비밀번호를 다시 입력해주세요"
+                          placeholder={t('auth.common.confirmPasswordPlaceholder')}
                           value={fpNewPwConfirm}
                           onChange={(e) => setFpNewPwConfirm(e.target.value)}
                           className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -362,14 +370,14 @@ export default function AuthPage() {
                       onClick={handleFpReset}
                       className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold"
                     >
-                      비밀번호 변경
+                      {t('auth.findPassword.submit')}
                     </Button>
                   </>
                 )}
               </div>
             )}
           </Card>
-          {Footer}
+          <Footer t={t} />
         </div>
       </div>
     );
@@ -380,7 +388,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#F9F7F2] via-white to-[#E8E2D9] flex items-center justify-center p-4 py-8">
       {BG}
       <div className="relative w-full max-w-md">
-        {Logo}
+        <Logo t={t} />
 
         <Card className="p-5 sm:p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
           {/* 탭 */}
@@ -394,7 +402,7 @@ export default function AuthPage() {
                     mode === m ? 'bg-white text-[#A68B77] shadow-md' : 'text-[#A68B77] hover:text-[#7D6B5D]'
                   }`}
                 >
-                  {m === 'login' ? '로그인' : '회원가입'}
+                  {m === 'login' ? t('auth.tabs.login') : t('auth.tabs.register')}
                 </button>
               ))}
             </div>
@@ -404,12 +412,12 @@ export default function AuthPage() {
             /* ═══ 로그인 폼 ═══ */
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">아이디</label>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.idLabel')}</label>
                 <div className="relative">
                   <AtSign className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                   <Input
                     type="text"
-                    placeholder="아이디 입력"
+                    placeholder={t('auth.common.idPlaceholder')}
                     value={loginId}
                     onChange={(e) => { setLoginId(e.target.value); setLoginError(''); }}
                     className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -418,12 +426,12 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">비밀번호</label>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.passwordLabel')}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                   <Input
                     type={showLoginPw ? 'text' : 'password'}
-                    placeholder="비밀번호 입력"
+                    placeholder={t('auth.common.passwordPlaceholder')}
                     value={loginPw}
                     onChange={(e) => { setLoginPw(e.target.value); setLoginError(''); }}
                     className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -446,7 +454,7 @@ export default function AuthPage() {
                 disabled={isLoading}
                 className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold transition-all"
               >
-                {isLoading ? '로그인 중...' : '로그인'}
+                {isLoading ? t('auth.login.submitting') : t('auth.login.submit')}
               </Button>
 
               <div className="flex items-center justify-center gap-3 pt-1">
@@ -455,7 +463,7 @@ export default function AuthPage() {
                   onClick={() => switchMode('findId')}
                   className="text-xs text-[#A68B77] hover:text-[#7D6B5D] hover:underline underline-offset-2 transition-colors"
                 >
-                  아이디 찾기
+                  {t('auth.login.findId')}
                 </button>
                 <span className="text-[#DED6CC] text-sm">|</span>
                 <button
@@ -463,7 +471,7 @@ export default function AuthPage() {
                   onClick={() => switchMode('findPassword')}
                   className="text-xs text-[#A68B77] hover:text-[#7D6B5D] hover:underline underline-offset-2 transition-colors"
                 >
-                  비밀번호 찾기
+                  {t('auth.login.findPassword')}
                 </button>
               </div>
             </form>
@@ -472,13 +480,13 @@ export default function AuthPage() {
             <form onSubmit={handleRegister} className="space-y-4">
               {/* 닉네임 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">닉네임</label>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.register.nicknameLabel')}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <User className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                     <Input
                       type="text"
-                      placeholder="2~10자"
+                      placeholder={t('auth.register.nicknamePlaceholder')}
                       value={nickname}
                       onChange={(e) => { setNickname(e.target.value); setNicknameOk(null); }}
                       className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -490,26 +498,26 @@ export default function AuthPage() {
                     variant="outline"
                     className="px-3 text-xs font-bold whitespace-nowrap border-[#DED6CC] text-[#7D6B5D] hover:bg-[#E8E2D9]"
                   >
-                    중복 확인
+                    {t('auth.common.duplicateCheck')}
                   </Button>
                 </div>
                 {nicknameOk !== null && (
                   <p className={`text-xs mt-1 flex items-center gap-1 font-medium ${nicknameOk ? 'text-green-600' : 'text-red-500'}`}>
                     {nicknameOk ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                    {nicknameOk ? '사용 가능한 닉네임입니다.' : '이미 사용 중인 닉네임입니다.'}
+                    {nicknameOk ? t('auth.register.nicknameAvailable') : t('auth.register.nicknameTaken')}
                   </p>
                 )}
               </div>
 
               {/* 아이디 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">아이디</label>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.idLabel')}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <AtSign className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                     <Input
                       type="text"
-                      placeholder="영문, 숫자, _ (4~20자)"
+                      placeholder={t('auth.register.usernamePlaceholder')}
                       value={username}
                       onChange={(e) => { setUsername(e.target.value); setUsernameOk(null); }}
                       className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -521,25 +529,25 @@ export default function AuthPage() {
                     variant="outline"
                     className="px-3 text-xs font-bold whitespace-nowrap border-[#DED6CC] text-[#7D6B5D] hover:bg-[#E8E2D9]"
                   >
-                    중복 확인
+                    {t('auth.common.duplicateCheck')}
                   </Button>
                 </div>
                 {usernameOk !== null && (
                   <p className={`text-xs mt-1 flex items-center gap-1 font-medium ${usernameOk ? 'text-green-600' : 'text-red-500'}`}>
                     {usernameOk ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                    {usernameOk ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.'}
+                    {usernameOk ? t('auth.register.usernameAvailable') : t('auth.register.usernameTaken')}
                   </p>
                 )}
               </div>
 
               {/* 비밀번호 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">비밀번호</label>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.passwordLabel')}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                   <Input
                     type={showRegPw ? 'text' : 'password'}
-                    placeholder="8자 이상, 대소문자+숫자+특수문자"
+                    placeholder={t('auth.common.newPasswordPlaceholder')}
                     value={regPw}
                     onChange={(e) => setRegPw(e.target.value)}
                     className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -556,7 +564,7 @@ export default function AuthPage() {
                       ))}
                     </div>
                     <p className={`text-xs font-medium flex items-center gap-1 ${pwStrength.color}`}>
-                      <Shield className="w-3 h-3" />{pwStrength.label}
+                      <Shield className="w-3 h-3" />{pwStrength.score > 0 ? t(`auth.passwordStrength.${STRENGTH_KEYS[pwStrength.score]}`) : ''}
                     </p>
                   </div>
                 )}
@@ -564,12 +572,12 @@ export default function AuthPage() {
 
               {/* 비밀번호 확인 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">비밀번호 확인</label>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.register.passwordConfirmLabel')}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                   <Input
                     type={showRegPw ? 'text' : 'password'}
-                    placeholder="비밀번호를 다시 입력해주세요"
+                    placeholder={t('auth.common.confirmPasswordPlaceholder')}
                     value={regPwConfirm}
                     onChange={(e) => setRegPwConfirm(e.target.value)}
                     className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
@@ -586,13 +594,13 @@ export default function AuthPage() {
 
               {/* 이메일 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">이메일</label>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.emailLabel')}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Mail className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
                     <Input
                       type="email"
-                      placeholder="example@email.com"
+                      placeholder={t('auth.common.emailPlaceholder')}
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setEmailVerified(false); }}
                       disabled={emailVerified}
@@ -606,12 +614,12 @@ export default function AuthPage() {
                     variant="outline"
                     className="px-3 text-xs font-bold whitespace-nowrap border-[#DED6CC] text-[#7D6B5D] hover:bg-[#E8E2D9] disabled:opacity-50"
                   >
-                    {codeSent ? '재발송' : '인증코드 발송'}
+                    {codeSent ? t('auth.register.emailResend') : t('auth.register.emailSendCode')}
                   </Button>
                 </div>
                 {emailVerified && (
                   <p className="text-xs mt-1 flex items-center gap-1 font-medium text-green-600">
-                    <CheckCircle className="w-3.5 h-3.5" />이메일 인증 완료
+                    <CheckCircle className="w-3.5 h-3.5" />{t('auth.register.emailVerified')}
                   </p>
                 )}
               </div>
@@ -619,11 +627,11 @@ export default function AuthPage() {
               {/* 인증코드 입력 */}
               {codeSent && !emailVerified && (
                 <div>
-                  <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">인증코드</label>
+                  <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.register.codeLabel')}</label>
                   <div className="flex gap-2">
                     <Input
                       type="text"
-                      placeholder="6자리 코드 입력"
+                      placeholder={t('auth.register.codePlaceholder')}
                       value={inputCode}
                       onChange={(e) => setInputCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       maxLength={6}
@@ -634,7 +642,7 @@ export default function AuthPage() {
                       onClick={handleVerifyCode}
                       className="px-4 bg-[#A68B77] hover:bg-[#8B7355] text-white text-xs font-bold whitespace-nowrap"
                     >
-                      인증 확인
+                      {t('auth.register.codeVerify')}
                     </Button>
                   </div>
                 </div>
@@ -645,12 +653,12 @@ export default function AuthPage() {
                 disabled={isLoading}
                 className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold transition-all mt-2"
               >
-                {isLoading ? '처리 중...' : '회원가입'}
+                {isLoading ? t('auth.register.submitting') : t('auth.register.submit')}
               </Button>
             </form>
           )}
         </Card>
-        {Footer}
+        <Footer t={t} />
       </div>
     </div>
   );

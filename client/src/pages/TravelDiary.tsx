@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface DiaryPhoto {
   id: string;
@@ -65,6 +66,7 @@ const EMOJI_RATINGS = ['😞', '😐', '🙂', '😊', '🤩'];
 
 export default function TravelDiary() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const editBlockFileInputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +175,7 @@ export default function TravelDiary() {
       localStorage.setItem('travelDiaries', JSON.stringify(updated));
       setDiaries(updated);
     } catch {
-      toast.error('저장 공간이 부족합니다. 동영상 용량이나 개수를 줄여주세요.');
+      toast.error(t('diary.errors.storageFull'));
     }
   };
 
@@ -223,11 +225,11 @@ export default function TravelDiary() {
     const currentPhotosCount = isEdit ? (editData?.photos.length || 0) : newPhotos.length;
 
     if (currentPhotosCount + files.length > 15) {
-      toast.error('사진/동영상은 최대 15개까지 업로드 가능합니다.');
+      toast.error(t('diary.errors.maxUploads'));
       return;
     }
 
-    const toastId = toast.loading('사진/동영상을 처리 중입니다...');
+    const toastId = toast.loading(t('diary.toast.processingMedia'));
     let skipped = 0;
 
     try {
@@ -269,12 +271,12 @@ export default function TravelDiary() {
         }
       }
       if (skipped > 0) {
-        toast.error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 업로드 가능합니다. (${skipped}개 건너뜀)`, { id: toastId });
+        toast.error(t('diary.errors.videoTooLargeSkipped', { maxMb: MAX_VIDEO_MB, skipped }), { id: toastId });
       } else {
-        toast.success('추가되었습니다!', { id: toastId });
+        toast.success(t('diary.toast.added'), { id: toastId });
       }
     } catch (error) {
-      toast.error('업로드 중 에러가 발생했습니다.', { id: toastId });
+      toast.error(t('diary.errors.uploadError'), { id: toastId });
     }
     e.target.value = '';
   };
@@ -302,12 +304,12 @@ export default function TravelDiary() {
     if (!file) return;
     const isVideo = file.type.startsWith('video/');
     if (isVideo && file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      toast.error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 업로드 가능합니다.`);
+      toast.error(t('diary.errors.videoTooLarge', { maxMb: MAX_VIDEO_MB }));
       e.target.value = '';
       return;
     }
 
-    const toastId = toast.loading(isVideo ? '동영상을 처리 중입니다...' : '이미지를 처리 중입니다...');
+    const toastId = toast.loading(isVideo ? t('diary.toast.processingVideo') : t('diary.toast.processingImage'));
     try {
       const base64 = await readFileAsDataURL(file);
       const finalUrl = isVideo ? base64 : await compressImage(base64);
@@ -322,9 +324,9 @@ export default function TravelDiary() {
       setNewPhotos(prev => [...prev, photo]);
       handleAddBlock(isVideo ? 'video' : 'image', finalUrl);
 
-      toast.success(isVideo ? '동영상이 추가되었습니다!' : '이미지가 추가되었습니다!', { id: toastId });
+      toast.success(isVideo ? t('diary.toast.videoAdded') : t('diary.toast.imageAdded'), { id: toastId });
     } catch (error) {
-      toast.error('처리 중 에러가 발생했습니다.', { id: toastId });
+      toast.error(t('diary.errors.processingError'), { id: toastId });
     }
     e.target.value = '';
   };
@@ -334,12 +336,12 @@ export default function TravelDiary() {
     if (!file) return;
     const isVideo = file.type.startsWith('video/');
     if (isVideo && file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      toast.error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 업로드 가능합니다.`);
+      toast.error(t('diary.errors.videoTooLarge', { maxMb: MAX_VIDEO_MB }));
       e.target.value = '';
       return;
     }
 
-    const toastId = toast.loading(isVideo ? '동영상을 처리 중입니다...' : '이미지를 처리 중입니다...');
+    const toastId = toast.loading(isVideo ? t('diary.toast.processingVideo') : t('diary.toast.processingImage'));
     try {
       const base64 = await readFileAsDataURL(file);
       const finalUrl = isVideo ? base64 : await compressImage(base64);
@@ -368,9 +370,9 @@ export default function TravelDiary() {
         };
       });
 
-      toast.success(isVideo ? '동영상이 추가되었습니다!' : '이미지가 추가되었습니다!', { id: toastId });
+      toast.success(isVideo ? t('diary.toast.videoAdded') : t('diary.toast.imageAdded'), { id: toastId });
     } catch (error) {
-      toast.error('처리 중 에러가 발생했습니다.', { id: toastId });
+      toast.error(t('diary.errors.processingError'), { id: toastId });
     }
     e.target.value = '';
   };
@@ -379,12 +381,12 @@ export default function TravelDiary() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type.startsWith('video/')) {
-      toast.error('대표 사진은 이미지 파일만 가능합니다.');
+      toast.error(t('diary.errors.mainPhotoImageOnly'));
       e.target.value = '';
       return;
     }
 
-    const toastId = toast.loading('메인 사진을 처리 중입니다...');
+    const toastId = toast.loading(t('diary.toast.processingMainPhoto'));
     try {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve) => {
@@ -402,16 +404,16 @@ export default function TravelDiary() {
       } else {
         setNewMainPhoto(photo);
       }
-      toast.success('메인 사진이 설정되었습니다!', { id: toastId });
+      toast.success(t('diary.toast.mainPhotoSet'), { id: toastId });
     } catch (error) {
-      toast.error('메인 사진 처리 중 에러가 발생했습니다.', { id: toastId });
+      toast.error(t('diary.errors.mainPhotoError'), { id: toastId });
     }
     e.target.value = '';
   };
 
   const handleCreateDiary = () => {
     if (!newTitle.trim() || !newLocation.trim() || !newStartDate) {
-      toast.error('제목, 장소, 날짜는 필수입니다.');
+      toast.error(t('diary.errors.requiredFields'));
       return;
     }
 
@@ -445,7 +447,7 @@ export default function TravelDiary() {
     setNewBlocks([{ id: '1', type: 'text', content: '' }]);
     setShowNewDialog(false);
     localStorage.removeItem('diaryFormDraft');
-    toast.success('여행 기록이 업로드되었습니다!');
+    toast.success(t('diary.toast.diaryUploaded'));
   };
 
   const resetNewForm = () => {
@@ -460,7 +462,7 @@ export default function TravelDiary() {
   const handleDeleteDiary = (id: string) => {
     saveDiaries(diaries.filter(d => d.id !== id));
     if (currentDiary?.id === id) setCurrentDiary(null);
-    toast.success('기록이 삭제되었습니다.');
+    toast.success(t('diary.toast.diaryDeleted'));
   };
 
   const handleSaveEdit = () => {
@@ -469,7 +471,7 @@ export default function TravelDiary() {
     saveDiaries(updated);
     setCurrentDiary(editData);
     setIsEditing(false);
-    toast.success('기록이 수정되었습니다!');
+    toast.success(t('diary.toast.diaryUpdated'));
   };
 
   const handleToggleLike = (diaryId: string) => {
@@ -501,44 +503,44 @@ export default function TravelDiary() {
                 onClick={() => { setIsEditing(false); setEditData(null); }}
                 className="text-primary font-semibold text-sm hover:underline flex items-center gap-1"
               >
-                <ChevronLeft className="w-4 h-4" /> 취소
+                <ChevronLeft className="w-4 h-4" /> {t('diary.common.cancel')}
               </button>
-              <h2 className="text-xl font-bold text-foreground">기록 수정</h2>
+              <h2 className="text-xl font-bold text-foreground">{t('diary.editMode.title')}</h2>
             </div>
 
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-foreground">제목 *</label>
+                  <label className="text-sm font-semibold text-foreground">{t('diary.form.titleLabel')}</label>
                   <Input value={editData.title} onChange={e => setEditData({ ...editData, title: e.target.value })} className="h-11" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-foreground">여행지 *</label>
+                  <label className="text-sm font-semibold text-foreground">{t('diary.form.locationLabel')}</label>
                   <Input value={editData.location} onChange={e => setEditData({ ...editData, location: e.target.value })} className="h-11" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-foreground">시작일</label>
+                  <label className="text-sm font-semibold text-foreground">{t('diary.form.startDateLabel')}</label>
                   <Input type="date" value={editData.startDate} onChange={e => setEditData({ ...editData, startDate: e.target.value })} className="h-11" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-foreground">종료일</label>
+                  <label className="text-sm font-semibold text-foreground">{t('diary.form.endDateLabel')}</label>
                   <Input type="date" value={editData.endDate} onChange={e => setEditData({ ...editData, endDate: e.target.value })} className="h-11" />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">여행 후기 *</label>
+                <label className="text-sm font-semibold text-foreground">{t('diary.form.contentLabel')}</label>
                 {editData.displayMode === 'blog' ? (
                   <div className="space-y-4 border-2 border-dashed border-primary/20 p-4 rounded-xl bg-primary/5">
-                    <p className="text-xs text-primary font-bold mb-2">💡 블로그형 에디터: 글과 사진을 자유롭게 수정하세요!</p>
+                    <p className="text-xs text-primary font-bold mb-2">{t('diary.blogEditor.editHint')}</p>
                     {(editData.blocks || [{ id: '1', type: 'text', content: editData.content }]).map((block) => (
                       <div key={block.id} className="relative group bg-white p-3 rounded-lg shadow-sm border border-border">
                         {block.type === 'text' ? (
                           <Textarea
-                            placeholder="내용 입력..."
+                            placeholder={t('diary.blogEditor.contentPlaceholder')}
                             value={block.content}
                             onChange={e => {
                               const blocks = (editData.blocks || []).map(b => b.id === block.id ? { ...b, content: e.target.value } : b);
@@ -567,8 +569,8 @@ export default function TravelDiary() {
                         const currentBlocks = editData.blocks || (editData.content ? [{ id: '1', type: 'text', content: editData.content }] : []);
                         const newBlock: DiaryBlock = { id: Date.now().toString() + Math.random(), type: 'text', content: '' };
                         setEditData({ ...editData, blocks: [...currentBlocks, newBlock] });
-                      }} className="h-8 text-xs"><Plus className="w-3 h-3 mr-1" /> 글 추가</Button>
-                      <Button variant="outline" size="sm" onClick={() => editBlockFileInputRef.current?.click()} className="h-8 text-xs"><ImageIcon className="w-3 h-3 mr-1" /> 사진/동영상 추가</Button>
+                      }} className="h-8 text-xs"><Plus className="w-3 h-3 mr-1" /> {t('diary.blogEditor.addText')}</Button>
+                      <Button variant="outline" size="sm" onClick={() => editBlockFileInputRef.current?.click()} className="h-8 text-xs"><ImageIcon className="w-3 h-3 mr-1" /> {t('diary.blogEditor.addMedia')}</Button>
                       <input ref={editBlockFileInputRef} type="file" accept="image/*,video/*" onChange={handleEditBlockImageUpload} className="hidden" />
                     </div>
                   </div>
@@ -577,13 +579,13 @@ export default function TravelDiary() {
                     value={editData.content}
                     onChange={e => setEditData({ ...editData, content: e.target.value })}
                     className="min-h-[200px] resize-y"
-                    placeholder="여행의 추억을 기록해보세요..."
+                    placeholder={t('diary.form.contentPlaceholder')}
                   />
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">별점</label>
+                <label className="text-sm font-semibold text-foreground">{t('diary.form.ratingLabel')}</label>
                 <div className="flex gap-2">
                   {EMOJI_RATINGS.map((emoji, i) => (
                     <button
@@ -605,7 +607,7 @@ export default function TravelDiary() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Camera className="w-4 h-4" /> 사진
+                    <Camera className="w-4 h-4" /> {t('diary.form.photosLabel')}
                   </label>
                   <div className="flex bg-secondary p-1 rounded-lg">
                     <button
@@ -615,7 +617,7 @@ export default function TravelDiary() {
                         editData.displayMode === 'grid' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
                       )}
                     >
-                      바둑판형
+                      {t('diary.displayMode.grid')}
                     </button>
                     <button
                       onClick={() => setEditData({ ...editData, displayMode: 'slide' })}
@@ -624,7 +626,7 @@ export default function TravelDiary() {
                         editData.displayMode === 'slide' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
                       )}
                     >
-                      슬라이드형
+                      {t('diary.displayMode.slide')}
                     </button>
                     <button
                       onClick={() => setEditData({ ...editData, displayMode: 'blog' })}
@@ -633,7 +635,7 @@ export default function TravelDiary() {
                         editData.displayMode === 'blog' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
                       )}
                     >
-                      블로그형
+                      {t('diary.displayMode.blog')}
                     </button>
                   </div>
                 </div>
@@ -641,12 +643,12 @@ export default function TravelDiary() {
                 {/* Main Photo (Max 1) - Edit Mode */}
                 <div className="space-y-3 p-4 bg-primary/5 rounded-xl border border-primary/10 mb-4">
                   <label className="text-sm font-bold text-primary flex items-center gap-2">
-                    <Star className="w-4 h-4 fill-primary" /> 메인 사진 (대표 이미지 1장)
+                    <Star className="w-4 h-4 fill-primary" /> {t('diary.form.mainPhotoLabel')}
                   </label>
                   <div className="flex items-center gap-4">
                     {editData.mainPhoto ? (
                       <div className="relative group w-24 h-24">
-                        <img src={editData.mainPhoto.url} alt="메인 사진" className="w-full h-full object-cover rounded-lg border-2 border-primary shadow-sm" />
+                        <img src={editData.mainPhoto.url} alt={t('diary.form.mainPhotoAlt')} className="w-full h-full object-cover rounded-lg border-2 border-primary shadow-sm" />
                         <button
                           onClick={() => setEditData({ ...editData, mainPhoto: undefined })}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
@@ -660,12 +662,12 @@ export default function TravelDiary() {
                         className="w-24 h-24 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center gap-1 text-primary/60 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
                       >
                         <Plus className="w-5 h-5" />
-                        <span className="text-[10px] font-semibold">사진 선택</span>
+                        <span className="text-[10px] font-semibold">{t('diary.form.selectPhoto')}</span>
                       </button>
                     )}
                     <input ref={mainEditFileInputRef} type="file" accept="image/*" onChange={e => handleMainPhotoUpload(e, true)} className="hidden" />
                     <div className="flex-1 text-[11px] text-muted-foreground">
-                      <p>기록의 썸네일로 사용되는 대표 사진입니다.</p>
+                      <p>{t('diary.form.mainPhotoHint')}</p>
                     </div>
                   </div>
                 </div>
@@ -688,7 +690,7 @@ export default function TravelDiary() {
                                 const photos = editData.photos.map(p => p.id === photo.id ? { ...p, caption: e.target.value } : p);
                                 setEditData({ ...editData, photos });
                               }}
-                              placeholder="설명 추가..."
+                              placeholder={t('diary.form.captionPlaceholder')}
                               className="text-xs bg-white/90 rounded px-2 py-1 w-full"
                               onClick={e => e.stopPropagation()}
                             />
@@ -706,25 +708,25 @@ export default function TravelDiary() {
                         className="h-28 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                       >
                         <Plus className="w-5 h-5" />
-                        <span className="text-xs">추가</span>
+                        <span className="text-xs">{t('diary.common.add')}</span>
                       </button>
                     </div>
                     <input ref={editFileInputRef} type="file" accept="image/*,video/*" multiple onChange={e => handlePhotoUpload(e, true)} className="hidden" />
                   </>
                 ) : (
                   <div className="text-xs text-muted-foreground mt-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
-                    💡 블로그형 모드에서는 위 본문 에디터의 <strong className="text-primary">사진/동영상 추가</strong> 버튼으로 사진이나 동영상을 추가할 수 있습니다.
+                    {t('diary.form.blogModeHintPrefix')}<strong className="text-primary">{t('diary.blogEditor.addMedia')}</strong>{t('diary.form.blogModeHintSuffix')}
                   </div>
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">태그</label>
+                <label className="text-sm font-semibold text-foreground">{t('diary.form.tagsLabel')}</label>
                 <div className="flex gap-2">
                   <Input
                     value={editTagInput}
                     onChange={e => setEditTagInput(e.target.value)}
-                    placeholder="태그 입력 후 엔터"
+                    placeholder={t('diary.form.tagInputPlaceholder')}
                     className="h-11"
                     onKeyDown={e => {
                       if (e.key === 'Enter' && editTagInput.trim()) {
@@ -748,8 +750,8 @@ export default function TravelDiary() {
 
               <div className="flex items-center justify-between p-4 bg-secondary rounded-xl border border-border">
                 <div>
-                  <p className="font-semibold text-foreground text-sm">커뮤니티 공개</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">다른 여행자들과 이 기록을 공유합니다</p>
+                  <p className="font-semibold text-foreground text-sm">{t('diary.form.publicLabel')}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('diary.form.publicHint')}</p>
                 </div>
                 <button
                   onClick={() => setEditData({ ...editData, isPublic: !editData.isPublic })}
@@ -767,10 +769,10 @@ export default function TravelDiary() {
 
               <div className="flex gap-3">
                 <Button onClick={handleSaveEdit} className="flex-1 bg-primary text-white h-11">
-                  <Check className="w-4 h-4 mr-2" /> 저장하기
+                  <Check className="w-4 h-4 mr-2" /> {t('diary.common.save')}
                 </Button>
                 <Button onClick={() => { setIsEditing(false); setEditData(null); }} variant="outline" className="flex-1 h-11">
-                  취소
+                  {t('diary.common.cancel')}
                 </Button>
               </div>
             </div>
@@ -794,7 +796,7 @@ export default function TravelDiary() {
               onClick={() => setCurrentDiary(null)}
               className="absolute top-4 left-4 text-white flex items-center gap-1 font-semibold text-sm bg-black/30 px-3 py-1.5 rounded-full hover:bg-black/50 transition"
             >
-              <ChevronLeft className="w-4 h-4" /> 목록으로
+              <ChevronLeft className="w-4 h-4" /> {t('diary.common.backToList')}
             </button>
             {isOwner && (
               <div className="absolute top-4 right-4 flex gap-2">
@@ -819,7 +821,7 @@ export default function TravelDiary() {
                 </span>
                 <span className="text-white/90 text-sm bg-black/30 px-2 py-0.5 rounded-full flex items-center gap-1">
                   {diary.isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                  {diary.isPublic ? '공개' : '비공개'}
+                  {diary.isPublic ? t('diary.common.public') : t('diary.common.private')}
                 </span>
               </div>
               <h1 className="text-2xl font-black text-white drop-shadow">{diary.title}</h1>
@@ -832,7 +834,7 @@ export default function TravelDiary() {
                 onClick={() => setCurrentDiary(null)}
                 className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 mb-4"
               >
-                <ChevronLeft className="w-4 h-4" /> 목록으로
+                <ChevronLeft className="w-4 h-4" /> {t('diary.common.backToList')}
               </button>
               <div className="flex items-start justify-between">
                 <div>
@@ -842,7 +844,7 @@ export default function TravelDiary() {
                     </span>
                     <span className="text-muted-foreground text-sm flex items-center gap-1">
                       {diary.isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                      {diary.isPublic ? '공개' : '비공개'}
+                      {diary.isPublic ? t('diary.common.public') : t('diary.common.private')}
                     </span>
                   </div>
                   <h1 className="text-3xl font-black text-foreground">{diary.title}</h1>
@@ -880,7 +882,7 @@ export default function TravelDiary() {
                 <Plane className="w-4 h-4" /> {diary.linkedPlanTitle}
               </span>
             )}
-            <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {new Date(diary.createdAt).toLocaleDateString('ko-KR')}</span>
+            <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {new Date(diary.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'ko-KR')}</span>
           </div>
 
           {/* Tags */}
@@ -931,7 +933,7 @@ export default function TravelDiary() {
           {diary.displayMode !== 'blog' && diary.photos.length > 1 && (
             <div className="mb-6">
               <h3 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
-                <Camera className="w-5 h-5 text-primary" /> 사진 ({diary.photos.length}장)
+                <Camera className="w-5 h-5 text-primary" /> {t('diary.detail.photoCount', { count: diary.photos.length })}
               </h3>
               
               {diary.displayMode === 'slide' ? (
@@ -984,16 +986,16 @@ export default function TravelDiary() {
               )}
             >
               <Heart className={cn("w-4 h-4", diary.likes.includes(user!.id) && "fill-red-500")} />
-              좋아요 {diary.likes.length > 0 && diary.likes.length}
+              {t('diary.detail.like')} {diary.likes.length > 0 && diary.likes.length}
             </button>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(window.location.href);
-                toast.success('링크가 복사되었습니다!');
+                toast.success(t('diary.toast.linkCopied'));
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition font-semibold text-sm"
             >
-              <Share2 className="w-4 h-4" /> 공유
+              <Share2 className="w-4 h-4" /> {t('diary.detail.share')}
             </button>
           </div>
         </div>
@@ -1008,15 +1010,15 @@ export default function TravelDiary() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-black text-foreground flex items-center gap-3">
-              <BookOpen className="w-8 h-8 text-primary" /> 여행 기록
+              <BookOpen className="w-8 h-8 text-primary" /> {t('diary.header.title')}
             </h2>
-            <p className="text-muted-foreground mt-1">{user?.name}님의 소중한 여행 추억</p>
+            <p className="text-muted-foreground mt-1">{t('diary.header.subtitle', { name: user?.name || '' })}</p>
           </div>
           <Button
             onClick={() => setShowNewDialog(true)}
             className="gap-2 bg-primary text-white rounded-full px-5"
           >
-            <Plus className="w-4 h-4" /> 새 기록 작성
+            <Plus className="w-4 h-4" /> {t('diary.header.newEntry')}
           </Button>
         </div>
 
@@ -1025,19 +1027,19 @@ export default function TravelDiary() {
           <div className="grid grid-cols-3 gap-4 mb-8">
             <Card className="p-4 bg-white border-border text-center">
               <p className="text-3xl font-black text-primary">{myDiaries.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">총 기록</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalEntries')}</p>
             </Card>
             <Card className="p-4 bg-white border-border text-center">
               <p className="text-3xl font-black text-primary">
                 {[...new Set(myDiaries.map(d => d.location))].length}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">방문 장소</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.visitedPlaces')}</p>
             </Card>
             <Card className="p-4 bg-white border-border text-center">
               <p className="text-3xl font-black text-primary">
                 {myDiaries.reduce((sum, d) => sum + d.photos.length, 0)}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">총 사진</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalPhotos')}</p>
             </Card>
           </div>
         )}
@@ -1046,10 +1048,10 @@ export default function TravelDiary() {
         {myDiaries.length === 0 ? (
           <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
             <BookOpen className="w-16 h-16 text-border mb-4" />
-            <h3 className="text-xl font-bold text-foreground mb-2">아직 여행 기록이 없어요</h3>
-            <p className="text-muted-foreground mb-6 text-center">여행을 다녀오셨나요? 소중한 추억을 기록해보세요!</p>
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.emptyState.title')}</h3>
+            <p className="text-muted-foreground mb-6 text-center">{t('diary.emptyState.subtitle')}</p>
             <Button onClick={() => setShowNewDialog(true)} className="bg-primary text-white rounded-full px-6">
-              첫 기록 작성하기
+              {t('diary.emptyState.cta')}
             </Button>
           </Card>
         ) : (
@@ -1074,7 +1076,7 @@ export default function TravelDiary() {
                       <div className="absolute top-2 right-2 flex gap-1">
                         {!diary.isPublic && (
                           <span className="bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Lock className="w-3 h-3" /> 비공개
+                            <Lock className="w-3 h-3" /> {t('diary.common.private')}
                           </span>
                         )}
                       </div>
@@ -1129,25 +1131,25 @@ export default function TravelDiary() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
-              <BookOpen className="w-5 h-5 text-primary" /> 새 여행 기록
+              <BookOpen className="w-5 h-5 text-primary" /> {t('diary.newDialog.title')}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5 pt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">제목 *</label>
+                <label className="text-sm font-semibold text-foreground">{t('diary.form.titleLabel')}</label>
                 <Input
-                  placeholder="예: 도쿄 3박 4일 - 설렘 가득했던 여행"
+                  placeholder={t('diary.newDialog.titlePlaceholder')}
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   className="h-11"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">여행지 *</label>
+                <label className="text-sm font-semibold text-foreground">{t('diary.form.locationLabel')}</label>
                 <Input
-                  placeholder="예: 도쿄, 일본"
+                  placeholder={t('diary.newDialog.locationPlaceholder')}
                   value={newLocation}
                   onChange={e => setNewLocation(e.target.value)}
                   className="h-11"
@@ -1157,11 +1159,11 @@ export default function TravelDiary() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">시작일 *</label>
+                <label className="text-sm font-semibold text-foreground">{t('diary.form.startDateRequiredLabel')}</label>
                 <Input type="date" value={newStartDate} onChange={e => setNewStartDate(e.target.value)} className="h-11" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">종료일</label>
+                <label className="text-sm font-semibold text-foreground">{t('diary.form.endDateLabel')}</label>
                 <Input type="date" value={newEndDate} onChange={e => setNewEndDate(e.target.value)} className="h-11" />
               </div>
             </div>
@@ -1170,7 +1172,7 @@ export default function TravelDiary() {
             {userPlans.length > 0 && (
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Plane className="w-4 h-4 text-primary" /> 여행 계획 연결 <span className="text-muted-foreground font-normal">(선택)</span>
+                  <Plane className="w-4 h-4 text-primary" /> {t('diary.newDialog.linkPlan')} <span className="text-muted-foreground font-normal">{t('diary.common.optional')}</span>
                 </label>
                 <div className="flex gap-2">
                   <select
@@ -1178,7 +1180,7 @@ export default function TravelDiary() {
                     onChange={e => setNewLinkedPlanId(e.target.value)}
                     className="flex-1 h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
                   >
-                    <option value="">계획 선택 안함</option>
+                    <option value="">{t('diary.newDialog.noPlanSelected')}</option>
                     {userPlans.map(plan => (
                       <option key={plan.id} value={plan.id}>{plan.title} ({plan.startDate} ~ {plan.endDate})</option>
                     ))}
@@ -1189,7 +1191,7 @@ export default function TravelDiary() {
                       variant="outline"
                       className="h-11 px-4"
                     >
-                      미리보기
+                      {t('diary.common.preview')}
                     </Button>
                   )}
                 </div>
@@ -1197,9 +1199,9 @@ export default function TravelDiary() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">여행 후기 *</label>
+              <label className="text-sm font-semibold text-foreground">{t('diary.form.contentLabel')}</label>
               <Textarea
-                placeholder="여행의 추억, 감동, 팁 등을 자유롭게 작성해보세요..."
+                placeholder={t('diary.newDialog.contentPlaceholder')}
                 value={newContent}
                 onChange={e => setNewContent(e.target.value)}
                 className="min-h-[160px] resize-y"
@@ -1207,7 +1209,7 @@ export default function TravelDiary() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-foreground">만족도</label>
+              <label className="text-sm font-semibold text-foreground">{t('diary.newDialog.satisfactionLabel')}</label>
               <div className="flex gap-3">
                 {EMOJI_RATINGS.map((emoji, i) => (
                   <button
@@ -1217,7 +1219,7 @@ export default function TravelDiary() {
                       "text-3xl transition-all hover:scale-110",
                       newRating === i + 1 ? "scale-125" : "opacity-40"
                     )}
-                    title={['별로', '그저그래', '괜찮아', '좋아', '최고'][i]}
+                    title={[t('diary.ratingLabels.poor'), t('diary.ratingLabels.soso'), t('diary.ratingLabels.okay'), t('diary.ratingLabels.good'), t('diary.ratingLabels.best')][i]}
                   >
                     {emoji}
                   </button>
@@ -1229,12 +1231,12 @@ export default function TravelDiary() {
             {/* Main Photo (Max 1) */}
             <div className="space-y-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
               <label className="text-sm font-bold text-primary flex items-center gap-2">
-                <Star className="w-4 h-4 fill-primary" /> 메인 사진 (대표 이미지 1장)
+                <Star className="w-4 h-4 fill-primary" /> {t('diary.form.mainPhotoLabel')}
               </label>
               <div className="flex items-center gap-4">
                 {newMainPhoto ? (
                   <div className="relative group w-32 h-32">
-                    <img src={newMainPhoto.url} alt="메인 사진" className="w-full h-full object-cover rounded-lg border-2 border-primary shadow-md" />
+                    <img src={newMainPhoto.url} alt={t('diary.form.mainPhotoAlt')} className="w-full h-full object-cover rounded-lg border-2 border-primary shadow-md" />
                     <button
                       onClick={() => setNewMainPhoto(undefined)}
                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
@@ -1248,13 +1250,13 @@ export default function TravelDiary() {
                     className="w-32 h-32 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center gap-2 text-primary/60 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
                   >
                     <Plus className="w-6 h-6" />
-                    <span className="text-xs font-semibold">사진 선택</span>
+                    <span className="text-xs font-semibold">{t('diary.form.selectPhoto')}</span>
                   </button>
                 )}
                 <div className="flex-1 text-xs text-muted-foreground space-y-1">
-                  <p>• 여행 기록의 썸네일로 사용됩니다.</p>
-                  <p>• 최대 1장만 등록 가능합니다.</p>
-                  <p>• 등록하지 않으면 기본 이미지가 노출됩니다.</p>
+                  <p>{t('diary.newDialog.mainPhotoHint1')}</p>
+                  <p>{t('diary.newDialog.mainPhotoHint2')}</p>
+                  <p>{t('diary.newDialog.mainPhotoHint3')}</p>
                 </div>
               </div>
               <input ref={mainFileInputRef} type="file" accept="image/*" onChange={e => handleMainPhotoUpload(e, false)} className="hidden" />
@@ -1264,7 +1266,7 @@ export default function TravelDiary() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Camera className="w-4 h-4" /> 사진/동영상 추가
+                  <Camera className="w-4 h-4" /> {t('diary.blogEditor.addMedia')}
                 </label>
                 <div className="flex bg-secondary p-1 rounded-lg">
                   <button
@@ -1274,7 +1276,7 @@ export default function TravelDiary() {
                       newDisplayMode === 'grid' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
                     )}
                   >
-                    바둑판형
+                    {t('diary.displayMode.grid')}
                   </button>
                   <button
                     onClick={() => setNewDisplayMode('slide')}
@@ -1283,7 +1285,7 @@ export default function TravelDiary() {
                       newDisplayMode === 'slide' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
                     )}
                   >
-                    슬라이드형
+                    {t('diary.displayMode.slide')}
                   </button>
                   <button
                     onClick={() => setNewDisplayMode('blog')}
@@ -1292,19 +1294,19 @@ export default function TravelDiary() {
                       newDisplayMode === 'blog' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
                     )}
                   >
-                    블로그형
+                    {t('diary.displayMode.blog')}
                   </button>
                 </div>
               </div>
-              
+
               {newDisplayMode === 'blog' ? (
                 <div className="space-y-4 border-2 border-dashed border-primary/20 p-4 rounded-xl bg-primary/5">
-                  <p className="text-xs text-primary font-bold mb-2">💡 네이버 블로그 스타일: 글과 사진을 자유롭게 배치하세요!</p>
+                  <p className="text-xs text-primary font-bold mb-2">{t('diary.blogEditor.newHint')}</p>
                   {newBlocks.map((block, index) => (
                     <div key={block.id} className="relative group bg-white p-3 rounded-lg shadow-sm border border-border">
                       {block.type === 'text' ? (
                         <Textarea
-                          placeholder="여기에 내용을 입력하세요..."
+                          placeholder={t('diary.blogEditor.newContentPlaceholder')}
                           value={block.content}
                           onChange={e => handleUpdateBlock(block.id, e.target.value)}
                           className="min-h-[100px] border-none focus-visible:ring-0 p-0 shadow-none text-sm"
@@ -1335,7 +1337,7 @@ export default function TravelDiary() {
                       onClick={() => handleAddBlock('text')}
                       className="gap-1.5 text-xs h-8"
                     >
-                      <Plus className="w-3 h-3" /> 글 추가
+                      <Plus className="w-3 h-3" /> {t('diary.blogEditor.addText')}
                     </Button>
                     <Button
                       variant="outline"
@@ -1343,7 +1345,7 @@ export default function TravelDiary() {
                       onClick={() => blockFileInputRef.current?.click()}
                       className="gap-1.5 text-xs h-8"
                     >
-                      <ImageIcon className="w-3 h-3" /> 사진/동영상 추가
+                      <ImageIcon className="w-3 h-3" /> {t('diary.blogEditor.addMedia')}
                     </Button>
                     <input ref={blockFileInputRef} type="file" accept="image/*,video/*" onChange={handleBlockImageUpload} className="hidden" />
                   </div>
@@ -1370,7 +1372,7 @@ export default function TravelDiary() {
                     className="h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                   >
                     <Plus className="w-5 h-5" />
-                    <span className="text-xs">추가</span>
+                    <span className="text-xs">{t('diary.common.add')}</span>
                   </button>
                 </div>
               )}
@@ -1378,9 +1380,9 @@ export default function TravelDiary() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">태그</label>
+              <label className="text-sm font-semibold text-foreground">{t('diary.form.tagsLabel')}</label>
               <Input
-                placeholder="쉼표로 구분: 일본, 맛집여행, 혼행"
+                placeholder={t('diary.newDialog.tagsPlaceholder')}
                 value={newTags}
                 onChange={e => setNewTags(e.target.value)}
                 className="h-11"
@@ -1389,8 +1391,8 @@ export default function TravelDiary() {
 
             <div className="flex items-center justify-between p-4 bg-secondary rounded-xl border border-border">
               <div>
-                <p className="font-semibold text-foreground text-sm">커뮤니티 공개</p>
-                <p className="text-xs text-muted-foreground mt-0.5">다른 여행자들과 이 기록을 공유합니다</p>
+                <p className="font-semibold text-foreground text-sm">{t('diary.form.publicLabel')}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('diary.form.publicHint')}</p>
               </div>
               <button
                 onClick={() => setNewIsPublic(!newIsPublic)}
@@ -1407,7 +1409,7 @@ export default function TravelDiary() {
             </div>
 
             <Button onClick={handleCreateDiary} className="w-full bg-primary text-white h-11 text-base font-semibold">
-              <BookOpen className="w-4 h-4 mr-2" /> 기록 저장하기
+              <BookOpen className="w-4 h-4 mr-2" /> {t('diary.newDialog.submit')}
             </Button>
           </div>
         </DialogContent>
@@ -1419,7 +1421,7 @@ export default function TravelDiary() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Plane className="w-5 h-5 text-primary" />
-              {userPlans.find(p => p.id === previewPlanId)?.title} - 미리보기
+              {userPlans.find(p => p.id === previewPlanId)?.title} {t('diary.planPreview.previewSuffix')}
             </DialogTitle>
           </DialogHeader>
           {previewPlanId && userPlans.find(p => p.id === previewPlanId) && (() => {
@@ -1437,10 +1439,10 @@ export default function TravelDiary() {
             };
             const getCategoryLabel = (category: string) => {
               const labels: Record<string, string> = {
-                accommodation: '숙소', transport: '교통', meal: '식사',
-                activity: '활동', shopping: '쇼핑', other: '기타',
+                accommodation: t('diary.category.accommodation'), transport: t('diary.category.transport'), meal: t('diary.category.meal'),
+                activity: t('diary.category.activity'), shopping: t('diary.category.shopping'), other: t('diary.category.other'),
               };
-              return labels[category] || '기타';
+              return labels[category] || t('diary.category.other');
             };
             return (
               <div className="space-y-4 pt-2">
@@ -1448,20 +1450,20 @@ export default function TravelDiary() {
                 <div className="p-4 bg-secondary rounded-xl border border-border">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">여행 기간</p>
+                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.duration')}</p>
                       <p className="font-bold text-foreground">{plan.startDate} ~ {plan.endDate}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">총 예산</p>
+                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.totalBudget')}</p>
                       <p className="font-bold text-primary text-lg">₩{plan.budgets.reduce((s: number, b: any) => s + b.amount, 0).toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">일정 수</p>
-                      <p className="font-bold text-foreground">{plan.schedules.length}개</p>
+                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.scheduleCount')}</p>
+                      <p className="font-bold text-foreground">{t('diary.planPreview.countSuffix', { count: plan.schedules.length })}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">쇼핑 목록</p>
-                      <p className="font-bold text-foreground">{plan.shoppingList.filter((i: any) => i.checked).length}/{plan.shoppingList.length} 완료</p>
+                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.shoppingList')}</p>
+                      <p className="font-bold text-foreground">{t('diary.planPreview.completedFraction', { checked: plan.shoppingList.filter((i: any) => i.checked).length, total: plan.shoppingList.length })}</p>
                     </div>
                   </div>
                 </div>
@@ -1471,7 +1473,7 @@ export default function TravelDiary() {
                   <div>
                     <h4 className="font-bold text-foreground mb-3 flex items-center gap-2">
                       <Clock className="w-4 h-4 text-primary" />
-                      전체 일정 ({plan.schedules.length}개)
+                      {t('diary.planPreview.allSchedules', { count: plan.schedules.length })}
                     </h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {plan.schedules
@@ -1496,7 +1498,7 @@ export default function TravelDiary() {
                   variant="outline"
                   className="w-full"
                 >
-                  닫기
+                  {t('diary.common.close')}
                 </Button>
               </div>
             );

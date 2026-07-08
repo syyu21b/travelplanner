@@ -2,16 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   User, Mail, Lock, Trash2, Camera, Edit2, Check, X, Shield,
   BookOpen, Plane, Bookmark, MessageCircle, Heart, Calendar,
   KeyRound, UserX, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
-  IdCard, Stamp, Globe2, ShieldCheck, Save
+  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { useLocation } from 'wouter';
 import type { PassportInfo } from '@/lib/passportCrypto';
 
@@ -45,15 +48,18 @@ function compressProfilePhoto(file: File): Promise<string> {
   });
 }
 
-type TabType = 'info' | 'activity' | 'security' | 'passport' | 'account';
+type TabType = 'info' | 'activity' | 'security' | 'passport' | 'account' | 'settings';
 
 export default function MyPage() {
   const {
     user, updateProfile, changePassword, withdrawAccount, getProfilePhoto, setProfilePhoto,
     verifyPassword, hasPassportInfo, savePassportInfo, loadPassportInfo, deletePassportInfo,
   } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+  const { settings, updateSettings } = useNotifications();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('info');
+  const dateLocale = language === 'ko' ? 'ko-KR' : 'en-US';
 
   // 여권 정보
   const [passportExists, setPassportExists] = useState(() => hasPassportInfo());
@@ -128,27 +134,27 @@ export default function MyPage() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { toast.error('10MB 이하 이미지만 업로드 가능합니다.'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error(t('mypage.toast.photoTooLarge')); return; }
     try {
       const compressed = await compressProfilePhoto(file);
       setProfilePhotoState(compressed);
       setProfilePhoto(compressed);
-      toast.success('프로필 사진이 변경되었습니다!');
+      toast.success(t('mypage.toast.photoUpdated'));
     } catch {
-      toast.error('이미지 처리 중 오류가 발생했습니다.');
+      toast.error(t('mypage.toast.photoError'));
     }
   };
 
   const handleRemovePhoto = () => {
     setProfilePhotoState(null);
     setProfilePhoto(null);
-    toast.success('프로필 사진이 삭제되었습니다.');
+    toast.success(t('mypage.toast.photoRemoved'));
   };
 
   const handleSaveInfo = () => {
-    if (!editNickname.trim()) { toast.error('닉네임을 입력해주세요.'); return; }
-    if (!editEmail.trim()) { toast.error('이메일을 입력해주세요.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) { toast.error('올바른 이메일 형식이 아닙니다.'); return; }
+    if (!editNickname.trim()) { toast.error(t('mypage.toast.nicknameRequired')); return; }
+    if (!editEmail.trim()) { toast.error(t('mypage.toast.emailRequired')); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) { toast.error(t('mypage.toast.emailInvalid')); return; }
     setInfoSaving(true);
     const result = updateProfile({ nickname: editNickname.trim(), email: editEmail.trim() });
     setInfoSaving(false);
@@ -157,10 +163,10 @@ export default function MyPage() {
   };
 
   const handleChangePassword = async () => {
-    if (!currentPw) { toast.error('현재 비밀번호를 입력해주세요.'); return; }
-    if (!newPw) { toast.error('새 비밀번호를 입력해주세요.'); return; }
-    if (newPw.length < 6) { toast.error('새 비밀번호는 6자 이상이어야 합니다.'); return; }
-    if (newPw !== confirmPw) { toast.error('새 비밀번호가 일치하지 않습니다.'); return; }
+    if (!currentPw) { toast.error(t('mypage.toast.currentPwRequired')); return; }
+    if (!newPw) { toast.error(t('mypage.toast.newPwRequired')); return; }
+    if (newPw.length < 6) { toast.error(t('mypage.toast.newPwTooShort')); return; }
+    if (newPw !== confirmPw) { toast.error(t('mypage.toast.newPwMismatch')); return; }
     const result = await changePassword(currentPw, newPw);
     if (result.success) {
       toast.success(result.message);
@@ -177,7 +183,7 @@ export default function MyPage() {
   };
 
   const handleUnlockOrCreatePassport = async () => {
-    if (!passportGatePw) { toast.error('비밀번호를 입력해주세요.'); return; }
+    if (!passportGatePw) { toast.error(t('mypage.toast.passwordRequired')); return; }
     setPassportChecking(true);
     try {
       if (passportExists) {
@@ -192,7 +198,7 @@ export default function MyPage() {
         }
       } else {
         if (!verifyPassword(passportGatePw)) {
-          toast.error('비밀번호가 일치하지 않습니다.');
+          toast.error(t('mypage.toast.passportPasswordMismatch'));
         } else {
           setPassportForm(EMPTY_PASSPORT);
           setPassportSessionPw(passportGatePw);
@@ -207,7 +213,7 @@ export default function MyPage() {
 
   const handleSavePassport = async () => {
     if (!passportForm.passportNumber.trim() || !passportForm.fullNameEnglish.trim()) {
-      toast.error('여권번호와 영문 성명은 필수입니다.');
+      toast.error(t('mypage.toast.passportRequiredFields'));
       return;
     }
     setPassportSaving(true);
@@ -235,7 +241,8 @@ export default function MyPage() {
   };
 
   const handleWithdraw = () => {
-    if (withdrawConfirm !== '탈퇴') { toast.error('"탈퇴"를 입력해주세요.'); return; }
+    const withdrawKeyword = t('mypage.account.withdrawKeyword');
+    if (withdrawConfirm !== withdrawKeyword) { toast.error(t('mypage.toast.withdrawWordRequired', { word: withdrawKeyword })); return; }
     const result = withdrawAccount();
     if (result.success) toast.success(result.message);
     else toast.error(result.message);
@@ -256,19 +263,20 @@ export default function MyPage() {
     if (/[A-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
-    if (score <= 1) return { level: 1, label: '약함', color: 'bg-red-400' };
-    if (score === 2) return { level: 2, label: '보통', color: 'bg-yellow-400' };
-    if (score === 3) return { level: 3, label: '강함', color: 'bg-blue-400' };
-    return { level: 4, label: '매우 강함', color: 'bg-green-500' };
+    if (score <= 1) return { level: 1, label: t('mypage.security.strengthWeak'), color: 'bg-red-400' };
+    if (score === 2) return { level: 2, label: t('mypage.security.strengthNormal'), color: 'bg-yellow-400' };
+    if (score === 3) return { level: 3, label: t('mypage.security.strengthStrong'), color: 'bg-blue-400' };
+    return { level: 4, label: t('mypage.security.strengthVeryStrong'), color: 'bg-green-500' };
   };
   const strength = pwStrength(newPw);
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
-    { id: 'info', label: '내 정보', icon: <User className="w-4 h-4" /> },
-    { id: 'activity', label: '내 활동', icon: <Star className="w-4 h-4" /> },
-    { id: 'security', label: '보안 설정', icon: <KeyRound className="w-4 h-4" /> },
-    { id: 'passport', label: '여권 정보', icon: <IdCard className="w-4 h-4" /> },
-    { id: 'account', label: '계정 관리', icon: <Shield className="w-4 h-4" /> },
+    { id: 'info', label: t('mypage.tabs.info'), icon: <User className="w-4 h-4" /> },
+    { id: 'activity', label: t('mypage.tabs.activity'), icon: <Star className="w-4 h-4" /> },
+    { id: 'security', label: t('mypage.tabs.security'), icon: <KeyRound className="w-4 h-4" /> },
+    { id: 'passport', label: t('mypage.tabs.passport'), icon: <IdCard className="w-4 h-4" /> },
+    { id: 'account', label: t('mypage.tabs.account'), icon: <Shield className="w-4 h-4" /> },
+    { id: 'settings', label: t('mypage.tabs.settings'), icon: <Settings className="w-4 h-4" /> },
   ];
 
   return (
@@ -281,7 +289,7 @@ export default function MyPage() {
             <div className="relative flex-shrink-0">
               <div className="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
                 {profilePhoto ? (
-                  <img src={profilePhoto} alt="프로필" className="w-full h-full object-cover" />
+                  <img src={profilePhoto} alt={t('mypage.common.profileAlt')} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-primary to-[#8B7355] flex items-center justify-center">
                     <span className="text-4xl font-black text-white">{user?.name.charAt(0)}</span>
@@ -291,7 +299,7 @@ export default function MyPage() {
               <button
                 onClick={() => photoInputRef.current?.click()}
                 className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition border border-gray-200"
-                title="사진 변경"
+                title={t('mypage.common.changePhoto')}
               >
                 <Camera className="w-4 h-4 text-primary" />
               </button>
@@ -307,16 +315,16 @@ export default function MyPage() {
               <p className="text-white/80 text-sm mt-1">@{user?.username}</p>
               <p className="text-white/70 text-xs mt-0.5">{user?.email}</p>
               <p className="text-white/60 text-xs mt-0.5">
-                가입일 {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR') : ''}
+                {t('mypage.header.joinedOn')} {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(dateLocale) : ''}
               </p>
             </div>
 
             {/* 빠른 통계 */}
             <div className="flex gap-4 sm:gap-6 text-center">
               {[
-                { label: '여행 계획', value: myPlans.length, icon: <Plane className="w-4 h-4" /> },
-                { label: '여행 기록', value: myDiaries.length, icon: <BookOpen className="w-4 h-4" /> },
-                { label: '저장한 글', value: savedIds.length, icon: <Bookmark className="w-4 h-4" /> },
+                { label: t('mypage.stats.plans'), value: myPlans.length, icon: <Plane className="w-4 h-4" /> },
+                { label: t('mypage.stats.diaries'), value: myDiaries.length, icon: <BookOpen className="w-4 h-4" /> },
+                { label: t('mypage.stats.saved'), value: savedIds.length, icon: <Bookmark className="w-4 h-4" /> },
               ].map(stat => (
                 <div key={stat.label} className="bg-white/20 backdrop-blur rounded-xl px-4 py-3 min-w-[72px]">
                   <div className="flex items-center justify-center gap-1 text-white/80 text-xs mb-1">
@@ -364,12 +372,12 @@ export default function MyPage() {
               {/* 프로필 사진 카드 */}
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-primary" /> 프로필 사진
+                  <Camera className="w-5 h-5 text-primary" /> {t('mypage.info.photoTitle')}
                 </h3>
                 <div className="flex flex-col items-center gap-4">
                   <div className="w-28 h-28 rounded-full border-4 border-primary/20 overflow-hidden bg-secondary shadow-md">
                     {profilePhoto ? (
-                      <img src={profilePhoto} alt="프로필" className="w-full h-full object-cover" />
+                      <img src={profilePhoto} alt={t('mypage.common.profileAlt')} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-primary to-[#8B7355] flex items-center justify-center">
                         <span className="text-5xl font-black text-white">{user?.name.charAt(0)}</span>
@@ -381,7 +389,7 @@ export default function MyPage() {
                       onClick={() => photoInputRef.current?.click()}
                       className="flex-1 bg-primary text-white gap-2"
                     >
-                      <Camera className="w-4 h-4" /> 사진 변경
+                      <Camera className="w-4 h-4" /> {t('mypage.common.changePhoto')}
                     </Button>
                     {profilePhoto && (
                       <Button
@@ -394,7 +402,7 @@ export default function MyPage() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground text-center">
-                    JPG, PNG, GIF 지원 · 최대 10MB
+                    {t('mypage.info.photoHint')}
                   </p>
                 </div>
               </Card>
@@ -402,12 +410,12 @@ export default function MyPage() {
               {/* 기본 정보 카드 */}
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
-                  <User className="w-5 h-5 text-primary" /> 기본 정보
+                  <User className="w-5 h-5 text-primary" /> {t('mypage.info.basicInfoTitle')}
                 </h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                      아이디 (변경 불가)
+                      {t('mypage.info.usernameLabel')}
                     </label>
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-secondary border border-border text-sm text-muted-foreground">
                       <User className="w-4 h-4 flex-shrink-0" />
@@ -416,11 +424,11 @@ export default function MyPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                      가입일 (변경 불가)
+                      {t('mypage.info.joinedLabel')}
                     </label>
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-secondary border border-border text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 flex-shrink-0" />
-                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
                     </div>
                   </div>
                 </div>
@@ -429,29 +437,29 @@ export default function MyPage() {
               {/* 프로필 편집 카드 */}
               <Card className="p-6 bg-white md:col-span-2">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
-                  <Edit2 className="w-5 h-5 text-primary" /> 프로필 편집
+                  <Edit2 className="w-5 h-5 text-primary" /> {t('mypage.info.editTitle')}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">닉네임</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">{t('mypage.info.nicknameLabel')}</label>
                     <Input
                       value={editNickname}
                       onChange={e => setEditNickname(e.target.value)}
-                      placeholder="닉네임 입력"
+                      placeholder={t('mypage.info.nicknamePlaceholder')}
                       className="h-11"
                       maxLength={20}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">{editNickname.length}/20자</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('mypage.info.nicknameCount', { count: editNickname.length })}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">이메일</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">{t('mypage.info.emailLabel')}</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         type="email"
                         value={editEmail}
                         onChange={e => setEditEmail(e.target.value)}
-                        placeholder="이메일 입력"
+                        placeholder={t('mypage.info.emailPlaceholder')}
                         className="h-11 pl-9"
                       />
                     </div>
@@ -462,7 +470,7 @@ export default function MyPage() {
                   disabled={infoSaving}
                   className="mt-5 bg-primary text-white px-8 h-11 gap-2"
                 >
-                  <Check className="w-4 h-4" /> 변경 사항 저장
+                  <Check className="w-4 h-4" /> {t('mypage.info.saveButton')}
                 </Button>
               </Card>
             </div>
@@ -474,10 +482,10 @@ export default function MyPage() {
               {/* 활동 통계 */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { label: '여행 계획', value: myPlans.length, icon: <Plane className="w-5 h-5 text-sky-500" />, bg: 'bg-sky-50', text: 'text-sky-600' },
-                  { label: '여행 기록', value: myDiaries.length, icon: <BookOpen className="w-5 h-5 text-emerald-500" />, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-                  { label: '공개 게시글', value: myPublicDiaries.length, icon: <Star className="w-5 h-5 text-amber-500" />, bg: 'bg-amber-50', text: 'text-amber-600' },
-                  { label: '받은 좋아요', value: totalLikesReceived, icon: <Heart className="w-5 h-5 text-red-500" />, bg: 'bg-red-50', text: 'text-red-600' },
+                  { label: t('mypage.stats.plans'), value: myPlans.length, icon: <Plane className="w-5 h-5 text-sky-500" />, bg: 'bg-sky-50', text: 'text-sky-600' },
+                  { label: t('mypage.stats.diaries'), value: myDiaries.length, icon: <BookOpen className="w-5 h-5 text-emerald-500" />, bg: 'bg-emerald-50', text: 'text-emerald-600' },
+                  { label: t('mypage.stats.publicPosts'), value: myPublicDiaries.length, icon: <Star className="w-5 h-5 text-amber-500" />, bg: 'bg-amber-50', text: 'text-amber-600' },
+                  { label: t('mypage.stats.likesReceived'), value: totalLikesReceived, icon: <Heart className="w-5 h-5 text-red-500" />, bg: 'bg-red-50', text: 'text-red-600' },
                 ].map(stat => (
                   <Card key={stat.label} className={cn("p-4 text-center border-0", stat.bg)}>
                     <div className="flex justify-center mb-2">{stat.icon}</div>
@@ -491,21 +499,21 @@ export default function MyPage() {
               <Card className="p-6 bg-white">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-primary" /> 내 여행 기록
+                    <BookOpen className="w-5 h-5 text-primary" /> {t('mypage.activity.diariesTitle')}
                   </h3>
                   <button
                     onClick={() => setLocation('/diary')}
                     className="text-sm text-primary font-semibold hover:underline flex items-center gap-1"
                   >
-                    전체 보기 <ChevronRight className="w-4 h-4" />
+                    {t('mypage.activity.viewAll')} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
                 {myDiaries.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
                     <BookOpen className="w-10 h-10 mx-auto mb-3 text-border" />
-                    <p className="text-sm">아직 여행 기록이 없습니다.</p>
+                    <p className="text-sm">{t('mypage.activity.noDiaries')}</p>
                     <button onClick={() => setLocation('/diary')} className="mt-3 text-sm text-primary font-semibold hover:underline">
-                      첫 여행 기록 작성하기
+                      {t('mypage.activity.writeFirst')}
                     </button>
                   </div>
                 ) : (
@@ -525,7 +533,7 @@ export default function MyPage() {
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-foreground text-sm truncate">{d.title}</p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3" /> {d.location} · {new Date(d.createdAt).toLocaleDateString('ko-KR')}
+                              <MapPin className="w-3 h-3" /> {d.location} · {new Date(d.createdAt).toLocaleDateString(dateLocale)}
                             </p>
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -533,9 +541,9 @@ export default function MyPage() {
                               <Heart className="w-3 h-3" /> {d.likes?.length || 0}
                             </span>
                             {d.isPublic ? (
-                              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">공개</span>
+                              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">{t('mypage.activity.public')}</span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">비공개</span>
+                              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">{t('mypage.activity.private')}</span>
                             )}
                           </div>
                         </div>
@@ -548,21 +556,21 @@ export default function MyPage() {
               <Card className="p-6 bg-white">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                    <Bookmark className="w-5 h-5 text-primary" /> 저장한 게시글
+                    <Bookmark className="w-5 h-5 text-primary" /> {t('mypage.activity.savedTitle')}
                   </h3>
                   <button
                     onClick={() => setLocation('/community')}
                     className="text-sm text-primary font-semibold hover:underline flex items-center gap-1"
                   >
-                    커뮤니티 가기 <ChevronRight className="w-4 h-4" />
+                    {t('mypage.activity.goCommunity')} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
                 {savedDiaries.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
                     <Bookmark className="w-10 h-10 mx-auto mb-3 text-border" />
-                    <p className="text-sm">아직 저장한 게시글이 없습니다.</p>
+                    <p className="text-sm">{t('mypage.activity.noSaved')}</p>
                     <button onClick={() => setLocation('/community')} className="mt-3 text-sm text-primary font-semibold hover:underline">
-                      커뮤니티에서 인기 게시글 보기
+                      {t('mypage.activity.viewPopular')}
                     </button>
                   </div>
                 ) : (
@@ -579,7 +587,7 @@ export default function MyPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-foreground text-sm truncate">{d.title}</p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" /> {d.location} · {new Date(d.createdAt).toLocaleDateString('ko-KR')}
+                            <MapPin className="w-3 h-3" /> {d.location} · {new Date(d.createdAt).toLocaleDateString(dateLocale)}
                           </p>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -594,11 +602,11 @@ export default function MyPage() {
               {/* 내가 쓴 댓글 */}
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-primary" /> 내가 쓴 댓글
-                  <span className="text-sm text-muted-foreground font-normal">({myComments.length}개)</span>
+                  <MessageCircle className="w-5 h-5 text-primary" /> {t('mypage.activity.commentsTitle')}
+                  <span className="text-sm text-muted-foreground font-normal">{t('mypage.activity.commentsCount', { count: myComments.length })}</span>
                 </h3>
                 {myComments.length === 0 ? (
-                  <p className="text-center py-6 text-sm text-muted-foreground">아직 작성한 댓글이 없습니다.</p>
+                  <p className="text-center py-6 text-sm text-muted-foreground">{t('mypage.activity.noComments')}</p>
                 ) : (
                   <div className="space-y-3">
                     {[...myComments]
@@ -608,7 +616,7 @@ export default function MyPage() {
                         <div key={c.id} className="p-3 bg-secondary rounded-lg border border-border">
                           <p className="text-sm text-foreground leading-relaxed">{c.content}</p>
                           <p className="text-xs text-muted-foreground mt-1.5">
-                            {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            {new Date(c.createdAt).toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       ))}
@@ -623,17 +631,17 @@ export default function MyPage() {
             <div className="max-w-lg">
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-primary" /> 비밀번호 변경
+                  <Lock className="w-5 h-5 text-primary" /> {t('mypage.security.changePwTitle')}
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">현재 비밀번호</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">{t('mypage.security.currentPwLabel')}</label>
                     <div className="relative">
                       <Input
                         type={showCurrentPw ? 'text' : 'password'}
                         value={currentPw}
                         onChange={e => setCurrentPw(e.target.value)}
-                        placeholder="현재 비밀번호 입력"
+                        placeholder={t('mypage.security.currentPwPlaceholder')}
                         className="h-11 pr-10"
                       />
                       <button
@@ -646,13 +654,13 @@ export default function MyPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">새 비밀번호</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">{t('mypage.security.newPwLabel')}</label>
                     <div className="relative">
                       <Input
                         type={showNewPw ? 'text' : 'password'}
                         value={newPw}
                         onChange={e => setNewPw(e.target.value)}
-                        placeholder="새 비밀번호 입력 (6자 이상)"
+                        placeholder={t('mypage.security.newPwPlaceholder')}
                         className="h-11 pr-10"
                       />
                       <button
@@ -676,19 +684,19 @@ export default function MyPage() {
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          대문자, 숫자, 특수문자를 포함하면 보안이 강화됩니다.
+                          {t('mypage.security.newPwHint')}
                         </p>
                       </div>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1.5">새 비밀번호 확인</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">{t('mypage.security.confirmPwLabel')}</label>
                     <div className="relative">
                       <Input
                         type={showConfirmPw ? 'text' : 'password'}
                         value={confirmPw}
                         onChange={e => setConfirmPw(e.target.value)}
-                        placeholder="새 비밀번호 재입력"
+                        placeholder={t('mypage.security.confirmPwPlaceholder')}
                         className={cn("h-11 pr-10", confirmPw && (confirmPw === newPw ? 'border-green-400 focus:border-green-400' : 'border-red-400 focus:border-red-400'))}
                       />
                       <button
@@ -701,12 +709,12 @@ export default function MyPage() {
                     </div>
                     {confirmPw && confirmPw !== newPw && (
                       <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                        <X className="w-3 h-3" /> 비밀번호가 일치하지 않습니다.
+                        <X className="w-3 h-3" /> {t('mypage.security.mismatch')}
                       </p>
                     )}
                     {confirmPw && confirmPw === newPw && (
                       <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> 비밀번호가 일치합니다.
+                        <Check className="w-3 h-3" /> {t('mypage.security.match')}
                       </p>
                     )}
                   </div>
@@ -714,20 +722,20 @@ export default function MyPage() {
                     onClick={handleChangePassword}
                     className="w-full bg-primary text-white h-11 gap-2 mt-2"
                   >
-                    <KeyRound className="w-4 h-4" /> 비밀번호 변경
+                    <KeyRound className="w-4 h-4" /> {t('mypage.security.changeButton')}
                   </Button>
                 </div>
               </Card>
 
               <Card className="p-5 mt-4 bg-blue-50 border-blue-200">
                 <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-                  <Shield className="w-4 h-4" /> 비밀번호 보안 안내
+                  <Shield className="w-4 h-4" /> {t('mypage.security.guideTitle')}
                 </h4>
                 <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                  <li>최소 6자 이상의 비밀번호를 사용하세요.</li>
-                  <li>영문 대소문자, 숫자, 특수문자를 조합하면 더욱 안전합니다.</li>
-                  <li>다른 사이트와 동일한 비밀번호는 사용하지 마세요.</li>
-                  <li>비밀번호는 정기적으로 변경하는 것을 권장합니다.</li>
+                  <li>{t('mypage.security.guide1')}</li>
+                  <li>{t('mypage.security.guide2')}</li>
+                  <li>{t('mypage.security.guide3')}</li>
+                  <li>{t('mypage.security.guide4')}</li>
                 </ul>
               </Card>
             </div>
@@ -742,12 +750,12 @@ export default function MyPage() {
                     <Lock className="w-7 h-7 text-primary" />
                   </div>
                   <h3 className="text-lg font-bold text-foreground mb-2">
-                    {passportExists ? '여권 정보가 암호화되어 있습니다' : '여권 정보 등록'}
+                    {passportExists ? t('mypage.passport.encryptedTitle') : t('mypage.passport.registerTitle')}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-6">
                     {passportExists
-                      ? '본인 확인을 위해 비밀번호를 한 번 더 입력해주세요.'
-                      : '여권 정보는 비밀번호로 암호화되어 저장됩니다. 등록을 시작하려면 비밀번호를 입력하세요.'}
+                      ? t('mypage.passport.encryptedDesc')
+                      : t('mypage.passport.registerDesc')}
                   </p>
                   <div className="max-w-xs mx-auto space-y-3">
                     <div className="relative">
@@ -756,7 +764,7 @@ export default function MyPage() {
                         value={passportGatePw}
                         onChange={e => setPassportGatePw(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleUnlockOrCreatePassport(); }}
-                        placeholder="비밀번호 입력"
+                        placeholder={t('mypage.passport.pwPlaceholder')}
                         className="h-11 pr-10"
                       />
                       <button
@@ -772,7 +780,7 @@ export default function MyPage() {
                       disabled={passportChecking}
                       className="w-full bg-primary text-white h-11 gap-2"
                     >
-                      <ShieldCheck className="w-4 h-4" /> {passportExists ? '확인하기' : '등록 시작하기'}
+                      <ShieldCheck className="w-4 h-4" /> {passportExists ? t('mypage.passport.confirmButton') : t('mypage.passport.startButton')}
                     </Button>
                   </div>
                 </Card>
@@ -797,13 +805,13 @@ export default function MyPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         {[
-                          { key: 'passportNumber' as const, label: 'PASSPORT NO. (여권번호)', type: 'text' },
-                          { key: 'fullNameEnglish' as const, label: 'NAME (영문 성명)', type: 'text' },
-                          { key: 'nationality' as const, label: 'NATIONALITY (국적)', type: 'text' },
-                          { key: 'dateOfBirth' as const, label: 'DATE OF BIRTH (생년월일)', type: 'date' },
-                          { key: 'issueDate' as const, label: 'DATE OF ISSUE (발급일)', type: 'date' },
-                          { key: 'expiryDate' as const, label: 'DATE OF EXPIRY (만료일)', type: 'date' },
-                          { key: 'issuingCountry' as const, label: 'ISSUING COUNTRY (발급국가)', type: 'text' },
+                          { key: 'passportNumber' as const, label: t('mypage.passport.fieldPassportNumber'), type: 'text' },
+                          { key: 'fullNameEnglish' as const, label: t('mypage.passport.fieldFullName'), type: 'text' },
+                          { key: 'nationality' as const, label: t('mypage.passport.fieldNationality'), type: 'text' },
+                          { key: 'dateOfBirth' as const, label: t('mypage.passport.fieldDateOfBirth'), type: 'date' },
+                          { key: 'issueDate' as const, label: t('mypage.passport.fieldIssueDate'), type: 'date' },
+                          { key: 'expiryDate' as const, label: t('mypage.passport.fieldExpiryDate'), type: 'date' },
+                          { key: 'issuingCountry' as const, label: t('mypage.passport.fieldIssuingCountry'), type: 'text' },
                         ].map(field => (
                           <div key={field.key}>
                             <label className="block text-[10px] tracking-widest text-[#d4af37]/80 font-bold mb-1">
@@ -820,7 +828,7 @@ export default function MyPage() {
                         ))}
                         <div>
                           <label className="block text-[10px] tracking-widest text-[#d4af37]/80 font-bold mb-1">
-                            SEX (성별)
+                            {t('mypage.passport.fieldSex')}
                           </label>
                           <select
                             value={passportForm.sex}
@@ -847,10 +855,10 @@ export default function MyPage() {
 
                   <div className="flex gap-2">
                     <Button onClick={handleSavePassport} disabled={passportSaving} className="flex-1 bg-primary text-white h-11 gap-2">
-                      <Save className="w-4 h-4" /> 저장하기
+                      <Save className="w-4 h-4" /> {t('mypage.passport.saveButton')}
                     </Button>
                     <Button onClick={handleLockPassport} variant="outline" className="h-11 gap-2">
-                      <Lock className="w-4 h-4" /> 잠그기
+                      <Lock className="w-4 h-4" /> {t('mypage.passport.lockButton')}
                     </Button>
                     {passportExists && (
                       <Button
@@ -866,7 +874,7 @@ export default function MyPage() {
                   <Card className="p-4 bg-blue-50 border-blue-200">
                     <p className="text-xs text-blue-700 flex items-start gap-2">
                       <Shield className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      여권 정보는 비밀번호로부터 생성된 암호키로 안전하게 암호화되어 저장됩니다. 비밀번호를 변경하면 자동으로 재암호화되며, 다른 탭으로 이동하면 화면에서 자동으로 잠깁니다.
+                      {t('mypage.passport.encryptionNotice')}
                     </p>
                   </Card>
                 </div>
@@ -879,25 +887,25 @@ export default function MyPage() {
             <div className="max-w-lg space-y-4">
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
-                  <User className="w-5 h-5 text-primary" /> 계정 정보
+                  <User className="w-5 h-5 text-primary" /> {t('mypage.account.infoTitle')}
                 </h3>
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-sm text-muted-foreground">아이디</span>
+                    <span className="text-sm text-muted-foreground">{t('mypage.account.usernameLabel')}</span>
                     <span className="text-sm font-semibold text-foreground">{user?.username}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-sm text-muted-foreground">닉네임</span>
+                    <span className="text-sm text-muted-foreground">{t('mypage.account.nicknameLabel')}</span>
                     <span className="text-sm font-semibold text-foreground">{user?.nickname}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-sm text-muted-foreground">이메일</span>
+                    <span className="text-sm text-muted-foreground">{t('mypage.account.emailLabel')}</span>
                     <span className="text-sm font-semibold text-foreground">{user?.email}</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm text-muted-foreground">계정 유형</span>
+                    <span className="text-sm text-muted-foreground">{t('mypage.account.accountTypeLabel')}</span>
                     <span className={cn("text-sm font-bold", user?.isAdmin ? 'text-amber-600' : 'text-primary')}>
-                      {user?.isAdmin ? '관리자' : '일반 회원'}
+                      {user?.isAdmin ? t('mypage.account.admin') : t('mypage.account.normal')}
                     </span>
                   </div>
                 </div>
@@ -906,16 +914,16 @@ export default function MyPage() {
               {!user?.isAdmin && (
                 <Card className="p-6 bg-white border-red-100">
                   <h3 className="text-lg font-bold text-red-600 mb-3 flex items-center gap-2">
-                    <UserX className="w-5 h-5" /> 회원 탈퇴
+                    <UserX className="w-5 h-5" /> {t('mypage.account.withdrawTitle')}
                   </h3>
                   <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 space-y-2">
-                    <p className="text-sm font-semibold text-red-700">탈퇴 전 꼭 확인하세요!</p>
+                    <p className="text-sm font-semibold text-red-700">{t('mypage.account.withdrawWarningTitle')}</p>
                     <ul className="text-xs text-red-600 space-y-1 list-disc list-inside">
-                      <li>모든 여행 계획 데이터가 삭제됩니다.</li>
-                      <li>모든 여행 기록 및 커뮤니티 게시글이 삭제됩니다.</li>
-                      <li>저장한 게시글 목록이 초기화됩니다.</li>
-                      <li>탈퇴 후 동일한 아이디로 재가입이 가능합니다.</li>
-                      <li>삭제된 데이터는 복구할 수 없습니다.</li>
+                      <li>{t('mypage.account.withdrawItem1')}</li>
+                      <li>{t('mypage.account.withdrawItem2')}</li>
+                      <li>{t('mypage.account.withdrawItem3')}</li>
+                      <li>{t('mypage.account.withdrawItem4')}</li>
+                      <li>{t('mypage.account.withdrawItem5')}</li>
                     </ul>
                   </div>
                   <Button
@@ -923,10 +931,66 @@ export default function MyPage() {
                     variant="outline"
                     className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 gap-2 w-full h-11"
                   >
-                    <UserX className="w-4 h-4" /> 회원 탈퇴 신청
+                    <UserX className="w-4 h-4" /> {t('mypage.account.withdrawButton')}
                   </Button>
                 </Card>
               )}
+            </div>
+          )}
+
+          {/* ── 설정 탭 ── */}
+          {activeTab === 'settings' && (
+            <div className="max-w-lg space-y-6">
+              {/* 언어 설정 카드 */}
+              <Card className="p-6 bg-white">
+                <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
+                  <Globe2 className="w-5 h-5 text-primary" /> {t('mypage.settings.languageTitle')}
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => setLanguage('ko')}
+                    variant={language === 'ko' ? 'default' : 'outline'}
+                    className={cn("h-11", language === 'ko' && 'bg-primary text-white')}
+                  >
+                    {t('mypage.settings.korean')}
+                  </Button>
+                  <Button
+                    onClick={() => setLanguage('en')}
+                    variant={language === 'en' ? 'default' : 'outline'}
+                    className={cn("h-11", language === 'en' && 'bg-primary text-white')}
+                  >
+                    {t('mypage.settings.english')}
+                  </Button>
+                </div>
+              </Card>
+
+              {/* 알림 설정 카드 */}
+              <Card className="p-6 bg-white">
+                <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-primary" /> {t('mypage.settings.notificationTitle')}
+                </h3>
+                <div className="divide-y divide-border">
+                  {[
+                    { key: 'tripD3' as const, label: t('mypage.settings.tripD3Label'), desc: t('mypage.settings.tripD3Desc') },
+                    { key: 'tripDDay' as const, label: t('mypage.settings.tripDDayLabel'), desc: t('mypage.settings.tripDDayDesc') },
+                    { key: 'likes' as const, label: t('mypage.settings.likesLabel'), desc: t('mypage.settings.likesDesc') },
+                    { key: 'comments' as const, label: t('mypage.settings.commentsLabel'), desc: t('mypage.settings.commentsDesc') },
+                    { key: 'shares' as const, label: t('mypage.settings.sharesLabel'), desc: t('mypage.settings.sharesDesc') },
+                    { key: 'popularPost' as const, label: t('mypage.settings.popularPostLabel'), desc: t('mypage.settings.popularPostDesc') },
+                  ].map(item => (
+                    <div key={item.key} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                      </div>
+                      <Switch
+                        checked={settings[item.key]}
+                        onCheckedChange={(checked) => updateSettings({ [item.key]: checked })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </Card>
             </div>
           )}
         </div>
@@ -937,31 +1001,31 @@ export default function MyPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-red-600 flex items-center gap-2">
-              <UserX className="w-5 h-5" /> 회원 탈퇴
+              <UserX className="w-5 h-5" /> {t('mypage.account.withdrawTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 space-y-1">
-              <p className="font-semibold">정말로 탈퇴하시겠습니까?</p>
-              <p className="text-xs text-red-500">탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
+              <p className="font-semibold">{t('mypage.dialogs.withdrawConfirmQuestion')}</p>
+              <p className="text-xs text-red-500">{t('mypage.dialogs.withdrawConfirmDesc')}</p>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                확인을 위해 <span className="text-red-500 font-bold">"탈퇴"</span>를 입력하세요
+                {t('mypage.dialogs.withdrawTypeLabel', { word: t('mypage.account.withdrawKeyword') })}
               </label>
               <input
                 value={withdrawConfirm}
                 onChange={e => setWithdrawConfirm(e.target.value)}
-                placeholder="탈퇴"
+                placeholder={t('mypage.account.withdrawKeyword')}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
               />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => { setShowWithdraw(false); setWithdrawConfirm(''); }} className="flex-1">
-                취소
+                {t('mypage.common.cancel')}
               </Button>
               <Button onClick={handleWithdraw} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-                <UserX className="w-4 h-4 mr-1" /> 탈퇴하기
+                <UserX className="w-4 h-4 mr-1" /> {t('mypage.dialogs.withdrawSubmit')}
               </Button>
             </div>
           </div>
@@ -973,19 +1037,19 @@ export default function MyPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> 여권 정보 삭제
+              <Trash2 className="w-5 h-5" /> {t('mypage.dialogs.deletePassportTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              저장된 여권 정보를 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.
+              {t('mypage.dialogs.deletePassportDesc')}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowDeletePassport(false)} className="flex-1">
-                취소
+                {t('mypage.common.cancel')}
               </Button>
               <Button onClick={handleDeletePassport} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
-                <Trash2 className="w-4 h-4 mr-1" /> 삭제하기
+                <Trash2 className="w-4 h-4 mr-1" /> {t('mypage.dialogs.deletePassportSubmit')}
               </Button>
             </div>
           </div>

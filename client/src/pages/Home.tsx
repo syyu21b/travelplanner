@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  Search, Bell, ChevronDown, Camera
+  Search, ChevronDown, Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as QRCodeLib from 'qrcode.react';
@@ -25,6 +25,8 @@ import { Link, useLocation } from 'wouter';
 import { MapView, type MapMarker } from '@/components/Map';
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { WeatherWidget } from '@/components/WeatherWidget';
+import { useLanguage } from '@/contexts/LanguageContext';
+import NotificationBell from '@/components/NotificationBell';
 
 interface ScheduleItem {
   id: string;
@@ -95,6 +97,8 @@ function compressPlanCoverPhoto(file: File): Promise<string> {
 }
 
 export default function Home() {
+  const { t } = useLanguage();
+
   // 환율 계산기 상태 및 함수
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [exchangeRates] = useState<Record<string, number>>({
@@ -225,7 +229,7 @@ export default function Home() {
 
   const handleCreatePlan = () => {
     if (!newPlanTitle || !newPlanStartDate || !newPlanEndDate) {
-      toast.error('모든 필드를 입력해주세요');
+      toast.error(t('home.toast.fillAllFields'));
       return;
     }
     const newPlan: TravelPlan = {
@@ -243,7 +247,7 @@ export default function Home() {
     setCurrentPlan(newPlan);
     setNewPlanTitle(''); setNewPlanStartDate(''); setNewPlanEndDate('');
     setShowNewPlanDialog(false);
-    toast.success('여행 계획이 생성되었습니다!');
+    toast.success(t('home.toast.planCreated'));
   };
 
   const updateCurrentPlan = (updatedPlan: TravelPlan) => {
@@ -285,12 +289,12 @@ export default function Home() {
 
   const handleSaveTitle = () => {
     if (!currentPlan || !editTitleValue.trim()) {
-      toast.error('제목을 입력해주세요');
+      toast.error(t('home.toast.enterTitle'));
       return;
     }
     updateCurrentPlan({ ...currentPlan, title: editTitleValue.trim() });
     setEditingTitle(false);
-    toast.success('제목이 수정되었습니다!');
+    toast.success(t('home.toast.titleUpdated'));
   };
 
   const handleCancelEditTitle = () => {
@@ -308,16 +312,16 @@ export default function Home() {
 
   const handleSaveDates = () => {
     if (!currentPlan || !editStartDate || !editEndDate) {
-      toast.error('시작일과 종료일을 모두 입력해주세요');
+      toast.error(t('home.toast.enterBothDates'));
       return;
     }
     if (editStartDate > editEndDate) {
-      toast.error('종료일은 시작일보다 빠를 수 없습니다');
+      toast.error(t('home.toast.endBeforeStart'));
       return;
     }
     updateCurrentPlan({ ...currentPlan, startDate: editStartDate, endDate: editEndDate });
     setEditingDates(false);
-    toast.success('날짜가 수정되었습니다!');
+    toast.success(t('home.toast.datesUpdated'));
   };
 
   const handleCancelEditDates = () => {
@@ -332,18 +336,18 @@ export default function Home() {
     e.target.value = '';
     if (!file || !currentPlan) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('이미지 파일만 업로드할 수 있습니다');
+      toast.error(t('home.toast.imageFilesOnly'));
       return;
     }
     const compressed = await compressPlanCoverPhoto(file);
     updateCurrentPlan({ ...currentPlan, coverPhoto: compressed });
-    toast.success('대표 사진이 설정되었습니다!');
+    toast.success(t('home.toast.coverPhotoSet'));
   };
 
   const handleAddSchedule = (schedule: ScheduleItem) => {
     if (!currentPlan) return;
     updateCurrentPlan({ ...currentPlan, schedules: [...currentPlan.schedules, schedule] });
-    toast.success('일정이 추가되었습니다!');
+    toast.success(t('home.toast.scheduleAdded'));
   };
 
   const handleUpdateSchedule = (scheduleId: string, updatedSchedule: ScheduleItem) => {
@@ -353,7 +357,7 @@ export default function Home() {
       schedules: currentPlan.schedules.map(s => s.id === scheduleId ? updatedSchedule : s),
     });
     setEditingScheduleId(null);
-    toast.success('일정이 수정되었습니다!');
+    toast.success(t('home.toast.scheduleUpdated'));
   };
 
   const handleDeleteSchedule = (scheduleId: string) => {
@@ -362,7 +366,7 @@ export default function Home() {
       ...currentPlan,
       schedules: currentPlan.schedules.filter(s => s.id !== scheduleId),
     });
-    toast.success('일정이 삭제되었습니다!');
+    toast.success(t('home.toast.scheduleDeleted'));
   };
 
   const handleToggleScheduleComplete = (scheduleId: string) => {
@@ -376,7 +380,7 @@ export default function Home() {
   const handleAddBudget = (budget: Budget) => {
     if (!currentPlan) return;
     updateCurrentPlan({ ...currentPlan, budgets: [...currentPlan.budgets, budget] });
-    toast.success('예산이 추가되었습니다!');
+    toast.success(t('home.toast.budgetAdded'));
   };
 
   const handleUpdateBudget = (budgetId: string, updatedBudget: Budget) => {
@@ -386,7 +390,7 @@ export default function Home() {
       budgets: currentPlan.budgets.map(b => b.id === budgetId ? updatedBudget : b),
     });
     setEditingBudgetId(null);
-    toast.success('예산이 수정되었습니다!');
+    toast.success(t('home.toast.budgetUpdated'));
   };
 
   const handleDeleteBudget = (budgetId: string) => {
@@ -395,14 +399,14 @@ export default function Home() {
       ...currentPlan,
       budgets: currentPlan.budgets.filter(b => b.id !== budgetId),
     });
-    toast.success('예산이 삭제되었습니다!');
+    toast.success(t('home.toast.budgetDeleted'));
   };
 
   const handleAddShoppingItem = (item: string, imageUrl?: string, link?: string) => {
     if (!currentPlan) return;
     const newItem: ShoppingItem = { id: Date.now().toString(), item, checked: false, imageUrl, link };
     updateCurrentPlan({ ...currentPlan, shoppingList: [...currentPlan.shoppingList, newItem] });
-    toast.success('쇼핑 목록에 추가되었습니다!');
+    toast.success(t('home.toast.shoppingItemAdded'));
   };
 
   const handleUpdateShoppingItem = (itemId: string, updatedItem: ShoppingItem) => {
@@ -412,7 +416,7 @@ export default function Home() {
       shoppingList: currentPlan.shoppingList.map(i => i.id === itemId ? updatedItem : i),
     });
     setEditingShoppingId(null);
-    toast.success('쇼핑 목록이 수정되었습니다!');
+    toast.success(t('home.toast.shoppingItemUpdated'));
   };
 
   const handleDeleteShoppingItem = (itemId: string) => {
@@ -439,7 +443,7 @@ export default function Home() {
     // 프린트 전용 창 열기
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      toast.error('팝업 차단을 해제해주세요.');
+      toast.error(t('home.toast.allowPopups'));
       return;
     }
 
@@ -475,7 +479,7 @@ export default function Home() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>${currentPlan.title} - 여행 계획</title>
+          <title>${currentPlan.title} - ${t('home.pdf.docTitleSuffix')}</title>
           <style>
             body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #333; padding: 40px; }
             h1 { color: #0ea5e9; border-bottom: 3px solid #0ea5e9; padding-bottom: 10px; }
@@ -491,21 +495,21 @@ export default function Home() {
         <body>
           <h1>${currentPlan.title}</h1>
           <p style="font-size: 1.2em; color: #666;">🗓 ${currentPlan.startDate} ~ ${currentPlan.endDate}</p>
-          
+
           <div class="section">
-            <h2>🗓 여행 일정</h2>
-            ${schedulesHtml || '<p>등록된 일정이 없습니다.</p>'}
+            <h2>🗓 ${t('home.pdf.scheduleSection')}</h2>
+            ${schedulesHtml || `<p>${t('home.pdf.noSchedules')}</p>`}
           </div>
 
           <div class="section">
-            <h2>💰 예산 계획</h2>
-            ${budgetsHtml || '<p>등록된 예산이 없습니다.</p>'}
-            <div class="total">총 합계: ₩${totalBudget.toLocaleString()}</div>
+            <h2>💰 ${t('home.pdf.budgetSection')}</h2>
+            ${budgetsHtml || `<p>${t('home.pdf.noBudgets')}</p>`}
+            <div class="total">${t('home.pdf.grandTotal')}: ₩${totalBudget.toLocaleString()}</div>
           </div>
 
           <div class="section">
-            <h2>🛍 쇼핑 목록</h2>
-            ${shoppingHtml || '<p>등록된 쇼핑 목록이 없습니다.</p>'}
+            <h2>🛍 ${t('home.pdf.shoppingSection')}</h2>
+            ${shoppingHtml || `<p>${t('home.pdf.noShoppingItems')}</p>`}
           </div>
 
           <script>
@@ -518,34 +522,34 @@ export default function Home() {
       </html>
     `);
     printWindow.document.close();
-    toast.success('인쇄/PDF 저장 창이 열렸습니다.');
+    toast.success(t('home.toast.printWindowOpened'));
   };
 
   // 여행 계획을 텍스트 파일로 저장하는 기능
   const saveAsTextFile = () => {
     if (!currentPlan) return;
 
-    let content = `[여행 계획: ${currentPlan.title}]\n`;
-    content += `기간: ${currentPlan.startDate} ~ ${currentPlan.endDate}\n\n`;
-    
-    content += `■ 여행 일정\n`;
+    let content = `[${t('home.textExport.planLabel')}: ${currentPlan.title}]\n`;
+    content += `${t('home.textExport.period')}: ${currentPlan.startDate} ~ ${currentPlan.endDate}\n\n`;
+
+    content += `■ ${t('home.textExport.scheduleSection')}\n`;
     currentPlan.schedules.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).forEach((s, idx) => {
       content += `${idx + 1}. [${s.date} ${s.time}] ${getCategoryLabel(s.category)}: ${s.title}\n`;
-      if (s.location) content += `   위치: ${s.location}\n`;
-      if (s.cost) content += `   비용: ₩${s.cost.toLocaleString()}\n`;
-      if (s.notes) content += `   메모: ${s.notes}\n`;
-      if (s.preparations && s.preparations.length > 0) content += `   준비물: ${s.preparations.join(', ')}\n`;
+      if (s.location) content += `   ${t('home.textExport.location')}: ${s.location}\n`;
+      if (s.cost) content += `   ${t('home.textExport.cost')}: ₩${s.cost.toLocaleString()}\n`;
+      if (s.notes) content += `   ${t('home.textExport.notes')}: ${s.notes}\n`;
+      if (s.preparations && s.preparations.length > 0) content += `   ${t('home.textExport.preparations')}: ${s.preparations.join(', ')}\n`;
       content += `\n`;
     });
 
-    content += `■ 예산 현황\n`;
+    content += `■ ${t('home.textExport.budgetSection')}\n`;
     const total = currentPlan.budgets.reduce((sum, b) => sum + b.amount, 0);
     currentPlan.budgets.forEach(b => {
       content += `- ${getCategoryLabel(b.category)}: ₩${b.amount.toLocaleString()} (${b.description})\n`;
     });
-    content += `총 예산: ₩${total.toLocaleString()}\n\n`;
+    content += `${t('home.textExport.totalBudget')}: ₩${total.toLocaleString()}\n\n`;
 
-    content += `■ 쇼핑 목록\n`;
+    content += `■ ${t('home.textExport.shoppingSection')}\n`;
     currentPlan.shoppingList.forEach((item, idx) => {
       const status = item.checked ? '[V]' : '[ ]';
       content += `${status} ${idx + 1}. ${item.item}\n`;
@@ -555,29 +559,29 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentPlan.title}_여행계획.txt`;
+    a.download = `${currentPlan.title}_${t('home.textExport.fileNameSuffix')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('여행 계획이 텍스트 파일로 저장되었습니다!');
+    toast.success(t('home.toast.textFileSaved'));
   };
 
   const handleDownloadPDF = () => {
     if (!currentPlan || !pdfRef.current) return;
     const element = pdfRef.current;
     const printWindow = window.open('', '', 'height=800,width=1000');
-    if (!printWindow) { toast.error('PDF 다운로드를 실패했습니다'); return; }
+    if (!printWindow) { toast.error(t('home.toast.pdfDownloadFailed')); return; }
     const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
     printWindow.document.write(`<html><head><title>${currentPlan.title}</title>${styles}<style>@media print { .no-print { display: none; } body { background: white !important; } }</style></head><body><div>${element.innerHTML}</div></body></html>`);
     printWindow.document.close();
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-    toast.success('PDF 출력을 준비합니다!');
+    toast.success(t('home.toast.pdfPreparing'));
   };
 
   const handleDeletePlan = (planId: string) => {
     const updated = travelPlans.filter(p => p.id !== planId);
     updateTravelPlans(updated);
     if (currentPlan?.id === planId) setCurrentPlan(null);
-    toast.success('여행 계획이 삭제되었습니다!');
+    toast.success(t('home.toast.planDeleted'));
   };
 
   const getCategoryColor = (category: string) => {
@@ -594,10 +598,10 @@ export default function Home() {
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
-      accommodation: '숙소', transport: '교통', meal: '식사',
-      activity: '활동', shopping: '쇼핑', other: '기타',
+      accommodation: t('home.category.accommodation'), transport: t('home.category.transport'), meal: t('home.category.meal'),
+      activity: t('home.category.activity'), shopping: t('home.category.shopping'), other: t('home.category.other'),
     };
-    return labels[category] || '기타';
+    return labels[category] || t('home.category.other');
   };
 
   const totalBudget = currentPlan?.budgets?.reduce((sum, b) => sum + b.amount, 0) || 0;
@@ -685,6 +689,18 @@ export default function Home() {
     return '예정';
   };
 
+  // 상태 값(내부 키)을 화면에 표시할 번역 문자열로 변환
+  const getStatusLabel = (status: '진행 중' | '예정' | '완료'): string => {
+    if (status === '진행 중') return t('home.planList.status.ongoing');
+    if (status === '예정') return t('home.planList.status.upcoming');
+    return t('home.planList.status.completed');
+  };
+
+  const getFilterLabel = (filter: 'all' | '진행 중' | '예정' | '완료'): string => {
+    if (filter === 'all') return t('home.planList.status.all');
+    return getStatusLabel(filter);
+  };
+
   // 여행 시작일까지 남은(혹은 지난) 일수를 D-day 형태로 계산
   const getDday = (plan: TravelPlan): string => {
     if (!plan.startDate || !plan.endDate) return '';
@@ -699,7 +715,7 @@ export default function Home() {
     if (daysUntilStart === 0) return 'D-DAY';
 
     const daysUntilEnd = Math.round((end.getTime() - today.getTime()) / MS_PER_DAY);
-    if (daysUntilEnd >= 0) return `여행 ${Math.abs(daysUntilStart) + 1}일째`;
+    if (daysUntilEnd >= 0) return t('home.planList.dayOfTrip', { n: Math.abs(daysUntilStart) + 1 });
     return `D+${Math.abs(daysUntilEnd)}`;
   };
 
@@ -716,23 +732,23 @@ export default function Home() {
       {/* 새 여행 계획 다이얼로그 */}
       <Dialog open={showNewPlanDialog} onOpenChange={setShowNewPlanDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>새로운 여행 계획</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('home.newPlanDialog.title')}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold">여행 제목</label>
-              <Input placeholder="어디로 떠나시나요?" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} className="h-11" />
+              <label className="text-sm font-semibold">{t('home.newPlanDialog.tripTitleLabel')}</label>
+              <Input placeholder={t('home.newPlanDialog.tripTitlePlaceholder')} value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} className="h-11" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-semibold">시작일</label>
+                <label className="text-sm font-semibold">{t('home.newPlanDialog.startDateLabel')}</label>
                 <Input type="date" value={newPlanStartDate} onChange={e => setNewPlanStartDate(e.target.value)} className="h-11" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold">종료일</label>
+                <label className="text-sm font-semibold">{t('home.newPlanDialog.endDateLabel')}</label>
                 <Input type="date" value={newPlanEndDate} onChange={e => setNewPlanEndDate(e.target.value)} className="h-11" />
               </div>
             </div>
-            <Button onClick={handleCreatePlan} className="w-full bg-primary text-white h-11 mt-2">계획 생성</Button>
+            <Button onClick={handleCreatePlan} className="w-full bg-primary text-white h-11 mt-2">{t('home.newPlanDialog.createButton')}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -754,26 +770,26 @@ export default function Home() {
             <Link href="/">
               <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-sm whitespace-nowrap">
                 <Plane className="w-4 h-4" />
-                <span className="hidden sm:inline">여행 계획</span>
+                <span className="hidden sm:inline">{t('home.header.navPlan')}</span>
               </button>
             </Link>
             <Link href="/diary">
               <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all text-muted-foreground hover:bg-secondary hover:text-foreground whitespace-nowrap">
                 <BookOpen className="w-4 h-4" />
-                <span className="hidden sm:inline">여행 기록</span>
+                <span className="hidden sm:inline">{t('home.header.navDiary')}</span>
               </button>
             </Link>
             <Link href="/community">
               <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all text-muted-foreground hover:bg-secondary hover:text-foreground whitespace-nowrap">
                 <Globe className="w-4 h-4" />
-                <span className="hidden sm:inline">커뮤니티</span>
+                <span className="hidden sm:inline">{t('home.header.navCommunity')}</span>
               </button>
             </Link>
             {user?.isAdmin && (
               <Link href="/admin">
                 <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all text-amber-600 hover:bg-amber-50 whitespace-nowrap">
                   <Shield className="w-4 h-4" />
-                  <span className="hidden sm:inline">관리자</span>
+                  <span className="hidden sm:inline">{t('home.header.navAdmin')}</span>
                 </button>
               </Link>
             )}
@@ -783,9 +799,7 @@ export default function Home() {
             <button className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
               <Search className="w-4 h-4" />
             </button>
-            <button className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
-              <Bell className="w-4 h-4" />
-            </button>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-border bg-white hover:border-primary hover:shadow-sm transition-all">
@@ -803,14 +817,14 @@ export default function Home() {
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem asChild>
                   <Link href="/mypage" className="flex items-center gap-2 cursor-pointer">
-                    <User className="w-4 h-4" /> 마이페이지
+                    <User className="w-4 h-4" /> {t('home.header.myPage')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={logout}
                   className="text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer"
                 >
-                  <LogOut className="w-4 h-4 mr-2" /> 로그아웃
+                  <LogOut className="w-4 h-4 mr-2" /> {t('home.header.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -829,24 +843,24 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 max-w-5xl">
               <h1 className="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-lg max-w-xl">
-                여행의 순간을 계획하고,<br />평생 간직할 추억을 만들어보세요.
+                {t('home.hero.titleLine1')}<br />{t('home.hero.titleLine2')}
               </h1>
               <p className="text-white/75 text-base md:text-lg mt-4 drop-shadow max-w-lg">
-                나만의 여행 일정을 만들고, 기록하고, 공유해보세요.
+                {t('home.hero.subtitle')}
               </p>
               <div className="flex flex-wrap gap-3 mt-8">
                 <Button
                   onClick={() => setShowNewPlanDialog(true)}
                   className="bg-[#3B2B1E] hover:bg-[#2A1F16] text-white px-6 h-11 rounded-full gap-2 shadow-lg"
                 >
-                  <Plane className="w-4 h-4" /> 새 여행 시작하기
+                  <Plane className="w-4 h-4" /> {t('home.hero.startButton')}
                 </Button>
                 <Link href="/community">
                   <Button
                     variant="outline"
                     className="bg-white/15 backdrop-blur-sm border-white/50 text-white hover:bg-white/25 px-6 h-11 rounded-full gap-2"
                   >
-                    <Globe className="w-4 h-4" /> 여행 둘러보기
+                    <Globe className="w-4 h-4" /> {t('home.hero.exploreButton')}
                   </Button>
                 </Link>
               </div>
@@ -856,7 +870,7 @@ export default function Home() {
                 onClick={() => setShowNewPlanDialog(true)}
                 className="bg-white/95 text-[#3B2B1E] hover:bg-white gap-1.5 rounded-full shadow-lg font-bold text-sm px-4 h-9"
               >
-                <Plus className="w-4 h-4" /> 새 여행 계획
+                <Plus className="w-4 h-4" /> {t('home.hero.newPlanButton')}
               </Button>
             </div>
           </div>
@@ -871,10 +885,10 @@ export default function Home() {
             const totalSchedules = travelPlans.reduce((s, p) => s + p.schedules.length, 0);
             const uniqueLocations = new Set(myDiaries.map((d: any) => d.location)).size;
             const statItems = [
-              { label: '여행 계획', value: travelPlans.length, sub: `진행 중 ${activeCount}개`, icon: <Map className="w-5 h-5" />, bg: 'bg-blue-100', color: 'text-blue-600' },
-              { label: '예정된 일정', value: totalSchedules, sub: `이번 달 ${thisMonthSchedules}개`, icon: <Calendar className="w-5 h-5" />, bg: 'bg-emerald-100', color: 'text-emerald-600' },
-              { label: '작성한 일기', value: myDiaries.length, sub: `이번 달 ${thisMonthDiaries}개`, icon: <BookOpen className="w-5 h-5" />, bg: 'bg-orange-100', color: 'text-orange-600' },
-              { label: '방문한 지역', value: uniqueLocations, sub: `총 ${uniqueLocations}개 여행지`, icon: <MapPin className="w-5 h-5" />, bg: 'bg-purple-100', color: 'text-purple-600' },
+              { label: t('home.stats.plansLabel'), value: travelPlans.length, sub: t('home.stats.plansSub', { n: activeCount }), icon: <Map className="w-5 h-5" />, bg: 'bg-blue-100', color: 'text-blue-600' },
+              { label: t('home.stats.schedulesLabel'), value: totalSchedules, sub: t('home.stats.schedulesSub', { n: thisMonthSchedules }), icon: <Calendar className="w-5 h-5" />, bg: 'bg-emerald-100', color: 'text-emerald-600' },
+              { label: t('home.stats.diariesLabel'), value: myDiaries.length, sub: t('home.stats.diariesSub', { n: thisMonthDiaries }), icon: <BookOpen className="w-5 h-5" />, bg: 'bg-orange-100', color: 'text-orange-600' },
+              { label: t('home.stats.locationsLabel'), value: uniqueLocations, sub: t('home.stats.locationsSub', { n: uniqueLocations }), icon: <MapPin className="w-5 h-5" />, bg: 'bg-purple-100', color: 'text-purple-600' },
             ];
             return (
               <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10">
@@ -907,7 +921,7 @@ export default function Home() {
             <div className="lg:col-span-1">
               <Card className="p-5 bg-white border-border shadow-sm sticky top-20">
                 <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-primary" /> 여행 캘린더
+                  <Calendar className="w-4 h-4 text-primary" /> {t('home.calendarSidebar.title')}
                 </h3>
                 <CalendarUI
                   mode="single"
@@ -919,10 +933,10 @@ export default function Home() {
                 />
                 <div className="mt-4 space-y-2">
                   {[
-                    { color: 'bg-sky-200', label: '여행 일정이 있는 날' },
-                    { color: 'bg-emerald-400', label: '진행 중인 여행' },
-                    { color: 'bg-blue-400', label: '예정된 여행' },
-                    { color: 'bg-slate-300', label: '완료된 여행' },
+                    { color: 'bg-sky-200', label: t('home.calendarSidebar.legendHasSchedule') },
+                    { color: 'bg-emerald-400', label: t('home.calendarSidebar.legendOngoing') },
+                    { color: 'bg-blue-400', label: t('home.calendarSidebar.legendUpcoming') },
+                    { color: 'bg-slate-300', label: t('home.calendarSidebar.legendCompleted') },
                   ].map(item => (
                     <div key={item.label} className="flex items-center gap-2 text-xs text-muted-foreground">
                       <div className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", item.color)} />
@@ -936,7 +950,7 @@ export default function Home() {
             {/* 오른쪽: 여행 계획 목록 */}
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-black text-foreground">내 여행 계획</h2>
+                <h2 className="text-xl font-black text-foreground">{t('home.planList.title')}</h2>
                 <div className="flex gap-1 bg-secondary p-1 rounded-xl">
                   {(['all', '진행 중', '예정', '완료'] as const).map(f => (
                     <button
@@ -947,7 +961,7 @@ export default function Home() {
                         planFilter === f ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      {f === 'all' ? '전체' : f}
+                      {getFilterLabel(f)}
                     </button>
                   ))}
                 </div>
@@ -973,16 +987,16 @@ export default function Home() {
                   return (
                     <Card className="p-12 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/60">
                       <Map className="w-16 h-16 text-border mb-4" />
-                      <h2 className="text-xl font-bold text-foreground mb-2">등록된 여행이 없습니다</h2>
-                      <p className="text-muted-foreground mb-6">첫 번째 여행 계획을 세워보세요!</p>
-                      <Button onClick={() => setShowNewPlanDialog(true)} className="bg-primary">시작하기</Button>
+                      <h2 className="text-xl font-bold text-foreground mb-2">{t('home.planList.emptyTitle')}</h2>
+                      <p className="text-muted-foreground mb-6">{t('home.planList.emptySubtitle')}</p>
+                      <Button onClick={() => setShowNewPlanDialog(true)} className="bg-primary">{t('home.planList.emptyButton')}</Button>
                     </Card>
                   );
                 }
                 if (filtered.length === 0) {
                   return (
                     <div className="py-12 text-center">
-                      <p className="text-base font-semibold text-muted-foreground">'{planFilter}' 여행이 없습니다.</p>
+                      <p className="text-base font-semibold text-muted-foreground">{t('home.planList.filterEmpty', { filter: getFilterLabel(planFilter) })}</p>
                     </div>
                   );
                 }
@@ -1015,7 +1029,7 @@ export default function Home() {
                                   {getDday(plan)}
                                 </span>
                                 <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border", STATUS_STYLES[status])}>
-                                  {status}
+                                  {getStatusLabel(status)}
                                 </span>
                               </div>
                             </div>
@@ -1023,9 +1037,9 @@ export default function Home() {
                               <Calendar className="w-4 h-4" /> {plan.startDate} ~ {plan.endDate}
                             </p>
                             <div className="flex items-center gap-3 mt-2.5 text-sm">
-                              <span className="text-muted-foreground">일정 {plan.schedules.length}개</span>
+                              <span className="text-muted-foreground">{t('home.planList.scheduleCount', { n: plan.schedules.length })}</span>
                               <span className="text-muted-foreground">·</span>
-                              <span className="text-primary font-semibold">예산 ₩{budget.toLocaleString()}</span>
+                              <span className="text-primary font-semibold">{t('home.planList.budgetLabel')} ₩{budget.toLocaleString()}</span>
                             </div>
                           </div>
                           <button
@@ -1061,7 +1075,7 @@ export default function Home() {
                   type="button"
                   onClick={() => planPhotoInputRef.current?.click()}
                   className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-border group/cover"
-                  title="대표 사진 설정"
+                  title={t('home.planDetail.coverPhotoTitle')}
                 >
                   {currentPlan.coverPhoto ? (
                     <img src={currentPlan.coverPhoto} alt="" className="w-full h-full object-cover" />
@@ -1087,7 +1101,7 @@ export default function Home() {
                     onClick={() => { setCurrentPlan(null); setEditingTitle(false); setEditingDates(false); }}
                     className="text-primary font-semibold text-sm hover:underline mb-2 flex items-center gap-1"
                   >
-                    ← 목록으로 돌아가기
+                    ← {t('home.planDetail.backToList')}
                   </button>
 
                   {/* 제목 수정 영역 */}
@@ -1104,10 +1118,10 @@ export default function Home() {
                         autoFocus
                       />
                       <Button onClick={handleSaveTitle} size="sm" className="bg-primary text-white gap-1">
-                        <Check className="w-4 h-4" /> 저장
+                        <Check className="w-4 h-4" /> {t('home.common.save')}
                       </Button>
                       <Button onClick={handleCancelEditTitle} size="sm" variant="outline" className="gap-1">
-                        <X className="w-4 h-4" /> 취소
+                        <X className="w-4 h-4" /> {t('home.common.cancel')}
                       </Button>
                     </div>
                   ) : (
@@ -1119,7 +1133,7 @@ export default function Home() {
                       <button
                         onClick={handleStartEditTitle}
                         className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                        title="제목 수정"
+                        title={t('home.planDetail.editTitleTooltip')}
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
@@ -1147,10 +1161,10 @@ export default function Home() {
                         className="h-9 w-auto"
                       />
                       <Button onClick={handleSaveDates} size="sm" className="bg-primary text-white gap-1">
-                        <Check className="w-4 h-4" /> 저장
+                        <Check className="w-4 h-4" /> {t('home.common.save')}
                       </Button>
                       <Button onClick={handleCancelEditDates} size="sm" variant="outline" className="gap-1">
-                        <X className="w-4 h-4" /> 취소
+                        <X className="w-4 h-4" /> {t('home.common.cancel')}
                       </Button>
                     </div>
                   ) : (
@@ -1159,7 +1173,7 @@ export default function Home() {
                       <button
                         onClick={handleStartEditDates}
                         className="p-1 text-slate-400 hover:text-primary transition-colors rounded hover:bg-secondary"
-                        title="날짜 수정"
+                        title={t('home.planDetail.editDatesTooltip')}
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -1169,10 +1183,10 @@ export default function Home() {
               </div>
               <div className="flex gap-3">
                 <Button onClick={generateComprehensivePDF} className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-100">
-                  <Download className="w-4 h-4 mr-2" /> PDF 저장
+                  <Download className="w-4 h-4 mr-2" /> {t('home.planDetail.savePdfButton')}
                 </Button>
                 <Button onClick={() => setShowShareModal(true)} className="bg-primary shadow-lg shadow-border">
-                  <Share2 className="w-4 h-4 mr-2" /> 공유하기
+                  <Share2 className="w-4 h-4 mr-2" /> {t('home.planDetail.shareButton')}
                 </Button>
               </div>
             </div>
@@ -1182,7 +1196,7 @@ export default function Home() {
               <div className="lg:col-span-4 space-y-6">
                 <Card className="p-6 bg-white border-border shadow-sm">
                   <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-primary" /> 여행 달력
+                    <Calendar className="w-5 h-5 text-primary" /> {t('home.planDetail.calendarTitle')}
                   </h3>
                   <CalendarUI
                     mode="single"
@@ -1197,17 +1211,17 @@ export default function Home() {
                     }}
                   />
                   <div className="mt-4 p-3 bg-secondary rounded-lg text-xs text-muted-foreground">
-                    <p>💡 달력에서 날짜를 클릭하면 해당 날짜의 일정을 확인할 수 있습니다.</p>
+                    <p>💡 {t('home.planDetail.calendarTip')}</p>
                   </div>
                 </Card>
 
                 <Card className="p-6 bg-gradient-to-br from-primary to-[#8B7968] text-white shadow-lg shadow-border">
-                  <h3 className="text-lg font-bold mb-4">여행 요약</h3>
+                  <h3 className="text-lg font-bold mb-4">{t('home.planDetail.summaryTitle')}</h3>
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="text-white/80 text-xs uppercase tracking-wider font-bold">총 예산</p>
+                          <p className="text-white/80 text-xs uppercase tracking-wider font-bold">{t('home.planDetail.totalBudgetLabel')}</p>
                           <p className="text-3xl font-black">₩{totalBudget.toLocaleString()}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -1233,11 +1247,11 @@ export default function Home() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white/20 p-3 rounded-xl">
-                        <p className="text-xs font-bold">전체 일정</p>
-                        <p className="text-xl font-bold">{currentPlan.schedules.length}개</p>
+                        <p className="text-xs font-bold">{t('home.planDetail.totalSchedulesLabel')}</p>
+                        <p className="text-xl font-bold">{t('home.unitCount', { n: currentPlan.schedules.length })}</p>
                       </div>
                       <div className="bg-white/20 p-3 rounded-xl">
-                        <p className="text-xs font-bold">체크리스트</p>
+                        <p className="text-xs font-bold">{t('home.planDetail.checklistLabel')}</p>
                         <p className="text-xl font-bold">{currentPlan.shoppingList.filter(i => i.checked).length}/{currentPlan.shoppingList.length}</p>
                       </div>
                     </div>
@@ -1252,37 +1266,37 @@ export default function Home() {
                     className="flex sm:grid w-full sm:grid-cols-7 gap-1 overflow-x-auto sm:overflow-visible bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none' }}
                   >
-                    <TabsTrigger value="schedule" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">일정</TabsTrigger>
-                    <TabsTrigger value="map" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">지도</TabsTrigger>
-                    <TabsTrigger value="weather" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">날씨</TabsTrigger>
-                    <TabsTrigger value="budget" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">예산</TabsTrigger>
-                    <TabsTrigger value="shopping" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">쇼핑</TabsTrigger>
-                    <TabsTrigger value="summary" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">준비물</TabsTrigger>
-                    <TabsTrigger value="timeline" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">타임라인</TabsTrigger>
+                    <TabsTrigger value="schedule" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
+                    <TabsTrigger value="map" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.map')}</TabsTrigger>
+                    <TabsTrigger value="weather" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.weather')}</TabsTrigger>
+                    <TabsTrigger value="budget" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.budget')}</TabsTrigger>
+                    <TabsTrigger value="shopping" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.shopping')}</TabsTrigger>
+                    <TabsTrigger value="summary" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.summary')}</TabsTrigger>
+                    <TabsTrigger value="timeline" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.timeline')}</TabsTrigger>
                   </TabsList>
 
                   {/* 일정 탭 */}
                   <TabsContent value="schedule" className="space-y-6">
                     <Card className="p-6 bg-white border-border">
-                      <h3 className="text-lg font-bold text-foreground mb-5">새 일정 추가</h3>
+                      <h3 className="text-lg font-bold text-foreground mb-5">{t('home.schedule.addTitle')}</h3>
                       <ScheduleForm onAdd={handleAddSchedule} />
                     </Card>
 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-xl font-bold text-foreground">
-                          {selectedDate ? `${getDateString(selectedDate)} 일정` : '전체 일정'}
+                          {selectedDate ? t('home.schedule.scheduleForDate', { date: getDateString(selectedDate) }) : t('home.schedule.allSchedules')}
                         </h3>
                         {selectedDate && (
                           <Button variant="ghost" size="sm" onClick={() => setSelectedDate(undefined)} className="text-muted-foreground">
-                            전체보기
+                            {t('home.schedule.viewAll')}
                           </Button>
                         )}
                       </div>
 
                       {filteredSchedules.length === 0 ? (
                         <div className="text-center py-12 bg-white rounded-2xl border border-border">
-                          <p className="text-slate-400">일정이 없습니다. 새로운 일정을 추가해보세요!</p>
+                          <p className="text-slate-400">{t('home.schedule.emptyState')}</p>
                         </div>
                       ) : (
                         filteredSchedules
@@ -1309,10 +1323,10 @@ export default function Home() {
                     <Card className="p-6 bg-white border-border">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                          <Map className="w-5 h-5 text-primary" /> 일정 지도
+                          <Map className="w-5 h-5 text-primary" /> {t('home.map.title')}
                         </h3>
                         <span className="text-sm text-muted-foreground">
-                          위치 등록됨 {currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined).length}개
+                          {t('home.map.pinnedCount', { n: currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined).length })}
                         </span>
                       </div>
                       {(() => {
@@ -1323,8 +1337,8 @@ export default function Home() {
                           return (
                             <div className="text-center py-12 text-muted-foreground">
                               <MapPin className="w-10 h-10 mx-auto mb-3 text-border" />
-                              <p className="text-sm">아직 지도에 등록된 일정이 없습니다.</p>
-                              <p className="text-xs mt-1">일정 추가/수정 시 "지도" 버튼으로 위치를 선택해보세요.</p>
+                              <p className="text-sm">{t('home.map.emptyState')}</p>
+                              <p className="text-xs mt-1">{t('home.map.emptyStateHint')}</p>
                             </div>
                           );
                         }
@@ -1358,7 +1372,7 @@ export default function Home() {
                             </div>
                             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                               <p className="text-xs font-semibold text-muted-foreground px-1 mb-1">
-                                번호를 눌러 지도에서 위치를 확인하세요
+                                {t('home.map.tapToLocate')}
                               </p>
                               {pinned.map((s, i) => (
                                 <button
@@ -1399,8 +1413,8 @@ export default function Home() {
                   <TabsContent value="weather" className="space-y-4">
                     <Tabs defaultValue="domestic" className="w-full">
                       <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 rounded-2xl mb-4">
-                        <TabsTrigger value="domestic" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">국내 날씨</TabsTrigger>
-                        <TabsTrigger value="overseas" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">해외 날씨</TabsTrigger>
+                        <TabsTrigger value="domestic" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.domestic')}</TabsTrigger>
+                        <TabsTrigger value="overseas" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.overseas')}</TabsTrigger>
                       </TabsList>
                       <TabsContent value="domestic">
                         <WeatherWidget scope="domestic" />
@@ -1415,12 +1429,12 @@ export default function Home() {
                   <TabsContent value="budget" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card className="p-6 bg-white border-border">
-                        <h3 className="text-lg font-bold text-foreground mb-4">예산 추가</h3>
+                        <h3 className="text-lg font-bold text-foreground mb-4">{t('home.budget.addTitle')}</h3>
                         <BudgetForm onAdd={handleAddBudget} />
                       </Card>
                       <Card className="p-6 bg-white border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                          <Info className="w-4 h-4 text-primary" /> 간편 계산기
+                          <Info className="w-4 h-4 text-primary" /> {t('home.budget.calculatorTitle')}
                         </h3>
                         <div className="space-y-3">
                           <div className="bg-[#3D3D3D] text-white p-4 rounded-xl text-right text-2xl font-mono font-bold">{calcDisplay}</div>
@@ -1442,13 +1456,13 @@ export default function Home() {
                                 }} className={btnClass}>{btn}</Button>
                               );
                             })}
-                            <Button onClick={handleCalcClear} className="col-span-4 h-12 font-bold bg-[#A68B77] hover:bg-[#8B7968] text-white border-0">CLEAR (ESC)</Button>
+                            <Button onClick={handleCalcClear} className="col-span-4 h-12 font-bold bg-[#A68B77] hover:bg-[#8B7968] text-white border-0">{t('home.budget.clearButton')}</Button>
                           </div>
                         </div>
                       </Card>
                     </div>
                     <div className="space-y-4">
-                      <h3 className="text-xl font-bold text-foreground">지출 내역</h3>
+                      <h3 className="text-xl font-bold text-foreground">{t('home.budget.expenseHistoryTitle')}</h3>
                       {currentPlan.budgets.map(budget => (
                         <BudgetCard
                           key={budget.id}
@@ -1468,7 +1482,7 @@ export default function Home() {
                   {/* 쇼핑 탭 */}
                   <TabsContent value="shopping" className="space-y-6">
                     <Card className="p-6 bg-white border-border">
-                      <h3 className="text-lg font-bold text-foreground mb-4">쇼핑/체크리스트 추가</h3>
+                      <h3 className="text-lg font-bold text-foreground mb-4">{t('home.shopping.addTitle')}</h3>
                       <ShoppingForm onAdd={handleAddShoppingItem} />
                     </Card>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1490,11 +1504,11 @@ export default function Home() {
                   {/* 준비물 탭 */}
                   <TabsContent value="summary">
                     <Card className="p-6 bg-white border-border">
-                      <h3 className="text-lg font-bold text-foreground mb-4">준비물 목록</h3>
+                      <h3 className="text-lg font-bold text-foreground mb-4">{t('home.summary.title')}</h3>
                       <div className="space-y-4">
                         {currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length === 0 ? (
                           <div className="text-center py-12 bg-secondary rounded-2xl">
-                            <p className="text-slate-400">일정별 준비물을 등록하면 이곳에서 모아볼 수 있습니다.</p>
+                            <p className="text-slate-400">{t('home.summary.emptyState')}</p>
                           </div>
                         ) : (
                           currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).map(s => (
@@ -1519,22 +1533,22 @@ export default function Home() {
                     <Card className="p-6 bg-white border-border">
                       <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                         <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                          <Clock className="w-5 h-5 text-primary" /> 일정 타임라인
+                          <Clock className="w-5 h-5 text-primary" /> {t('home.timeline.title')}
                           {currentPlan.schedules.length > 0 && (
                             <span className="text-sm font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-                              {Math.round((currentPlan.schedules.filter(s => s.completed).length / currentPlan.schedules.length) * 100)}% 완료
+                              {t('home.timeline.percentComplete', { n: Math.round((currentPlan.schedules.filter(s => s.completed).length / currentPlan.schedules.length) * 100) })}
                             </span>
                           )}
                         </h3>
                         {currentPlan.schedules.length > 0 && (
                           <span className="text-xs text-muted-foreground">
-                            {currentPlan.schedules.filter(s => s.completed).length} / {currentPlan.schedules.length}개 완료
+                            {t('home.timeline.completedCount', { done: currentPlan.schedules.filter(s => s.completed).length, total: currentPlan.schedules.length })}
                           </span>
                         )}
                       </div>
                       {currentPlan.schedules.length === 0 ? (
                         <div className="text-center py-12 bg-secondary rounded-2xl">
-                          <p className="text-slate-400">아직 등록된 일정이 없습니다. "일정" 탭에서 일정을 추가해보세요.</p>
+                          <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
                         </div>
                       ) : (() => {
                         const sorted = [...currentPlan.schedules].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
@@ -1543,7 +1557,10 @@ export default function Home() {
                           return acc;
                         }, {});
                         const dates = Object.keys(grouped).sort();
-                        const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                        const weekdays = [
+                          t('home.timeline.weekdaySun'), t('home.timeline.weekdayMon'), t('home.timeline.weekdayTue'),
+                          t('home.timeline.weekdayWed'), t('home.timeline.weekdayThu'), t('home.timeline.weekdayFri'), t('home.timeline.weekdaySat'),
+                        ];
                         return (
                           <div className="space-y-8">
                             {dates.map((date, dayIdx) => (
@@ -1555,7 +1572,7 @@ export default function Home() {
                                   <p className="font-bold text-foreground">
                                     {date}{' '}
                                     <span className="text-muted-foreground font-normal text-sm">
-                                      ({weekdays[new Date(date + 'T00:00:00').getDay()]}요일)
+                                      ({weekdays[new Date(date + 'T00:00:00').getDay()]})
                                     </span>
                                   </p>
                                 </div>
@@ -1565,7 +1582,7 @@ export default function Home() {
                                       <button
                                         type="button"
                                         onClick={() => handleToggleScheduleComplete(s.id)}
-                                        aria-label={s.completed ? '완료 취소' : '완료 표시'}
+                                        aria-label={s.completed ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
                                         className={cn(
                                           "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
                                           s.completed ? "bg-primary border-primary" : "bg-white border-border hover:border-primary"
@@ -1613,7 +1630,7 @@ export default function Home() {
                 </div>
                 
                 <div className="mb-10">
-                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">📅 여행 일정</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">📅 {t('home.pdf.scheduleSection')}</h2>
                   <div className="space-y-4">
                     {currentPlan.schedules.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).map(s => (
                       <div key={s.id} className="p-4 border border-slate-200 rounded-xl">
@@ -1639,7 +1656,7 @@ export default function Home() {
 
                 <div className="grid grid-cols-2 gap-8 mb-10">
                   <div>
-                    <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">💰 예산 현황</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">💰 {t('home.pdf.budgetSection')}</h2>
                     <div className="space-y-2">
                       {currentPlan.budgets.map(b => (
                         <div key={b.id} className="flex justify-between items-center p-2 border-b border-slate-100">
@@ -1648,13 +1665,13 @@ export default function Home() {
                         </div>
                       ))}
                       <div className="flex justify-between items-center p-2 bg-primary/10 rounded mt-2">
-                        <span className="font-bold">총 합계</span>
+                        <span className="font-bold">{t('home.pdf.grandTotal')}</span>
                         <span className="font-bold text-primary">₩{totalBudget.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">🛍️ 쇼핑 목록</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">🛍️ {t('home.pdf.shoppingSection')}</h2>
                     <div className="space-y-2">
                       {currentPlan.shoppingList.map(item => (
                         <div key={item.id} className="flex items-center gap-2 p-2 border-b border-slate-100">
@@ -1675,30 +1692,30 @@ export default function Home() {
           <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>공유 및 저장 옵션</DialogTitle>
+                <DialogTitle>{t('home.shareDialog.title')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <Button
                   onClick={() => { generateComprehensivePDF(); setShowShareModal(false); }}
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2"
                 >
-                  <Download className="w-4 h-4" /> 통합 PDF로 저장 (일정/예산/쇼핑/준비물)
+                  <Download className="w-4 h-4" /> {t('home.shareDialog.savePdfOption')}
                 </Button>
                 <Button
                   onClick={() => { saveAsTextFile(); setShowShareModal(false); }}
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2"
                 >
-                  <Download className="w-4 h-4" /> 여행 계획 파일(.txt)로 저장
+                  <Download className="w-4 h-4" /> {t('home.shareDialog.saveTextOption')}
                 </Button>
                 <Button
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    toast.success('공유 링크가 클립보드에 복사되었습니다!');
+                    toast.success(t('home.toast.shareLinkCopied'));
                     setShowShareModal(false);
                   }}
                   className="w-full bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2"
                 >
-                  <Share2 className="w-4 h-4" /> 현재 페이지 링크 복사
+                  <Share2 className="w-4 h-4" /> {t('home.shareDialog.copyLinkOption')}
                 </Button>
               </div>
             </DialogContent>
@@ -1712,7 +1729,7 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Eye className="w-5 h-5 text-primary" />
-              {previewPlan?.title} - 미리보기
+              {previewPlan?.title} - {t('home.previewDialog.titleSuffix')}
             </DialogTitle>
           </DialogHeader>
           {previewPlan && (
@@ -1721,7 +1738,7 @@ export default function Home() {
               <div className="p-4 bg-secondary rounded-xl border border-border">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">여행 기간</p>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('home.previewDialog.periodLabel')}</p>
                     <p className="font-bold text-foreground">{previewPlan.startDate} ~ {previewPlan.endDate}</p>
                   </div>
                   <div>
@@ -1729,16 +1746,16 @@ export default function Home() {
                     <p className="font-bold text-primary">{getDday(previewPlan)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">총 예산</p>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('home.previewDialog.totalBudgetLabel')}</p>
                     <p className="font-bold text-primary text-lg">₩{previewPlan.budgets.reduce((s, b) => s + b.amount, 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">일정 수</p>
-                    <p className="font-bold text-foreground">{previewPlan.schedules.length}개</p>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('home.previewDialog.scheduleCountLabel')}</p>
+                    <p className="font-bold text-foreground">{t('home.unitCount', { n: previewPlan.schedules.length })}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">쇼핑 목록</p>
-                    <p className="font-bold text-foreground">{previewPlan.shoppingList.filter(i => i.checked).length}/{previewPlan.shoppingList.length} 완료</p>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('home.previewDialog.shoppingListLabel')}</p>
+                    <p className="font-bold text-foreground">{t('home.previewDialog.shoppingCompleted', { done: previewPlan.shoppingList.filter(i => i.checked).length, total: previewPlan.shoppingList.length })}</p>
                   </div>
                 </div>
               </div>
@@ -1748,13 +1765,13 @@ export default function Home() {
                 <div>
                   <h4 className="font-bold text-foreground mb-3 flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-primary" />
-                    {getDateString(homeCalendarDate)} 일정
+                    {t('home.previewDialog.scheduleForDate', { date: getDateString(homeCalendarDate) })}
                   </h4>
                   {previewPlan.schedules
                     .filter(s => s.date === getDateString(homeCalendarDate))
                     .sort((a, b) => a.time.localeCompare(b.time))
                     .length === 0 ? (
-                    <p className="text-slate-400 text-sm py-4 text-center bg-slate-50 rounded-xl">이 날짜에는 등록된 일정이 없습니다.</p>
+                    <p className="text-slate-400 text-sm py-4 text-center bg-slate-50 rounded-xl">{t('home.previewDialog.noScheduleForDate')}</p>
                   ) : (
                     <div className="space-y-2">
                       {previewPlan.schedules
@@ -1790,7 +1807,7 @@ export default function Home() {
                 <div>
                   <h4 className="font-bold text-foreground mb-3 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
-                    전체 일정 ({previewPlan.schedules.length}개)
+                    {t('home.previewDialog.allSchedules', { n: previewPlan.schedules.length })}
                   </h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {previewPlan.schedules
@@ -1818,14 +1835,14 @@ export default function Home() {
                   }}
                   className="flex-1 bg-primary text-white"
                 >
-                  <Edit2 className="w-4 h-4 mr-2" /> 수정하기
+                  <Edit2 className="w-4 h-4 mr-2" /> {t('home.previewDialog.editButton')}
                 </Button>
                 <Button
                   onClick={() => setShowPreviewDialog(false)}
                   variant="outline"
                   className="flex-1"
                 >
-                  닫기
+                  {t('home.previewDialog.closeButton')}
                 </Button>
               </div>
             </div>
@@ -1839,6 +1856,7 @@ export default function Home() {
 // ===== 하위 컴포넌트 =====
 
 function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCancel, getCategoryColor, getCategoryLabel }: any) {
+  const { t } = useLanguage();
   const [editData, setEditData] = React.useState(schedule);
   const [newPrep, setNewPrep] = React.useState('');
   const [showPicker, setShowPicker] = React.useState(false);
@@ -1861,50 +1879,50 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">일정 제목 *</label>
+              <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.titleLabel')} *</label>
               <Input
                 value={editData.title}
                 onChange={e => setEditData({ ...editData, title: e.target.value })}
-                placeholder="제목"
+                placeholder={t('home.schedule.form.titlePlaceholder')}
                 className="h-11"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">카테고리</label>
+              <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.categoryLabel')}</label>
               <select
                 value={editData.category}
                 onChange={e => setEditData({ ...editData, category: e.target.value })}
                 className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
               >
-                <option value="accommodation">숙소</option>
-                <option value="transport">교통</option>
-                <option value="meal">식사</option>
-                <option value="activity">활동</option>
-                <option value="other">기타</option>
+                <option value="accommodation">{t('home.category.accommodation')}</option>
+                <option value="transport">{t('home.category.transport')}</option>
+                <option value="meal">{t('home.category.meal')}</option>
+                <option value="activity">{t('home.category.activity')}</option>
+                <option value="other">{t('home.category.other')}</option>
               </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">날짜 *</label>
+              <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.dateLabel')} *</label>
               <Input type="date" value={editData.date} onChange={e => setEditData({ ...editData, date: e.target.value })} className="h-11" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">시간 *</label>
+              <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.timeLabel')} *</label>
               <Input type="time" value={editData.time} onChange={e => setEditData({ ...editData, time: e.target.value })} className="h-11" />
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">위치</label>
+            <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.locationLabel')}</label>
             <div className="flex gap-2">
-              <Input value={editData.location || ''} onChange={e => setEditData({ ...editData, location: e.target.value })} placeholder="위치 입력" className="h-11" />
+              <Input value={editData.location || ''} onChange={e => setEditData({ ...editData, location: e.target.value })} placeholder={t('home.schedule.form.locationPlaceholder')} className="h-11" />
               <Button type="button" variant="outline" onClick={() => setShowPicker(true)} className="h-11 gap-1.5 flex-shrink-0">
-                <MapPin className="w-4 h-4" /> 지도
+                <MapPin className="w-4 h-4" /> {t('home.schedule.form.mapButton')}
               </Button>
             </div>
             {editData.lat !== undefined && editData.lng !== undefined && (
               <p className="text-xs text-primary flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> 좌표 선택됨 ({editData.lat.toFixed(5)}, {editData.lng.toFixed(5)})
+                <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: editData.lat.toFixed(5), lng: editData.lng.toFixed(5) })}
                 <button type="button" onClick={() => setEditData({ ...editData, lat: undefined, lng: undefined })} className="text-red-400 hover:text-red-600 ml-1">
                   <X className="w-3 h-3" />
                 </button>
@@ -1921,18 +1939,18 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">비용 (원)</label>
+            <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.costLabel')}</label>
             <Input type="number" value={editData.cost || ''} onChange={e => setEditData({ ...editData, cost: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="0" className="h-11" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">예약 링크</label>
+            <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.linkLabel')}</label>
             <Input type="url" value={editData.link || ''} onChange={e => setEditData({ ...editData, link: e.target.value })} placeholder="https://..." className="h-11" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-foreground">준비물</label>
+            <label className="text-sm font-bold text-foreground">{t('home.schedule.form.preparationsLabel')}</label>
             <div className="flex gap-2">
-              <Input value={newPrep} onChange={e => setNewPrep(e.target.value)} placeholder="예: 여권, 우산" onKeyPress={e => e.key === 'Enter' && addPrep()} className="h-11" />
-              <Button onClick={addPrep} size="sm" variant="secondary" className="h-11 px-4">추가</Button>
+              <Input value={newPrep} onChange={e => setNewPrep(e.target.value)} placeholder={t('home.schedule.form.preparationsPlaceholder')} onKeyPress={e => e.key === 'Enter' && addPrep()} className="h-11" />
+              <Button onClick={addPrep} size="sm" variant="secondary" className="h-11 px-4">{t('home.common.add')}</Button>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {editData.preparations?.map((p: string, i: number) => (
@@ -1946,17 +1964,17 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">메모</label>
+            <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')}</label>
             <Textarea
               value={editData.notes || ''}
               onChange={e => setEditData({ ...editData, notes: e.target.value })}
-              placeholder="메모를 입력하세요..."
+              placeholder={t('home.schedule.form.notesPlaceholder')}
               className="min-h-[100px] resize-y"
             />
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => onUpdate(schedule.id, editData)} className="flex-1 bg-primary h-11">저장</Button>
-            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">취소</Button>
+            <Button onClick={() => onUpdate(schedule.id, editData)} className="flex-1 bg-primary h-11">{t('home.common.save')}</Button>
+            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">{t('home.common.cancel')}</Button>
           </div>
         </div>
       </Card>
@@ -1981,7 +1999,7 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
           {schedule.link && (
             <p className="flex items-center gap-2 text-sm text-primary mt-2">
               <LinkIcon className="w-4 h-4" />
-              <a href={schedule.link} target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground">예약 링크</a>
+              <a href={schedule.link} target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground">{t('home.schedule.form.linkLabel')}</a>
             </p>
           )}
           {schedule.preparations && schedule.preparations.length > 0 && (
@@ -2003,28 +2021,29 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
 }
 
 function BudgetCard({ budget, isEditing, onEdit, onUpdate, onDelete, onCancel, getCategoryColor, getCategoryLabel }: any) {
+  const { t } = useLanguage();
   const [editData, setEditData] = React.useState(budget);
   if (isEditing) {
     return (
       <Card className="p-5 bg-white border-primary/30">
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">카테고리</label>
+            <label className="text-sm font-semibold text-foreground">{t('home.budget.form.categoryLabel')}</label>
             <select value={editData.category} onChange={e => setEditData({ ...editData, category: e.target.value })} className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background">
-              <option value="accommodation">숙소</option><option value="transport">교통</option><option value="meal">식사</option><option value="activity">활동</option><option value="shopping">쇼핑</option><option value="other">기타</option>
+              <option value="accommodation">{t('home.category.accommodation')}</option><option value="transport">{t('home.category.transport')}</option><option value="meal">{t('home.category.meal')}</option><option value="activity">{t('home.category.activity')}</option><option value="shopping">{t('home.category.shopping')}</option><option value="other">{t('home.category.other')}</option>
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">금액 (원)</label>
-            <Input type="number" value={editData.amount} onChange={e => setEditData({ ...editData, amount: parseInt(e.target.value) })} placeholder="금액" className="h-11" />
+            <label className="text-sm font-semibold text-foreground">{t('home.budget.form.amountLabel')}</label>
+            <Input type="number" value={editData.amount} onChange={e => setEditData({ ...editData, amount: parseInt(e.target.value) })} placeholder={t('home.budget.form.amountPlaceholder')} className="h-11" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">설명</label>
-            <Input value={editData.description} onChange={e => setEditData({ ...editData, description: e.target.value })} placeholder="설명" className="h-11" />
+            <label className="text-sm font-semibold text-foreground">{t('home.budget.form.descriptionLabel')}</label>
+            <Input value={editData.description} onChange={e => setEditData({ ...editData, description: e.target.value })} placeholder={t('home.budget.form.descriptionLabel')} className="h-11" />
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => onUpdate(budget.id, editData)} className="flex-1 bg-primary h-11">저장</Button>
-            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">취소</Button>
+            <Button onClick={() => onUpdate(budget.id, editData)} className="flex-1 bg-primary h-11">{t('home.common.save')}</Button>
+            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">{t('home.common.cancel')}</Button>
           </div>
         </div>
       </Card>
@@ -2050,6 +2069,7 @@ function BudgetCard({ budget, isEditing, onEdit, onUpdate, onDelete, onCancel, g
 }
 
 function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, onCancel }: any) {
+  const { t } = useLanguage();
   const [editData, setEditData] = React.useState(item);
   React.useEffect(() => { setEditData(item); }, [item]);
   if (isEditing) {
@@ -2057,20 +2077,20 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
       <Card className="p-4 bg-white border-primary/30">
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">물품명</label>
-            <Input value={editData.item} onChange={e => setEditData({ ...editData, item: e.target.value })} placeholder="물품명" className="h-11" />
+            <label className="text-sm font-semibold text-foreground">{t('home.shopping.form.itemLabel')}</label>
+            <Input value={editData.item} onChange={e => setEditData({ ...editData, item: e.target.value })} placeholder={t('home.shopping.form.itemLabel')} className="h-11" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">이미지 URL</label>
-            <Input value={editData.imageUrl || ''} onChange={e => setEditData({ ...editData, imageUrl: e.target.value })} placeholder="이미지 URL" className="h-11" />
+            <label className="text-sm font-semibold text-foreground">{t('home.shopping.form.imageUrlLabel')}</label>
+            <Input value={editData.imageUrl || ''} onChange={e => setEditData({ ...editData, imageUrl: e.target.value })} placeholder={t('home.shopping.form.imageUrlLabel')} className="h-11" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">상품 링크</label>
-            <Input value={editData.link || ''} onChange={e => setEditData({ ...editData, link: e.target.value })} placeholder="상품 링크" className="h-11" />
+            <label className="text-sm font-semibold text-foreground">{t('home.shopping.form.productLinkLabel')}</label>
+            <Input value={editData.link || ''} onChange={e => setEditData({ ...editData, link: e.target.value })} placeholder={t('home.shopping.form.productLinkLabel')} className="h-11" />
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => onUpdate(editData.id, editData)} className="flex-1 bg-primary h-11">저장</Button>
-            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">취소</Button>
+            <Button onClick={() => onUpdate(editData.id, editData)} className="flex-1 bg-primary h-11">{t('home.common.save')}</Button>
+            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">{t('home.common.cancel')}</Button>
           </div>
         </div>
       </Card>
@@ -2087,7 +2107,7 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
             <input type="checkbox" checked={item.checked} onChange={() => onToggle(item.id)} className="w-5 h-5 rounded-full border-sky-300 text-primary" />
             <span className={cn("font-bold", item.checked ? "line-through text-slate-300" : "text-foreground")}>{item.item}</span>
           </div>
-          {item.link && <a href={item.link} target="_blank" className="text-xs text-primary underline">상품 보기</a>}
+          {item.link && <a href={item.link} target="_blank" className="text-xs text-primary underline">{t('home.shopping.viewProduct')}</a>}
         </div>
         <div className="flex gap-1">
           <button onClick={onEdit} className="text-slate-300 hover:text-primary"><Edit2 className="w-4 h-4" /></button>
@@ -2099,6 +2119,7 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
 }
 
 function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -2113,7 +2134,7 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
   const [preps, setPreps] = useState('');
 
   const handleSubmit = () => {
-    if (!title || !date || !time) { toast.error('필수 정보를 입력해주세요'); return; }
+    if (!title || !date || !time) { toast.error(t('home.toast.requiredFields')); return; }
     onAdd({
       id: Date.now().toString(),
       title, date, time, category,
@@ -2131,57 +2152,57 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">일정 제목 <span className="text-red-500">*</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.titleLabel')} <span className="text-red-500">*</span></label>
           <Input
-            placeholder="예: 인천공항 출발"
+            placeholder={t('home.schedule.form.titleExample')}
             value={title}
             onChange={e => setTitle(e.target.value)}
             className="h-11"
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">카테고리</label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.categoryLabel')}</label>
           <select
             value={category}
             onChange={e => setCategory(e.target.value as any)}
             className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
           >
-            <option value="accommodation">숙소</option>
-            <option value="transport">교통</option>
-            <option value="meal">식사</option>
-            <option value="activity">활동</option>
-            <option value="other">기타</option>
+            <option value="accommodation">{t('home.category.accommodation')}</option>
+            <option value="transport">{t('home.category.transport')}</option>
+            <option value="meal">{t('home.category.meal')}</option>
+            <option value="activity">{t('home.category.activity')}</option>
+            <option value="other">{t('home.category.other')}</option>
           </select>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">날짜 <span className="text-red-500">*</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.dateLabel')} <span className="text-red-500">*</span></label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">시간 <span className="text-red-500">*</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.timeLabel')} <span className="text-red-500">*</span></label>
           <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="h-11" />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">위치 <span className="text-slate-400 font-normal">(선택)</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.locationLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
         <div className="flex gap-2">
           <Input
-            placeholder="예: 인천국제공항 제1터미널"
+            placeholder={t('home.schedule.form.locationExample')}
             value={location}
             onChange={e => setLocation(e.target.value)}
             className="h-11"
           />
           <Button type="button" variant="outline" onClick={() => setShowPicker(true)} className="h-11 gap-1.5 flex-shrink-0">
-            <MapPin className="w-4 h-4" /> 지도
+            <MapPin className="w-4 h-4" /> {t('home.schedule.form.mapButton')}
           </Button>
         </div>
         {lat !== undefined && lng !== undefined && (
           <p className="text-xs text-primary flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> 좌표 선택됨 ({lat.toFixed(5)}, {lng.toFixed(5)})
+            <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: lat.toFixed(5), lng: lng.toFixed(5) })}
             <button type="button" onClick={() => { setLat(undefined); setLng(undefined); }} className="text-red-400 hover:text-red-600 ml-1">
               <X className="w-3 h-3" />
             </button>
@@ -2202,7 +2223,7 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">비용 (원) <span className="text-slate-400 font-normal">(선택)</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.costLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
           <Input
             type="number"
             placeholder="0"
@@ -2212,7 +2233,7 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">예약 링크 <span className="text-slate-400 font-normal">(선택)</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.linkLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
           <Input
             type="url"
             placeholder="https://..."
@@ -2224,9 +2245,9 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">준비물 <span className="text-slate-400 font-normal">(쉼표로 구분)</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.preparationsLabel')} <span className="text-slate-400 font-normal">({t('home.schedule.form.preparationsHint')})</span></label>
         <Input
-          placeholder="예: 여권, 우산, 선크림"
+          placeholder={t('home.schedule.form.preparationsExample')}
           value={preps}
           onChange={e => setPreps(e.target.value)}
           className="h-11"
@@ -2234,9 +2255,9 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">메모 <span className="text-slate-400 font-normal">(선택)</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
         <Textarea
-          placeholder="일정에 대한 메모를 자유롭게 입력하세요..."
+          placeholder={t('home.schedule.form.notesFreeformPlaceholder')}
           value={notes}
           onChange={e => setNotes(e.target.value)}
           className="min-h-[100px] resize-y"
@@ -2244,19 +2265,20 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
       </div>
 
       <Button onClick={handleSubmit} className="w-full bg-primary text-white h-11 text-base font-semibold">
-        <Plus className="w-4 h-4 mr-2" /> 일정 추가
+        <Plus className="w-4 h-4 mr-2" /> {t('home.schedule.form.submitButton')}
       </Button>
     </div>
   );
 }
 
 function BudgetForm({ onAdd }: { onAdd: (budget: Budget) => void }) {
+  const { t } = useLanguage();
   const [category, setCategory] = useState<Budget['category']>('other');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
 
   const handleSubmit = () => {
-    if (!amount) { toast.error('금액을 입력해주세요'); return; }
+    if (!amount) { toast.error(t('home.toast.enterAmount')); return; }
     onAdd({ id: Date.now().toString(), category, amount: parseInt(amount), description });
     setAmount(''); setDescription('');
   };
@@ -2264,43 +2286,44 @@ function BudgetForm({ onAdd }: { onAdd: (budget: Budget) => void }) {
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">카테고리</label>
+        <label className="text-sm font-semibold text-foreground">{t('home.budget.form.categoryLabel')}</label>
         <select
           value={category}
           onChange={e => setCategory(e.target.value as any)}
           className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
         >
-          <option value="accommodation">숙소</option>
-          <option value="transport">교통</option>
-          <option value="meal">식사</option>
-          <option value="activity">활동</option>
-          <option value="shopping">쇼핑</option>
-          <option value="other">기타</option>
+          <option value="accommodation">{t('home.category.accommodation')}</option>
+          <option value="transport">{t('home.category.transport')}</option>
+          <option value="meal">{t('home.category.meal')}</option>
+          <option value="activity">{t('home.category.activity')}</option>
+          <option value="shopping">{t('home.category.shopping')}</option>
+          <option value="other">{t('home.category.other')}</option>
         </select>
       </div>
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">금액 (원) <span className="text-red-500">*</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.budget.form.amountLabel')} <span className="text-red-500">*</span></label>
         <Input type="number" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} className="h-11" />
       </div>
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">설명</label>
-        <Input placeholder="예: 호텔 2박" value={description} onChange={e => setDescription(e.target.value)} className="h-11" />
+        <label className="text-sm font-semibold text-foreground">{t('home.budget.form.descriptionLabel')}</label>
+        <Input placeholder={t('home.budget.form.descriptionExample')} value={description} onChange={e => setDescription(e.target.value)} className="h-11" />
       </div>
       <Button onClick={handleSubmit} className="w-full bg-primary text-white h-11">
-        <Plus className="w-4 h-4 mr-2" /> 예산 추가
+        <Plus className="w-4 h-4 mr-2" /> {t('home.budget.form.submitButton')}
       </Button>
     </div>
   );
 }
 
 function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link?: string) => void }) {
+  const { t } = useLanguage();
   const [item, setItem] = React.useState('');
   const [imageUrl, setImageUrl] = React.useState('');
   const [link, setLink] = React.useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
-    if (!item) { toast.error('항목을 입력해주세요'); return; }
+    if (!item) { toast.error(t('home.toast.enterItem')); return; }
     onAdd(item, imageUrl || undefined, link || undefined);
     setItem(''); setImageUrl(''); setLink('');
   };
@@ -2311,7 +2334,7 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
     const reader = new FileReader();
     reader.onload = (event) => {
       setImageUrl(event.target?.result as string);
-      toast.success('이미지가 업로드되었습니다!');
+      toast.success(t('home.toast.imageUploaded'));
     };
     reader.readAsDataURL(file);
   };
@@ -2326,7 +2349,7 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
           const reader = new FileReader();
           reader.onload = (event) => {
             setImageUrl(event.target?.result as string);
-            toast.success('이미지가 붙여넣기되었습니다!');
+            toast.success(t('home.toast.imagePasted'));
           };
           reader.readAsDataURL(blob);
         }
@@ -2337,9 +2360,9 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
   return (
     <div className="space-y-4" onPaste={handlePaste}>
       <div className="space-y-1.5">
-        <label className="block text-sm font-semibold text-foreground">쇼핑 항목 <span className="text-red-500">*</span></label>
+        <label className="block text-sm font-semibold text-foreground">{t('home.shopping.form.itemLabel')} <span className="text-red-500">*</span></label>
         <Input
-          placeholder="예: 선글라스, 선크림"
+          placeholder={t('home.shopping.form.itemExample')}
           value={item}
           onChange={e => setItem(e.target.value)}
           className="h-11"
@@ -2350,7 +2373,7 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
       <div className="space-y-1.5">
         <label className="block text-sm font-semibold text-foreground">
           <ImageIcon className="w-4 h-4 inline mr-1" />
-          이미지 추가
+          {t('home.shopping.form.addImageLabel')}
         </label>
         <div className="space-y-2">
           {imageUrl && (
@@ -2365,26 +2388,26 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
             onClick={() => fileInputRef.current?.click()}
             className="w-full px-3 py-3 border-2 border-dashed border-sky-300 rounded-lg bg-secondary hover:bg-secondary text-foreground font-medium text-sm transition"
           >
-            📁 갤러리에서 선택
+            📁 {t('home.shopping.form.chooseFromGallery')}
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-          <p className="text-xs text-muted-foreground">💡 팁: 이미지를 복사해서 여기에 붙여넣기(Ctrl+V)도 가능합니다!</p>
+          <p className="text-xs text-muted-foreground">💡 {t('home.shopping.form.pasteTip')}</p>
         </div>
       </div>
 
       <div className="space-y-1.5">
         <label className="block text-sm font-semibold text-foreground">
           <LinkIcon className="w-4 h-4 inline mr-1" />
-          상품 링크
+          {t('home.shopping.form.productLinkLabel')}
         </label>
         <Input placeholder="https://..." value={link} onChange={e => setLink(e.target.value)} className="h-11" />
-      
-      
+
+
 
     </div>
 
       <Button onClick={handleSubmit} className="w-full bg-primary hover:bg-secondary0 text-white gap-2 h-11">
-        <Plus className="w-4 h-4" /> 항목 추가
+        <Plus className="w-4 h-4" /> {t('home.shopping.form.submitButton')}
       </Button>
 
 
@@ -2418,6 +2441,7 @@ interface TrendingLocation {
 }
 
 function CommunityTrending() {
+  const { t } = useLanguage();
   const [, setLocation] = useLocation();
 
   const allTrendingPosts = React.useMemo((): TrendingPost[] => {
@@ -2466,15 +2490,15 @@ function CommunityTrending() {
         <div>
           <h2 className="text-xl font-black text-foreground flex items-center gap-2.5">
             <Plane className="w-6 h-6 text-primary" fill="currentColor" strokeWidth={1} />
-            커뮤니티 인기 여행
+            {t('home.trending.title')}
           </h2>
-          <p className="text-muted-foreground text-sm mt-0.5">검색량과 반응이 높은 인기 게시글</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('home.trending.subtitle')}</p>
         </div>
         <button
           onClick={() => navigateToCommunity()}
           className="text-sm text-primary font-semibold hover:underline flex items-center gap-1 flex-shrink-0"
         >
-          전체 보기 <ChevronRight className="w-4 h-4" />
+          {t('home.trending.viewAll')} <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
