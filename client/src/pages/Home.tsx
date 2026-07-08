@@ -32,6 +32,7 @@ interface ScheduleItem {
   id: string;
   date: string;
   time: string;
+  endTime?: string;
   title: string;
   category: 'accommodation' | 'transport' | 'meal' | 'activity' | 'other';
   location?: string;
@@ -94,6 +95,13 @@ function compressPlanCoverPhoto(file: File): Promise<string> {
     };
     reader.readAsDataURL(file);
   });
+}
+
+function schedulesOverlap(aDate: string, aStart: string, aEnd: string | undefined, b: ScheduleItem): boolean {
+  if (!aDate || !aStart || aDate !== b.date) return false;
+  const s1 = aStart, e1 = aEnd || aStart;
+  const s2 = b.time, e2 = b.endTime || b.time;
+  return s1 < e2 && s2 < e1;
 }
 
 export default function Home() {
@@ -1311,7 +1319,7 @@ export default function Home() {
                   <TabsContent value="schedule" className="space-y-6">
                     <Card className="p-6 bg-white border-border">
                       <h3 className="text-lg font-bold text-foreground mb-5">{t('home.schedule.addTitle')}</h3>
-                      <ScheduleForm onAdd={handleAddSchedule} />
+                      <ScheduleForm onAdd={handleAddSchedule} existingSchedules={currentPlan?.schedules || []} />
                     </Card>
 
                     <div className="space-y-4">
@@ -1344,6 +1352,7 @@ export default function Home() {
                               onCancel={() => setEditingScheduleId(null)}
                               getCategoryColor={getCategoryColor}
                               getCategoryLabel={getCategoryLabel}
+                              existingSchedules={currentPlan?.schedules || []}
                             />
                           ))
                       )}
@@ -1887,11 +1896,15 @@ export default function Home() {
 
 // ===== 하위 컴포넌트 =====
 
-function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCancel, getCategoryColor, getCategoryLabel }: any) {
+function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCancel, getCategoryColor, getCategoryLabel, existingSchedules }: any) {
   const { t } = useLanguage();
   const [editData, setEditData] = React.useState(schedule);
   const [newPrep, setNewPrep] = React.useState('');
   const [showPicker, setShowPicker] = React.useState(false);
+
+  const hasOverlap = (existingSchedules || []).some((s: ScheduleItem) =>
+    s.id !== schedule.id && schedulesOverlap(editData.date, editData.time, editData.endTime, s)
+  );
 
   const addPrep = () => {
     if (!newPrep.trim()) return;
@@ -1934,16 +1947,23 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.dateLabel')} *</label>
               <Input type="date" value={editData.date} onChange={e => setEditData({ ...editData, date: e.target.value })} className="h-11" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.timeLabel')} *</label>
+              <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.startTimeLabel')} *</label>
               <Input type="time" value={editData.time} onChange={e => setEditData({ ...editData, time: e.target.value })} className="h-11" />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.endTimeLabel')}</label>
+              <Input type="time" value={editData.endTime || ''} onChange={e => setEditData({ ...editData, endTime: e.target.value })} className="h-11" />
+            </div>
           </div>
+          {hasOverlap && (
+            <p className="text-red-500 text-sm font-semibold">⚠ {t('home.schedule.overlapWarning')}</p>
+          )}
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.locationLabel')}</label>
             <div className="flex gap-2">
@@ -2021,7 +2041,10 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
             <span className={cn("px-3 py-1 rounded-full text-xs font-bold", getCategoryColor(schedule.category))}>
               {getCategoryLabel(schedule.category)}
             </span>
-            <span className="text-sm font-bold text-slate-500">{schedule.date} {schedule.time}</span>
+            <span className="text-sm font-bold text-slate-700">{schedule.date}</span>
+            <span className="text-sm font-bold text-sky-600 ml-1.5">
+              {schedule.time}{schedule.endTime ? ` - ${schedule.endTime}` : ''}
+            </span>
           </div>
           <h4 className="text-xl font-bold text-foreground mb-2">{schedule.title}</h4>
           <div className="flex flex-wrap gap-4 text-sm text-slate-600">
@@ -2150,11 +2173,12 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
   );
 }
 
-function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
+function ScheduleForm({ onAdd, existingSchedules }: { onAdd: (schedule: ScheduleItem) => void; existingSchedules?: ScheduleItem[] }) {
   const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [category, setCategory] = useState<ScheduleItem['category']>('activity');
   const [location, setLocation] = useState('');
   const [lat, setLat] = useState<number | undefined>(undefined);
@@ -2165,11 +2189,13 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
   const [notes, setNotes] = useState('');
   const [preps, setPreps] = useState('');
 
+  const hasOverlap = (existingSchedules || []).some(s => schedulesOverlap(date, time, endTime || undefined, s));
+
   const handleSubmit = () => {
     if (!title || !date || !time) { toast.error(t('home.toast.requiredFields')); return; }
     onAdd({
       id: Date.now().toString(),
-      title, date, time, category,
+      title, date, time, endTime: endTime || undefined, category,
       location: location || undefined,
       lat, lng,
       cost: cost ? parseInt(cost) : undefined,
@@ -2177,7 +2203,7 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
       notes: notes || undefined,
       preparations: preps ? preps.split(',').map(p => p.trim()).filter(Boolean) : []
     });
-    setTitle(''); setDate(''); setTime(''); setLocation(''); setLat(undefined); setLng(undefined); setCost(''); setLink(''); setNotes(''); setPreps('');
+    setTitle(''); setDate(''); setTime(''); setEndTime(''); setLocation(''); setLat(undefined); setLng(undefined); setCost(''); setLink(''); setNotes(''); setPreps('');
   };
 
   return (
@@ -2208,16 +2234,23 @@ function ScheduleForm({ onAdd }: { onAdd: (schedule: ScheduleItem) => void }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.dateLabel')} <span className="text-red-500">*</span></label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.timeLabel')} <span className="text-red-500">*</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.startTimeLabel')} <span className="text-red-500">*</span></label>
           <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="h-11" />
         </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.endTimeLabel')}</label>
+          <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="h-11" />
+        </div>
       </div>
+      {hasOverlap && (
+        <p className="text-red-500 text-sm font-semibold">⚠ {t('home.schedule.overlapWarning')}</p>
+      )}
 
       <div className="space-y-1.5">
         <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.locationLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
