@@ -871,7 +871,7 @@ export default function Home() {
                     }
                     setShowNewPlanDialog(true);
                   }}
-                  className="bg-[#3B2B1E] hover:bg-[#2A1F16] text-white px-6 h-11 rounded-full gap-2 shadow-lg"
+                  className="bg-[#A68B77] hover:bg-[#7D6B5D] text-white px-6 h-11 rounded-full gap-2 shadow-lg"
                 >
                   <Plane className="w-4 h-4" /> {t('home.hero.startButton')}
                 </Button>
