@@ -412,6 +412,10 @@ export default function TravelDiary() {
   };
 
   const handleCreateDiary = () => {
+    if (!user) {
+      toast.error(t('session.loginRequired'));
+      return;
+    }
     if (!newTitle.trim() || !newLocation.trim() || !newStartDate) {
       toast.error(t('diary.errors.requiredFields'));
       return;
@@ -475,6 +479,10 @@ export default function TravelDiary() {
   };
 
   const handleToggleLike = (diaryId: string) => {
+    if (!user) {
+      toast.error(t('session.loginRequired'));
+      return;
+    }
     const updated = diaries.map(d => {
       if (d.id !== diaryId) return d;
       const likes = d.likes.includes(user!.id)
@@ -980,12 +988,12 @@ export default function TravelDiary() {
               onClick={() => handleToggleLike(diary.id)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full border transition-all font-semibold text-sm",
-                diary.likes.includes(user!.id)
+                !!user && diary.likes.includes(user.id)
                   ? "bg-red-50 border-red-300 text-red-500"
                   : "bg-white border-border text-muted-foreground hover:border-red-300 hover:text-red-400"
               )}
             >
-              <Heart className={cn("w-4 h-4", diary.likes.includes(user!.id) && "fill-red-500")} />
+              <Heart className={cn("w-4 h-4", !!user && diary.likes.includes(user.id) && "fill-red-500")} />
               {t('diary.detail.like')} {diary.likes.length > 0 && diary.likes.length}
             </button>
             <button
@@ -1015,7 +1023,13 @@ export default function TravelDiary() {
             <p className="text-muted-foreground mt-1">{t('diary.header.subtitle', { name: user?.name || '' })}</p>
           </div>
           <Button
-            onClick={() => setShowNewDialog(true)}
+            onClick={() => {
+              if (!user) {
+                toast.error(t('session.loginRequired'));
+                return;
+              }
+              setShowNewDialog(true);
+            }}
             className="gap-2 bg-primary text-white rounded-full px-5"
           >
             <Plus className="w-4 h-4" /> {t('diary.header.newEntry')}
@@ -1050,7 +1064,16 @@ export default function TravelDiary() {
             <BookOpen className="w-16 h-16 text-border mb-4" />
             <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.emptyState.title')}</h3>
             <p className="text-muted-foreground mb-6 text-center">{t('diary.emptyState.subtitle')}</p>
-            <Button onClick={() => setShowNewDialog(true)} className="bg-primary text-white rounded-full px-6">
+            <Button
+              onClick={() => {
+                if (!user) {
+                  toast.error(t('session.loginRequired'));
+                  return;
+                }
+                setShowNewDialog(true);
+              }}
+              className="bg-primary text-white rounded-full px-6"
+            >
               {t('diary.emptyState.cta')}
             </Button>
           </Card>

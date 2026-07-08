@@ -204,14 +204,15 @@ export default function Community() {
   const diaryComments = (diaryId: string) => comments.filter(c => c.diaryId === diaryId);
 
   const handleToggleLike = (diaryId: string) => {
+    if (!user) { toast.error(t('session.loginRequired')); return; }
     const target = diaries.find(d => d.id === diaryId);
-    const wasLiked = target ? target.likes.includes(user!.id) : false;
+    const wasLiked = target ? target.likes.includes(user.id) : false;
     const prevLikeCount = target ? target.likes.length : 0;
     const updated = diaries.map(d => {
       if (d.id !== diaryId) return d;
-      const likes = d.likes.includes(user!.id)
-        ? d.likes.filter(id => id !== user!.id)
-        : [...d.likes, user!.id];
+      const likes = d.likes.includes(user.id)
+        ? d.likes.filter(id => id !== user.id)
+        : [...d.likes, user.id];
       return { ...d, likes };
     });
     localStorage.setItem('travelDiaries', JSON.stringify(updated));
@@ -222,8 +223,8 @@ export default function Community() {
     }
     if (target && !wasLiked) {
       const newTarget = updated.find(d => d.id === diaryId);
-      if (user!.id !== target.userId) {
-        notify({ recipientId: target.userId, type: 'like', actorName: user!.name, diaryId: target.id, diaryTitle: target.title });
+      if (user.id !== target.userId) {
+        notify({ recipientId: target.userId, type: 'like', actorName: user.name, diaryId: target.id, diaryTitle: target.title });
       }
       if (newTarget && prevLikeCount < 5 && newTarget.likes.length >= 5) {
         notify({ recipientId: target.userId, type: 'popular', diaryId: target.id, diaryTitle: target.title });
@@ -232,6 +233,7 @@ export default function Community() {
   };
 
   const handleToggleSave = (diaryId: string) => {
+    if (!user) { toast.error(t('session.loginRequired')); return; }
     const newSaved = savedDiaries.includes(diaryId)
       ? savedDiaries.filter(id => id !== diaryId)
       : [...savedDiaries, diaryId];
@@ -240,12 +242,13 @@ export default function Community() {
   };
 
   const handleAddComment = (diaryId: string) => {
+    if (!user) { toast.error(t('session.loginRequired')); return; }
     if (!commentText.trim()) return;
     const comment: Comment = {
       id: Date.now().toString(),
       diaryId,
-      userId: user!.id,
-      userName: user!.name,
+      userId: user.id,
+      userName: user.name,
       content: commentText.trim(),
       createdAt: new Date().toISOString(),
       likes: [],
@@ -257,8 +260,8 @@ export default function Community() {
     localStorage.removeItem(`commentDraft_${diaryId}`);
     toast.success(t('community.comments.addSuccess'));
     const target = diaries.find(d => d.id === diaryId);
-    if (target && user!.id !== target.userId) {
-      notify({ recipientId: target.userId, type: 'comment', actorName: user!.name, diaryId: target.id, diaryTitle: target.title });
+    if (target && user.id !== target.userId) {
+      notify({ recipientId: target.userId, type: 'comment', actorName: user.name, diaryId: target.id, diaryTitle: target.title });
     }
   };
 
@@ -329,11 +332,12 @@ export default function Community() {
   };
 
   const handleLikeComment = (commentId: string) => {
+    if (!user) { toast.error(t('session.loginRequired')); return; }
     const updated = comments.map(c => {
       if (c.id !== commentId) return c;
-      const likes = c.likes.includes(user!.id)
-        ? c.likes.filter(id => id !== user!.id)
-        : [...c.likes, user!.id];
+      const likes = c.likes.includes(user.id)
+        ? c.likes.filter(id => id !== user.id)
+        : [...c.likes, user.id];
       return { ...c, likes };
     });
     localStorage.setItem('diaryComments', JSON.stringify(updated));
@@ -401,9 +405,9 @@ export default function Community() {
   if (selectedDiary) {
     const diary = diaries.find(d => d.id === selectedDiary.id) || selectedDiary;
     const cmts = diaryComments(diary.id);
-    const isLiked = diary.likes.includes(user!.id);
+    const isLiked = user ? diary.likes.includes(user.id) : false;
     const isSaved = savedDiaries.includes(diary.id);
-    
+
     // 댓글 임시 저장 로드
     if (!commentText && selectedDiary.id) {
       const draft = loadCommentDraft(selectedDiary.id);
@@ -687,10 +691,10 @@ export default function Community() {
                             onClick={() => handleLikeComment(comment.id)}
                             className={cn(
                               "text-xs font-semibold flex items-center gap-1 transition",
-                              comment.likes.includes(user!.id) ? "text-red-500" : "text-muted-foreground hover:text-red-400"
+                              (user ? comment.likes.includes(user.id) : false) ? "text-red-500" : "text-muted-foreground hover:text-red-400"
                             )}
                           >
-                            <Heart className={cn("w-3 h-3", comment.likes.includes(user!.id) && "fill-red-500")} />
+                            <Heart className={cn("w-3 h-3", (user ? comment.likes.includes(user.id) : false) && "fill-red-500")} />
                             {comment.likes.length > 0 && comment.likes.length}
                           </button>
                           {(comment.userId === user?.id || user?.isAdmin) && (
@@ -953,7 +957,7 @@ export default function Community() {
               <div className="space-y-6">
                 {paginatedDiaries.map(diary => {
                   const cmtCount = diaryComments(diary.id).length;
-                  const isLiked = diary.likes.includes(user!.id);
+                  const isLiked = user ? diary.likes.includes(user.id) : false;
                   const isSaved = savedDiaries.includes(diary.id);
                   const coverPhoto = diary.mainPhoto || diary.photos.find(p => p.type !== 'video');
 
@@ -1080,8 +1084,8 @@ export default function Community() {
                             onClick={() => {
                               navigator.clipboard.writeText(window.location.href);
                               toast.success(t('community.actions.shareToast'));
-                              if (user!.id !== diary.userId) {
-                                notify({ recipientId: diary.userId, type: 'share', actorName: user!.name, diaryId: diary.id, diaryTitle: diary.title });
+                              if (user && user.id !== diary.userId) {
+                                notify({ recipientId: diary.userId, type: 'share', actorName: user.name, diaryId: diary.id, diaryTitle: diary.title });
                               }
                             }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-primary transition ml-auto"

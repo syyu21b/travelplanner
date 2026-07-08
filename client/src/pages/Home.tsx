@@ -228,6 +228,10 @@ export default function Home() {
   }, [calcDisplay, calcPrevValue, calcOperation, currentPlan]);
 
   const handleCreatePlan = () => {
+    if (!user) {
+      toast.error(t('session.loginRequired'));
+      return;
+    }
     if (!newPlanTitle || !newPlanStartDate || !newPlanEndDate) {
       toast.error(t('home.toast.fillAllFields'));
       return;
@@ -796,38 +800,48 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
-              <Search className="w-4 h-4" />
-            </button>
-            <NotificationBell />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-border bg-white hover:border-primary hover:shadow-sm transition-all">
-                  <div className="w-7 h-7 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    {profilePhoto ? (
-                      <img src={profilePhoto} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      user?.isAdmin ? <Crown className="w-4 h-4 text-amber-500" /> : <User className="w-4 h-4 text-primary" />
-                    )}
-                  </div>
-                  <span className="hidden sm:block font-semibold text-foreground max-w-[100px] truncate">{user?.name}</span>
-                  <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-muted-foreground" />
+            {user ? (
+              <>
+                <button className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
+                  <Search className="w-4 h-4" />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem asChild>
-                  <Link href="/mypage" className="flex items-center gap-2 cursor-pointer">
-                    <User className="w-4 h-4" /> {t('home.header.myPage')}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4 mr-2" /> {t('home.header.logout')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <NotificationBell />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-border bg-white hover:border-primary hover:shadow-sm transition-all">
+                      <div className="w-7 h-7 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {profilePhoto ? (
+                          <img src={profilePhoto} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          user?.isAdmin ? <Crown className="w-4 h-4 text-amber-500" /> : <User className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <span className="hidden sm:block font-semibold text-foreground max-w-[100px] truncate">{user?.name}</span>
+                      <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem asChild>
+                      <Link href="/mypage" className="flex items-center gap-2 cursor-pointer">
+                        <User className="w-4 h-4" /> {t('home.header.myPage')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={logout}
+                      className="text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" /> {t('home.header.logout')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <Link href="/login">
+                <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-sm whitespace-nowrap hover:opacity-90">
+                  {t('nav.login')}
+                </button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -850,7 +864,13 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap gap-3 mt-8">
                 <Button
-                  onClick={() => setShowNewPlanDialog(true)}
+                  onClick={() => {
+                    if (!user) {
+                      toast.error(t('session.loginRequired'));
+                      return;
+                    }
+                    setShowNewPlanDialog(true);
+                  }}
                   className="bg-[#3B2B1E] hover:bg-[#2A1F16] text-white px-6 h-11 rounded-full gap-2 shadow-lg"
                 >
                   <Plane className="w-4 h-4" /> {t('home.hero.startButton')}
@@ -867,7 +887,13 @@ export default function Home() {
             </div>
             <div className="absolute top-4 right-4">
               <Button
-                onClick={() => setShowNewPlanDialog(true)}
+                onClick={() => {
+                  if (!user) {
+                    toast.error(t('session.loginRequired'));
+                    return;
+                  }
+                  setShowNewPlanDialog(true);
+                }}
                 className="bg-white/95 text-[#3B2B1E] hover:bg-white gap-1.5 rounded-full shadow-lg font-bold text-sm px-4 h-9"
               >
                 <Plus className="w-4 h-4" /> {t('home.hero.newPlanButton')}
@@ -989,7 +1015,13 @@ export default function Home() {
                       <Map className="w-16 h-16 text-border mb-4" />
                       <h2 className="text-xl font-bold text-foreground mb-2">{t('home.planList.emptyTitle')}</h2>
                       <p className="text-muted-foreground mb-6">{t('home.planList.emptySubtitle')}</p>
-                      <Button onClick={() => setShowNewPlanDialog(true)} className="bg-primary">{t('home.planList.emptyButton')}</Button>
+                      <Button onClick={() => {
+                        if (!user) {
+                          toast.error(t('session.loginRequired'));
+                          return;
+                        }
+                        setShowNewPlanDialog(true);
+                      }} className="bg-primary">{t('home.planList.emptyButton')}</Button>
                     </Card>
                   );
                 }

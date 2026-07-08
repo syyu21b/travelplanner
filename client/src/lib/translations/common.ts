@@ -7,6 +7,10 @@ export const common = {
       admin: "관리자",
       logout: "로그아웃",
       loading: "로딩 중...",
+      login: "로그인",
+    },
+    session: {
+      loginRequired: "로그인 후 이용해주세요.",
     },
     notifications: {
       title: "알림",
@@ -32,6 +36,10 @@ export const common = {
       admin: "Admin",
       logout: "Log out",
       loading: "Loading...",
+      login: "Log in",
+    },
+    session: {
+      loginRequired: "Please log in to continue.",
     },
     notifications: {
       title: "Notifications",
