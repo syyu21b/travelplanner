@@ -222,6 +222,7 @@ export default function Home() {
   const [showAllSchedulesPreview, setShowAllSchedulesPreview] = useState(false);
   const [showTimelinePreview, setShowTimelinePreview] = useState(false);
   const [showPreparationsPreview, setShowPreparationsPreview] = useState(false);
+  const [showBudgetPreview, setShowBudgetPreview] = useState(false);
   const [detailSchedule, setDetailSchedule] = useState<ScheduleItem | null>(null);
   const [showScheduleDetail, setShowScheduleDetail] = useState(false);
 
@@ -2218,11 +2219,21 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => { setShowSummaryPreview(false); setShowPreparationsPreview(true); }}
-                className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors col-span-2"
+                className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors"
               >
                 <p className="text-xs font-bold text-muted-foreground">{t('home.planDetail.preparationsLabel')}</p>
                 <p className="text-xl font-bold text-foreground">
                   {t('home.unitCount', { n: summaryPreviewPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length })}
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowSummaryPreview(false); setShowBudgetPreview(true); }}
+                className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors"
+              >
+                <p className="text-xs font-bold text-muted-foreground">{t('home.budget.overviewTitle')}</p>
+                <p className="text-xl font-bold text-foreground truncate">
+                  ₩{(summaryPreviewPlan.totalBudgetAmount || 0).toLocaleString()}
                 </p>
               </button>
             </div>
@@ -2268,6 +2279,55 @@ export default function Home() {
             </DialogTitle>
           </DialogHeader>
           <div className="pt-2">{renderPreparationsByScheduleContent(summaryPreviewPlan)}</div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 요약 - 예산 미리보기 다이얼로그 (읽기 전용) */}
+      <Dialog open={showBudgetPreview} onOpenChange={setShowBudgetPreview}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <DollarSign className="w-5 h-5 text-primary" /> {t('home.budget.overviewTitle')}
+            </DialogTitle>
+          </DialogHeader>
+          {summaryPreviewPlan && (() => {
+            const previewPlanned = summaryPreviewPlan.totalBudgetAmount || 0;
+            const previewSpent = summaryPreviewPlan.budgets.reduce((sum, b) => sum + b.amount, 0);
+            const previewRemaining = previewPlanned - previewSpent;
+            return (
+              <div className="pt-2">
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-secondary p-3 rounded-xl">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.plannedLabel')}</p>
+                    <p className="text-lg font-black text-foreground truncate">₩{previewPlanned.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-secondary p-3 rounded-xl">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.spentLabel')}</p>
+                    <p className="text-lg font-black text-foreground truncate">₩{previewSpent.toLocaleString()}</p>
+                  </div>
+                  <div className={cn("p-3 rounded-xl", previewPlanned > 0 && previewRemaining < 0 ? "bg-red-100" : "bg-secondary")}>
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.remainingLabel')}</p>
+                    <p className={cn("text-lg font-black truncate", previewPlanned > 0 && previewRemaining < 0 ? "text-red-600" : "text-foreground")}>
+                      ₩{previewRemaining.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                {previewPlanned > 0 && (
+                  <div>
+                    <div className="h-2.5 rounded-full bg-secondary overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full transition-all", previewSpent > previewPlanned ? "bg-red-400" : "bg-primary")}
+                        style={{ width: `${Math.min(100, Math.round((previewSpent / previewPlanned) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1.5 font-semibold">
+                      {t('home.budget.usagePercent', { n: Math.round((previewSpent / previewPlanned) * 100) })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
