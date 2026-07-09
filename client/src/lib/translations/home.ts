@@ -161,6 +161,11 @@ export const home = {
     summary: {
       title: "준비물 목록",
       emptyState: "일정별 준비물을 등록하면 이곳에서 모아볼 수 있습니다.",
+      byScheduleTitle: "일정별 준비물",
+      allTitle: "전체 준비물 체크리스트",
+      allEmptyState: "등록된 준비물이 없습니다.",
+      percentComplete: "{{n}}% 완료",
+      completedCount: "{{done}} / {{total}}개 완료",
     },
     timeline: {
       title: "일정 타임라인",
@@ -426,6 +431,11 @@ export const home = {
     summary: {
       title: "Checklist",
       emptyState: "Add checklist items to your schedules and they'll show up here.",
+      byScheduleTitle: "By Schedule",
+      allTitle: "All Items Checklist",
+      allEmptyState: "No checklist items added yet.",
+      percentComplete: "{{n}}% complete",
+      completedCount: "{{done}} / {{total}} completed",
     },
     timeline: {
       title: "Schedule Timeline",

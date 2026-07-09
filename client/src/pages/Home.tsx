@@ -70,6 +70,7 @@ interface TravelPlan {
   schedules: ScheduleItem[];
   budgets: Budget[];
   shoppingList: ShoppingItem[];
+  preparationChecks?: Record<string, boolean>;
 }
 
 function compressPlanCoverPhoto(file: File): Promise<string> {
@@ -444,6 +445,14 @@ export default function Home() {
     updateCurrentPlan({
       ...currentPlan,
       shoppingList: currentPlan.shoppingList.map(i => i.id === itemId ? { ...i, checked: !i.checked } : i),
+    });
+  };
+
+  const handleTogglePreparationCheck = (item: string) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({
+      ...currentPlan,
+      preparationChecks: { ...currentPlan.preparationChecks, [item]: !currentPlan.preparationChecks?.[item] },
     });
   };
 
@@ -1545,29 +1554,97 @@ export default function Home() {
 
                   {/* 준비물 탭 */}
                   <TabsContent value="summary">
-                    <Card className="p-6 bg-white border-border">
-                      <h3 className="text-lg font-bold text-foreground mb-4">{t('home.summary.title')}</h3>
-                      <div className="space-y-4">
-                        {currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length === 0 ? (
-                          <div className="text-center py-12 bg-secondary rounded-2xl">
-                            <p className="text-slate-400">{t('home.summary.emptyState')}</p>
-                          </div>
-                        ) : (
-                          currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).map(s => (
-                            <div key={s.id} className="p-4 bg-secondary rounded-xl border border-border">
-                              <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                                <Check className="w-4 h-4 text-primary" /> {s.title} ({s.date})
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {s.preparations?.map((p, idx) => (
-                                  <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm text-muted-foreground border border-border shadow-sm">{p}</span>
-                                ))}
-                              </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* 좌측: 일정별 준비물 */}
+                      <Card className="p-6 bg-white border-border">
+                        <h3 className="text-lg font-bold text-foreground mb-4">{t('home.summary.byScheduleTitle')}</h3>
+                        <div className="space-y-4">
+                          {currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length === 0 ? (
+                            <div className="text-center py-12 bg-secondary rounded-2xl">
+                              <p className="text-slate-400">{t('home.summary.emptyState')}</p>
                             </div>
-                          ))
-                        )}
-                      </div>
-                    </Card>
+                          ) : (
+                            currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).map(s => (
+                              <div key={s.id} className="p-4 bg-secondary rounded-xl border border-border">
+                                <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                                  <Check className="w-4 h-4 text-primary" /> {s.title} ({s.date})
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {s.preparations?.map((p, idx) => (
+                                    <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm text-muted-foreground border border-border shadow-sm">{p}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* 우측: 전체 준비물 체크리스트 */}
+                      <Card className="p-6 bg-white border-border">
+                        {(() => {
+                          const allItems: string[] = [];
+                          const seen = new Set<string>();
+                          currentPlan.schedules.forEach(s => {
+                            s.preparations?.forEach(p => {
+                              const key = p.trim();
+                              if (key && !seen.has(key)) {
+                                seen.add(key);
+                                allItems.push(key);
+                              }
+                            });
+                          });
+                          const checkedCount = allItems.filter(item => currentPlan.preparationChecks?.[item]).length;
+                          const percent = allItems.length > 0 ? Math.round((checkedCount / allItems.length) * 100) : 0;
+                          return (
+                            <>
+                              <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                  {t('home.summary.allTitle')}
+                                  {allItems.length > 0 && (
+                                    <span className="text-sm font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                                      {t('home.summary.percentComplete', { n: percent })}
+                                    </span>
+                                  )}
+                                </h3>
+                                {allItems.length > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {t('home.summary.completedCount', { done: checkedCount, total: allItems.length })}
+                                  </span>
+                                )}
+                              </div>
+                              {allItems.length === 0 ? (
+                                <div className="text-center py-12 bg-secondary rounded-2xl">
+                                  <p className="text-slate-400">{t('home.summary.allEmptyState')}</p>
+                                </div>
+                              ) : (
+                                <div className="relative pl-6 border-l-2 border-border space-y-4">
+                                  {allItems.map(item => {
+                                    const checked = !!currentPlan.preparationChecks?.[item];
+                                    return (
+                                      <div key={item} className="relative">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleTogglePreparationCheck(item)}
+                                          aria-label={checked ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
+                                          className={cn(
+                                            "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
+                                            checked ? "bg-primary border-primary" : "bg-white border-border hover:border-primary"
+                                          )}
+                                        >
+                                          {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                                        </button>
+                                        <p className={cn("font-bold text-foreground transition-opacity", checked && "line-through opacity-50")}>{item}</p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </Card>
+                    </div>
                   </TabsContent>
 
                   {/* 타임라인 탭 */}
