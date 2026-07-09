@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { StarRatingInput, StarRatingDisplay } from '@/components/StarRating';
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
-import { MapView, type MapMarker } from '@/components/Map';
+import { MapView, type MapMarker, reverseGeocodeToAddress } from '@/components/Map';
 
 interface DiaryPhoto {
   id: string;
@@ -209,6 +209,8 @@ export default function TravelDiary() {
 
   // Album detail view mode
   const [albumViewMode, setAlbumViewMode] = useState<'grid' | 'map'>('grid');
+  // 주소가 저장되지 않은 사진의 좌표를 역변환해 임시로 보관 (photo id -> address)
+  const [resolvedPhotoAddresses, setResolvedPhotoAddresses] = useState<Record<string, string>>({});
 
   // 사진 위치 지정 다이얼로그 (새 앨범 / 앨범 수정 공용)
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -218,6 +220,7 @@ export default function TravelDiary() {
   const albumFileInputRef = useRef<HTMLInputElement>(null);
   const editAlbumFileInputRef = useRef<HTMLInputElement>(null);
   const albumMapRef = useRef<naver.maps.Map | null>(null);
+  const requestedPhotoAddressesRef = useRef<Set<string>>(new Set());
 
   // Edit state
   const [editData, setEditData] = useState<DiaryEntry | null>(null);
@@ -399,7 +402,28 @@ export default function TravelDiary() {
   // 앨범 상세를 새로 열 때마다 사진 보기로 초기화
   useEffect(() => {
     setAlbumViewMode('grid');
+    setResolvedPhotoAddresses({});
+    requestedPhotoAddressesRef.current.clear();
   }, [currentAlbum?.id]);
+
+  // 지도 보기에서 주소가 비어있는 사진은 좌표를 역변환해 채워넣음
+  useEffect(() => {
+    if (albumViewMode !== 'map' || !currentAlbum) return;
+    const album = albums.find(a => a.id === currentAlbum.id) || currentAlbum;
+    const missing = album.photos.filter(
+      p => p.lat !== undefined && p.lng !== undefined && !p.address && !requestedPhotoAddressesRef.current.has(p.id)
+    );
+    if (missing.length === 0) return;
+    let cancelled = false;
+    missing.forEach(p => {
+      requestedPhotoAddressesRef.current.add(p.id);
+      reverseGeocodeToAddress(p.lat as number, p.lng as number).then(addr => {
+        if (cancelled || !addr) return;
+        setResolvedPhotoAddresses(prev => ({ ...prev, [p.id]: addr }));
+      });
+    });
+    return () => { cancelled = true; };
+  }, [albumViewMode, currentAlbum, albums]);
 
   const saveDiaries = (updated: DiaryEntry[]) => {
     try {
@@ -1722,11 +1746,18 @@ export default function TravelDiary() {
                           ) : (
                             <img src={p.url} alt="" className="w-full h-16 object-cover rounded-lg mb-1" />
                           )}
-                          {p.address && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                              <MapPin className="w-3 h-3 flex-shrink-0" /> {p.address}
-                            </p>
-                          )}
+                          {(() => {
+                            const address = p.address || resolvedPhotoAddresses[p.id];
+                            return address ? (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                                <MapPin className="w-3 h-3 flex-shrink-0" /> {address}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                                <MapPin className="w-3 h-3 flex-shrink-0" /> {(p.lat as number).toFixed(6)}, {(p.lng as number).toFixed(6)}
+                              </p>
+                            );
+                          })()}
                         </div>
                       </button>
                     ))}

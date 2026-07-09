@@ -119,11 +119,11 @@
     @apply border-border outline-ring/50;
   }
   html, body {
-    font-family: 'Lotte Mart Dream', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     @apply bg-background text-foreground;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Lotte Mart Dream', 'Playfair Display', 'Lora', serif;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     @apply font-semibold;
   }
   h1 {
@@ -179,7 +179,7 @@
 
   /* Serif heading */
   .serif-heading {
-    font-family: 'Playfair Display', 'Lora', serif;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     @apply font-bold text-primary;
   }
 

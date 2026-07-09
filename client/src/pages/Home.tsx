@@ -492,8 +492,9 @@ export default function Home() {
       <html>
         <head>
           <title>${currentPlan.title} - ${t('home.pdf.docTitleSuffix')}</title>
+          <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
           <style>
-            body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #333; padding: 40px; }
+            body { font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #333; padding: 40px; }
             h1 { color: #0ea5e9; border-bottom: 3px solid #0ea5e9; padding-bottom: 10px; }
             h2 { background: #f0f9ff; padding: 10px; border-radius: 5px; color: #0369a1; margin-top: 30px; }
             .section { margin-bottom: 30px; }
@@ -1663,7 +1664,7 @@ export default function Home() {
             </div>
 
             {/* PDF 전용 레이아웃 (캡처용) */}
-            <div ref={pdfRef} id="pdf-content" className="fixed -left-[9999px] top-0 bg-white" style={{ display: 'none', fontFamily: "'Noto Sans KR', sans-serif" }}>
+            <div ref={pdfRef} id="pdf-content" className="fixed -left-[9999px] top-0 bg-white" style={{ display: 'none', fontFamily: "'Pretendard', sans-serif" }}>
               <div className="p-10 bg-white text-slate-900 w-[800px]">
                 <div className="border-b-4 border-primary pb-6 mb-8">
                   <h1 className="text-4xl font-black text-foreground mb-2">{currentPlan.title}</h1>
