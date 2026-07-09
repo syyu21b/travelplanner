@@ -180,6 +180,106 @@ export default function TravelDiary() {
     return undefined;
   };
 
+  // 목록/상세/수정 화면 어디서든 열 수 있도록 공통으로 재사용하는 계획 미리보기 다이얼로그
+  const planPreviewDialog = (
+    <Dialog open={showPlanPreview} onOpenChange={setShowPlanPreview}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <Plane className="w-5 h-5 text-primary" />
+            {getPreviewPlan()?.title} {t('diary.planPreview.previewSuffix')}
+          </DialogTitle>
+        </DialogHeader>
+        {getPreviewPlan() && (() => {
+          const plan = getPreviewPlan()!;
+          const getCategoryColor = (category: string) => {
+            const colors: Record<string, string> = {
+              accommodation: 'bg-secondary text-foreground',
+              transport: 'bg-secondary text-foreground',
+              meal: 'bg-emerald-100 text-emerald-800',
+              activity: 'bg-indigo-100 text-indigo-800',
+              shopping: 'bg-orange-100 text-orange-800',
+              other: 'bg-slate-100 text-slate-800',
+            };
+            return colors[category] || colors.other;
+          };
+          const getCategoryLabel = (category: string) => {
+            const labels: Record<string, string> = {
+              accommodation: t('diary.category.accommodation'), transport: t('diary.category.transport'), meal: t('diary.category.meal'),
+              activity: t('diary.category.activity'), shopping: t('diary.category.shopping'), other: t('diary.category.other'),
+            };
+            return labels[category] || t('diary.category.other');
+          };
+          return (
+            <div className="space-y-4 pt-2">
+              {/* 기본 정보 */}
+              <div className="p-4 bg-secondary rounded-xl border border-border">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.duration')}</p>
+                    <p className="font-bold text-foreground">{plan.startDate} ~ {plan.endDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.totalBudget')}</p>
+                    <p className="font-bold text-primary text-lg">₩{plan.budgets.reduce((s: number, b: any) => s + b.amount, 0).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.scheduleCount')}</p>
+                    <p className="font-bold text-foreground">{t('diary.planPreview.countSuffix', { count: plan.schedules.length })}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.shoppingList')}</p>
+                    <p className="font-bold text-foreground">{t('diary.planPreview.completedFraction', { checked: plan.shoppingList.filter((i: any) => i.checked).length, total: plan.shoppingList.length })}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 전체 일정 미리보기 */}
+              {plan.schedules.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-foreground mb-3 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    {t('diary.planPreview.allSchedules', { count: plan.schedules.length })}
+                  </h4>
+                  <div className="space-y-2 max-h-72 overflow-y-auto">
+                    {plan.schedules
+                      .sort((a: any, b: any) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                      .map((s: any) => (
+                        <div key={s.id} className="flex items-start gap-3 p-2 bg-secondary rounded-lg text-sm">
+                          <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0 pt-0.5">{s.date}</span>
+                          <span className="text-sky-500 font-mono text-xs w-24 flex-shrink-0 pt-0.5">{s.time}{s.endTime ? `~${s.endTime}` : ''}</span>
+                          <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
+                            {getCategoryLabel(s.category)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-semibold text-foreground truncate block">{s.title}</span>
+                            {s.location && (
+                              <span className="text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 버튼 */}
+              <Button
+                onClick={() => setShowPlanPreview(false)}
+                variant="outline"
+                className="w-full"
+              >
+                {t('diary.common.close')}
+              </Button>
+            </div>
+          );
+        })()}
+      </DialogContent>
+    </Dialog>
+  );
+
   const myDiaries = diaries.filter(d => d.userId === user?.id);
 
   
@@ -867,6 +967,7 @@ export default function TravelDiary() {
               </div>
             </div>
           </div>
+          {planPreviewDialog}
         </div>
       );
     }
@@ -1092,6 +1193,7 @@ export default function TravelDiary() {
             </button>
           </div>
         </div>
+        {planPreviewDialog}
       </div>
     );
   }
@@ -1523,103 +1625,7 @@ export default function TravelDiary() {
         </DialogContent>
       </Dialog>
 
-      {/* Plan Preview Dialog */}
-      <Dialog open={showPlanPreview} onOpenChange={setShowPlanPreview}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-foreground">
-              <Plane className="w-5 h-5 text-primary" />
-              {getPreviewPlan()?.title} {t('diary.planPreview.previewSuffix')}
-            </DialogTitle>
-          </DialogHeader>
-          {getPreviewPlan() && (() => {
-            const plan = getPreviewPlan()!;
-            const getCategoryColor = (category: string) => {
-              const colors: Record<string, string> = {
-                accommodation: 'bg-secondary text-foreground',
-                transport: 'bg-secondary text-foreground',
-                meal: 'bg-emerald-100 text-emerald-800',
-                activity: 'bg-indigo-100 text-indigo-800',
-                shopping: 'bg-orange-100 text-orange-800',
-                other: 'bg-slate-100 text-slate-800',
-              };
-              return colors[category] || colors.other;
-            };
-            const getCategoryLabel = (category: string) => {
-              const labels: Record<string, string> = {
-                accommodation: t('diary.category.accommodation'), transport: t('diary.category.transport'), meal: t('diary.category.meal'),
-                activity: t('diary.category.activity'), shopping: t('diary.category.shopping'), other: t('diary.category.other'),
-              };
-              return labels[category] || t('diary.category.other');
-            };
-            return (
-              <div className="space-y-4 pt-2">
-                {/* 기본 정보 */}
-                <div className="p-4 bg-secondary rounded-xl border border-border">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.duration')}</p>
-                      <p className="font-bold text-foreground">{plan.startDate} ~ {plan.endDate}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.totalBudget')}</p>
-                      <p className="font-bold text-primary text-lg">₩{plan.budgets.reduce((s: number, b: any) => s + b.amount, 0).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.scheduleCount')}</p>
-                      <p className="font-bold text-foreground">{t('diary.planPreview.countSuffix', { count: plan.schedules.length })}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('diary.planPreview.shoppingList')}</p>
-                      <p className="font-bold text-foreground">{t('diary.planPreview.completedFraction', { checked: plan.shoppingList.filter((i: any) => i.checked).length, total: plan.shoppingList.length })}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 전체 일정 미리보기 */}
-                {plan.schedules.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-foreground mb-3 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-primary" />
-                      {t('diary.planPreview.allSchedules', { count: plan.schedules.length })}
-                    </h4>
-                    <div className="space-y-2 max-h-72 overflow-y-auto">
-                      {plan.schedules
-                        .sort((a: any, b: any) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-                        .map((s: any) => (
-                          <div key={s.id} className="flex items-start gap-3 p-2 bg-secondary rounded-lg text-sm">
-                            <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0 pt-0.5">{s.date}</span>
-                            <span className="text-sky-500 font-mono text-xs w-24 flex-shrink-0 pt-0.5">{s.time}{s.endTime ? `~${s.endTime}` : ''}</span>
-                            <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
-                              {getCategoryLabel(s.category)}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <span className="font-semibold text-foreground truncate block">{s.title}</span>
-                              {s.location && (
-                                <span className="text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
-                                  <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 버튼 */}
-                <Button
-                  onClick={() => setShowPlanPreview(false)}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {t('diary.common.close')}
-                </Button>
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+      {planPreviewDialog}
     </div>
   );
 }
