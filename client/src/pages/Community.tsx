@@ -331,9 +331,9 @@ export default function Community() {
     setEditingCommentText('');
   };
 
-  // ── 관리자 게시글 삭제
+  // ── 관리자 게시글 삭제 (커뮤니티 공개만 해제, 작성자의 여행 기록 자체는 보존)
   const handleDeleteDiary = (diaryId: string) => {
-    const updated = diaries.filter(d => d.id !== diaryId);
+    const updated = diaries.map(d => d.id === diaryId ? { ...d, isPublic: false } : d);
     localStorage.setItem('travelDiaries', JSON.stringify(updated));
     setDiaries(updated);
     if (selectedDiary?.id === diaryId) setSelectedDiary(null);
@@ -483,22 +483,22 @@ export default function Community() {
             </div>
             <div className="flex gap-2 items-center">
               {user?.isAdmin && (
-                <>
-                  <button
-                    onClick={() => openEditDiary(diary)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition text-xs font-semibold"
-                    title={t('community.admin.editTooltip')}
-                  >
-                    <Shield className="w-3.5 h-3.5" /><Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteDiaryId(diary.id)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition text-xs font-semibold"
-                    title={t('community.admin.deleteTooltip')}
-                  >
-                    <Shield className="w-3.5 h-3.5" /><Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </>
+                <button
+                  onClick={() => openEditDiary(diary)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition text-xs font-semibold"
+                  title={t('community.admin.editTooltip')}
+                >
+                  <Shield className="w-3.5 h-3.5" /><Edit2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {(user?.isAdmin || diary.userId === user?.id) && (
+                <button
+                  onClick={() => setDeleteDiaryId(diary.id)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition text-xs font-semibold"
+                  title={user?.isAdmin ? t('community.admin.deleteTooltip') : t('community.admin.deleteTooltipOwn')}
+                >
+                  {user?.isAdmin && <Shield className="w-3.5 h-3.5" />}<Trash2 className="w-3.5 h-3.5" />
+                </button>
               )}
               <button
                 onClick={() => handleToggleSave(diary.id)}
@@ -1081,11 +1081,11 @@ export default function Community() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{EMOJI_RATINGS[diary.rating - 1]}</span>
-                          {user?.isAdmin && (
+                          {(user?.isAdmin || diary.userId === user?.id) && (
                             <button
                               onClick={e => { e.stopPropagation(); setDeleteDiaryId(diary.id); }}
                               className="p-1.5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition"
-                              title={t('community.admin.deleteTooltip')}
+                              title={user?.isAdmin ? t('community.admin.deleteTooltip') : t('community.admin.deleteTooltipOwn')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
