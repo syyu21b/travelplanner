@@ -54,12 +54,12 @@ interface Budget {
 }
 
 const CATEGORY_CHART_COLORS: Record<string, string> = {
-  accommodation: '#2a78d6',
-  transport: '#1baf7a',
-  meal: '#008300',
-  activity: '#4a3aa7',
-  shopping: '#eb6834',
-  other: '#898781',
+  accommodation: '#E07856',
+  transport: '#D6597A',
+  meal: '#C23B3B',
+  activity: '#6E8A22',
+  shopping: '#96432A',
+  other: '#A79489',
 };
 
 interface ShoppingItem {
@@ -215,6 +215,11 @@ export default function Home() {
 
   // 계획 상세 달력 상태
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+
+  // 여행 요약 카드 - 미리보기 다이얼로그 상태
+  const [showAllSchedulesPreview, setShowAllSchedulesPreview] = useState(false);
+  const [showTimelinePreview, setShowTimelinePreview] = useState(false);
+  const [showPreparationsPreview, setShowPreparationsPreview] = useState(false);
 
   const pdfRef = useRef<HTMLDivElement>(null);
   const scheduleMapRef = useRef<naver.maps.Map | null>(null);
@@ -675,6 +680,108 @@ export default function Home() {
         .map(([category, amount]) => ({ category, amount }))
         .sort((a, b) => b.amount - a.amount)
     : [];
+
+  const renderTimelineContent = () => {
+    if (!currentPlan) return null;
+    if (currentPlan.schedules.length === 0) {
+      return (
+        <div className="text-center py-12 bg-secondary rounded-2xl">
+          <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
+        </div>
+      );
+    }
+    const sorted = [...currentPlan.schedules].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    const grouped = sorted.reduce<Record<string, ScheduleItem[]>>((acc, s) => {
+      (acc[s.date] ??= []).push(s);
+      return acc;
+    }, {});
+    const dates = Object.keys(grouped).sort();
+    const weekdays = [
+      t('home.timeline.weekdaySun'), t('home.timeline.weekdayMon'), t('home.timeline.weekdayTue'),
+      t('home.timeline.weekdayWed'), t('home.timeline.weekdayThu'), t('home.timeline.weekdayFri'), t('home.timeline.weekdaySat'),
+    ];
+    return (
+      <div className="space-y-8">
+        {dates.map((date, dayIdx) => (
+          <div key={date}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                {dayIdx + 1}
+              </span>
+              <p className="font-bold text-foreground">
+                {date}{' '}
+                <span className="text-muted-foreground font-normal text-sm">
+                  ({weekdays[new Date(date + 'T00:00:00').getDay()]})
+                </span>
+              </p>
+            </div>
+            <div className="relative pl-6 border-l-2 border-border space-y-6">
+              {grouped[date].map(s => (
+                <div key={s.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleScheduleComplete(s.id)}
+                    aria-label={s.completed ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
+                    className={cn(
+                      "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
+                      s.completed ? "bg-primary border-primary" : "bg-white border-border hover:border-primary"
+                    )}
+                  >
+                    {s.completed && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                  </button>
+                  <div className={cn("flex items-start justify-between gap-2 transition-opacity", s.completed && "opacity-50")}>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-primary mb-0.5">{s.time}</p>
+                      <p className={cn("font-bold text-foreground truncate", s.completed && "line-through")}>{s.title}</p>
+                      {s.location && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                        </p>
+                      )}
+                    </div>
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0", getCategoryColor(s.category))}>
+                      {getCategoryLabel(s.category)}
+                    </span>
+                  </div>
+                  {!!s.cost && (
+                    <p className={cn("text-xs text-muted-foreground mt-1", s.completed && "opacity-50")}>₩{s.cost.toLocaleString()}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderPreparationsByScheduleContent = () => {
+    if (!currentPlan) return null;
+    const withPreps = currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0);
+    if (withPreps.length === 0) {
+      return (
+        <div className="text-center py-12 bg-secondary rounded-2xl">
+          <p className="text-slate-400">{t('home.summary.emptyState')}</p>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        {withPreps.map(s => (
+          <div key={s.id} className="p-4 bg-secondary rounded-xl border border-border">
+            <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+              <Check className="w-4 h-4 text-primary" /> {s.title} ({s.date})
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {s.preparations?.map((p, idx) => (
+                <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm text-muted-foreground border border-border shadow-sm">{p}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const handleCalcNumber = (num: string) => setCalcDisplay(prev => prev === '0' ? num : prev + num);
   const handleCalcOperation = (op: string) => {
@@ -1315,44 +1422,37 @@ export default function Home() {
 
                 <Card className="p-6 bg-gradient-to-br from-primary to-[#8B7968] text-white shadow-lg shadow-border">
                   <h3 className="text-lg font-bold mb-4">{t('home.planDetail.summaryTitle')}</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-white/80 text-xs uppercase tracking-wider font-bold">{t('home.planDetail.totalBudgetLabel')}</p>
-                          <p className="text-3xl font-black">₩{totalBudget.toLocaleString()}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <select 
-                            value={selectedCurrency}
-                            onChange={(e) => setSelectedCurrency(e.target.value)}
-                            className="bg-white/20 border-none text-white text-xs rounded-md px-2 py-1 focus:ring-0 cursor-pointer"
-                          >
-                            <option value="USD" className="text-black">🇺🇸 USD ($)</option>
-                            <option value="EUR" className="text-black">🇪🇺 EUR (€)</option>
-                            <option value="GBP" className="text-black">🇬🇧 GBP (£)</option>
-                            <option value="JPY" className="text-black">🇯🇵 JPY (¥)</option>
-                            <option value="CNY" className="text-black">🇨🇳 CNY (¥)</option>
-                            <option value="THB" className="text-black">🇹🇭 THB (฿)</option>
-                            <option value="VND" className="text-black">🇻🇳 VND (₫)</option>
-                            <option value="PHP" className="text-black">🇵🇭 PHP (₱)</option>
-                            <option value="IDR" className="text-black">🇮🇩 IDR (Rp)</option>
-                            <option value="MYR" className="text-black">🇲🇾 MYR (RM)</option>
-                          </select>
-                          <p className="text-lg font-bold text-white/90">{formatCurrency(totalBudget)}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white/20 p-3 rounded-xl">
-                        <p className="text-xs font-bold">{t('home.planDetail.totalSchedulesLabel')}</p>
-                        <p className="text-xl font-bold">{t('home.unitCount', { n: currentPlan.schedules.length })}</p>
-                      </div>
-                      <div className="bg-white/20 p-3 rounded-xl">
-                        <p className="text-xs font-bold">{t('home.planDetail.checklistLabel')}</p>
-                        <p className="text-xl font-bold">{currentPlan.shoppingList.filter(i => i.checked).length}/{currentPlan.shoppingList.length}</p>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllSchedulesPreview(true)}
+                      className="bg-white/20 p-3 rounded-xl text-left hover:bg-white/30 transition-colors cursor-pointer"
+                    >
+                      <p className="text-xs font-bold">{t('home.planDetail.totalSchedulesLabel')}</p>
+                      <p className="text-xl font-bold">{t('home.unitCount', { n: currentPlan.schedules.length })}</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowTimelinePreview(true)}
+                      className="bg-white/20 p-3 rounded-xl text-left hover:bg-white/30 transition-colors cursor-pointer"
+                    >
+                      <p className="text-xs font-bold">{t('home.planDetail.timelineLabel')}</p>
+                      <p className="text-xl font-bold">
+                        {currentPlan.schedules.length > 0
+                          ? t('home.timeline.percentComplete', { n: Math.round((currentPlan.schedules.filter(s => s.completed).length / currentPlan.schedules.length) * 100) })
+                          : t('home.unitCount', { n: 0 })}
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPreparationsPreview(true)}
+                      className="bg-white/20 p-3 rounded-xl text-left hover:bg-white/30 transition-colors cursor-pointer col-span-2"
+                    >
+                      <p className="text-xs font-bold">{t('home.planDetail.preparationsLabel')}</p>
+                      <p className="text-xl font-bold">
+                        {t('home.unitCount', { n: currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length })}
+                      </p>
+                    </button>
                   </div>
                 </Card>
               </div>
@@ -1530,17 +1630,35 @@ export default function Home() {
                     <Card className="p-6 bg-gradient-to-br from-primary to-[#8B7968] text-white shadow-lg shadow-border">
                       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
                         <h3 className="text-lg font-bold">{t('home.budget.overviewTitle')}</h3>
-                        {!editingTotalBudget && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleStartEditTotalBudget}
-                            className="h-8 text-white hover:bg-white/20 hover:text-white"
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={selectedCurrency}
+                            onChange={(e) => setSelectedCurrency(e.target.value)}
+                            className="bg-white/20 border-none text-white text-xs rounded-md px-2 py-1 focus:ring-0 cursor-pointer"
                           >
-                            <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-                            {plannedBudget > 0 ? t('home.budget.editTotalBudget') : t('home.budget.setTotalBudget')}
-                          </Button>
-                        )}
+                            <option value="USD" className="text-black">🇺🇸 USD ($)</option>
+                            <option value="EUR" className="text-black">🇪🇺 EUR (€)</option>
+                            <option value="GBP" className="text-black">🇬🇧 GBP (£)</option>
+                            <option value="JPY" className="text-black">🇯🇵 JPY (¥)</option>
+                            <option value="CNY" className="text-black">🇨🇳 CNY (¥)</option>
+                            <option value="THB" className="text-black">🇹🇭 THB (฿)</option>
+                            <option value="VND" className="text-black">🇻🇳 VND (₫)</option>
+                            <option value="PHP" className="text-black">🇵🇭 PHP (₱)</option>
+                            <option value="IDR" className="text-black">🇮🇩 IDR (Rp)</option>
+                            <option value="MYR" className="text-black">🇲🇾 MYR (RM)</option>
+                          </select>
+                          {!editingTotalBudget && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleStartEditTotalBudget}
+                              className="h-8 text-white hover:bg-white/20 hover:text-white"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                              {plannedBudget > 0 ? t('home.budget.editTotalBudget') : t('home.budget.setTotalBudget')}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {editingTotalBudget ? (
                         <div className="flex items-center gap-2 mb-4">
@@ -1560,14 +1678,17 @@ export default function Home() {
                           <div className="bg-white/20 p-3 rounded-xl">
                             <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.plannedLabel')}</p>
                             <p className="text-xl font-black truncate">₩{plannedBudget.toLocaleString()}</p>
+                            <p className="text-[11px] text-white/70 truncate mt-0.5">{formatCurrency(plannedBudget)}</p>
                           </div>
                           <div className="bg-white/20 p-3 rounded-xl">
                             <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.spentLabel')}</p>
                             <p className="text-xl font-black truncate">₩{totalBudget.toLocaleString()}</p>
+                            <p className="text-[11px] text-white/70 truncate mt-0.5">{formatCurrency(totalBudget)}</p>
                           </div>
                           <div className={cn("p-3 rounded-xl", plannedBudget > 0 && remainingBudget < 0 ? "bg-red-500/30" : "bg-white/20")}>
                             <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.remainingLabel')}</p>
                             <p className="text-xl font-black truncate">₩{remainingBudget.toLocaleString()}</p>
+                            <p className="text-[11px] text-white/70 truncate mt-0.5">{formatCurrency(remainingBudget)}</p>
                           </div>
                         </div>
                       )}
@@ -1720,26 +1841,7 @@ export default function Home() {
                       {/* 좌측: 일정별 준비물 */}
                       <Card className="p-6 bg-white border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4">{t('home.summary.byScheduleTitle')}</h3>
-                        <div className="space-y-4">
-                          {currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length === 0 ? (
-                            <div className="text-center py-12 bg-secondary rounded-2xl">
-                              <p className="text-slate-400">{t('home.summary.emptyState')}</p>
-                            </div>
-                          ) : (
-                            currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).map(s => (
-                              <div key={s.id} className="p-4 bg-secondary rounded-xl border border-border">
-                                <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                                  <Check className="w-4 h-4 text-primary" /> {s.title} ({s.date})
-                                </h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {s.preparations?.map((p, idx) => (
-                                    <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm text-muted-foreground border border-border shadow-sm">{p}</span>
-                                  ))}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
+                        {renderPreparationsByScheduleContent()}
                       </Card>
 
                       {/* 우측: 전체 준비물 체크리스트 */}
@@ -1827,75 +1929,7 @@ export default function Home() {
                           </span>
                         )}
                       </div>
-                      {currentPlan.schedules.length === 0 ? (
-                        <div className="text-center py-12 bg-secondary rounded-2xl">
-                          <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
-                        </div>
-                      ) : (() => {
-                        const sorted = [...currentPlan.schedules].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-                        const grouped = sorted.reduce<Record<string, ScheduleItem[]>>((acc, s) => {
-                          (acc[s.date] ??= []).push(s);
-                          return acc;
-                        }, {});
-                        const dates = Object.keys(grouped).sort();
-                        const weekdays = [
-                          t('home.timeline.weekdaySun'), t('home.timeline.weekdayMon'), t('home.timeline.weekdayTue'),
-                          t('home.timeline.weekdayWed'), t('home.timeline.weekdayThu'), t('home.timeline.weekdayFri'), t('home.timeline.weekdaySat'),
-                        ];
-                        return (
-                          <div className="space-y-8">
-                            {dates.map((date, dayIdx) => (
-                              <div key={date}>
-                                <div className="flex items-center gap-2 mb-4">
-                                  <span className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                                    {dayIdx + 1}
-                                  </span>
-                                  <p className="font-bold text-foreground">
-                                    {date}{' '}
-                                    <span className="text-muted-foreground font-normal text-sm">
-                                      ({weekdays[new Date(date + 'T00:00:00').getDay()]})
-                                    </span>
-                                  </p>
-                                </div>
-                                <div className="relative pl-6 border-l-2 border-border space-y-6">
-                                  {grouped[date].map(s => (
-                                    <div key={s.id} className="relative">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleScheduleComplete(s.id)}
-                                        aria-label={s.completed ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
-                                        className={cn(
-                                          "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
-                                          s.completed ? "bg-primary border-primary" : "bg-white border-border hover:border-primary"
-                                        )}
-                                      >
-                                        {s.completed && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-                                      </button>
-                                      <div className={cn("flex items-start justify-between gap-2 transition-opacity", s.completed && "opacity-50")}>
-                                        <div className="min-w-0">
-                                          <p className="text-xs font-bold text-primary mb-0.5">{s.time}</p>
-                                          <p className={cn("font-bold text-foreground truncate", s.completed && "line-through")}>{s.title}</p>
-                                          {s.location && (
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
-                                              <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
-                                            </p>
-                                          )}
-                                        </div>
-                                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0", getCategoryColor(s.category))}>
-                                          {getCategoryLabel(s.category)}
-                                        </span>
-                                      </div>
-                                      {!!s.cost && (
-                                        <p className={cn("text-xs text-muted-foreground mt-1", s.completed && "opacity-50")}>₩{s.cost.toLocaleString()}</p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
+                      {renderTimelineContent()}
                     </Card>
                   </TabsContent>
                 </Tabs>
@@ -2128,6 +2162,63 @@ export default function Home() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 요약 - 전체 일정 미리보기 다이얼로그 */}
+      <Dialog open={showAllSchedulesPreview} onOpenChange={setShowAllSchedulesPreview}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Clock className="w-5 h-5 text-primary" /> {t('home.planDetail.totalSchedulesLabel')}
+            </DialogTitle>
+          </DialogHeader>
+          {currentPlan && (
+            currentPlan.schedules.length === 0 ? (
+              <div className="text-center py-12 bg-secondary rounded-2xl">
+                <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
+              </div>
+            ) : (
+              <div className="space-y-2 pt-2">
+                {[...currentPlan.schedules]
+                  .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                  .map(s => (
+                    <div key={s.id} className="flex items-center gap-3 p-2 bg-secondary rounded-lg text-sm">
+                      <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0">{s.date}</span>
+                      <span className="text-sky-500 font-mono text-xs w-12 flex-shrink-0">{s.time}</span>
+                      <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
+                        {getCategoryLabel(s.category)}
+                      </span>
+                      <span className="font-semibold text-foreground truncate">{s.title}</span>
+                    </div>
+                  ))}
+              </div>
+            )
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 요약 - 타임라인 미리보기 다이얼로그 */}
+      <Dialog open={showTimelinePreview} onOpenChange={setShowTimelinePreview}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Clock className="w-5 h-5 text-primary" /> {t('home.timeline.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">{renderTimelineContent()}</div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 요약 - 준비물 미리보기 다이얼로그 */}
+      <Dialog open={showPreparationsPreview} onOpenChange={setShowPreparationsPreview}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Check className="w-5 h-5 text-primary" /> {t('home.planDetail.preparationsLabel')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">{renderPreparationsByScheduleContent()}</div>
         </DialogContent>
       </Dialog>
     </div>

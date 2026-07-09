@@ -74,9 +74,9 @@ export const home = {
       calendarTitle: "여행 달력",
       calendarTip: "달력에서 날짜를 클릭하면 해당 날짜의 일정을 확인할 수 있습니다.",
       summaryTitle: "여행 요약",
-      totalBudgetLabel: "총 예산",
       totalSchedulesLabel: "전체 일정",
-      checklistLabel: "체크리스트",
+      timelineLabel: "타임라인",
+      preparationsLabel: "준비물",
     },
     tabs: {
       schedule: "일정",
@@ -356,9 +356,9 @@ export const home = {
       calendarTitle: "Trip Calendar",
       calendarTip: "Click a date on the calendar to see that day's schedule.",
       summaryTitle: "Trip Summary",
-      totalBudgetLabel: "Total Budget",
       totalSchedulesLabel: "Total Schedules",
-      checklistLabel: "Checklist",
+      timelineLabel: "Timeline",
+      preparationsLabel: "Checklist Items",
     },
     tabs: {
       schedule: "Schedule",
