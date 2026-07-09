@@ -23,6 +23,32 @@ interface DiaryPhoto {
   type?: 'photo' | 'video';
 }
 
+interface ScheduleItem {
+  id: string;
+  date: string;
+  time: string;
+  endTime?: string;
+  title: string;
+  category: 'accommodation' | 'transport' | 'meal' | 'activity' | 'other';
+  location?: string;
+  lat?: number;
+  lng?: number;
+  cost?: number;
+  link?: string;
+  notes?: string;
+  preparations?: string[];
+  completed?: boolean;
+}
+
+interface TravelPlan {
+  id: string;
+  userId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  schedules: ScheduleItem[];
+}
+
 interface DiaryEntry {
   id: string;
   userId: string;
@@ -38,6 +64,7 @@ interface DiaryEntry {
   isPublic: boolean;
   linkedPlanId?: string;
   linkedPlanTitle?: string;
+  linkedPlanSchedules?: ScheduleItem[];
   createdAt: string;
   updatedAt: string;
   likes: string[];
@@ -76,6 +103,7 @@ export default function Community() {
   const [currentPage, setCurrentPage] = useState(1);
   const POSTS_PER_PAGE = 10;
   const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null);
+  const [showPlanSchedule, setShowPlanSchedule] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [savedDiaries, setSavedDiaries] = useState<string[]>([]);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
@@ -104,6 +132,14 @@ export default function Community() {
 
   const getUsers = (): RegisteredUser[] => {
     return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+  };
+
+  // 기록 작성 시 첨부된 일정 스냅샷을 우선 사용하고, 옛 기록(스냅샷 없음)은 원본 계획에서 조회
+  const getLinkedPlanSchedules = (diary: DiaryEntry): ScheduleItem[] => {
+    if (diary.linkedPlanSchedules) return diary.linkedPlanSchedules;
+    if (!diary.linkedPlanId) return [];
+    const plans = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
+    return plans.find(p => p.id === diary.linkedPlanId)?.schedules || [];
   };
 
   // 댓글 임시 저장 로드
@@ -138,6 +174,7 @@ export default function Community() {
   const handleViewDiary = (diary: DiaryEntry) => {
     setSelectedDiary(diary);
     setActivePhotoIndex(0);
+    setShowPlanSchedule(false);
     trackView(diary.id);
   };
 
@@ -422,7 +459,7 @@ export default function Community() {
         <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-border">
           <div className="container mx-auto px-4 py-3 flex items-center gap-3">
             <button
-              onClick={() => { setSelectedDiary(null); setActivePhotoIndex(0); }}
+              onClick={() => { setSelectedDiary(null); setActivePhotoIndex(0); setShowPlanSchedule(false); }}
               className="text-primary font-semibold text-sm hover:underline flex items-center gap-1"
             >
               <ChevronLeft className="w-4 h-4" /> {t('community.detail.back')}
@@ -490,7 +527,7 @@ export default function Community() {
               {diary.tags.map((tag, i) => (
                 <button
                   key={i}
-                  onClick={() => { setSelectedDiary(null); setSelectedTag(tag); }}
+                  onClick={() => { setSelectedDiary(null); setShowPlanSchedule(false); setSelectedTag(tag); }}
                   className="bg-secondary text-primary font-semibold px-3 py-1 rounded-full text-sm border border-border hover:bg-primary hover:text-white transition"
                 >
                   #{tag}
@@ -579,13 +616,17 @@ export default function Community() {
 
           {/* Linked plan */}
           {diary.linkedPlanTitle && (
-            <div className="mb-6 p-4 bg-secondary rounded-xl border border-border flex items-center gap-3">
+            <button
+              onClick={() => setShowPlanSchedule(true)}
+              className="w-full mb-6 p-4 bg-secondary rounded-xl border border-border flex items-center gap-3 text-left hover:border-primary transition"
+            >
               <Plane className="w-5 h-5 text-primary flex-shrink-0" />
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs text-muted-foreground">{t('community.detail.linkedPlan')}</p>
-                <p className="font-semibold text-foreground">{diary.linkedPlanTitle}</p>
+                <p className="font-semibold text-foreground truncate">{diary.linkedPlanTitle}</p>
               </div>
-            </div>
+              <span className="text-xs font-semibold text-primary flex-shrink-0">{t('community.detail.viewSchedule')}</span>
+            </button>
           )}
 
           {/* Interactions */}
@@ -801,6 +842,65 @@ export default function Community() {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 연결된 여행 계획의 전체 일정 */}
+        <Dialog open={showPlanSchedule} onOpenChange={setShowPlanSchedule}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-foreground">
+                <Plane className="w-5 h-5 text-primary" />
+                {diary.linkedPlanTitle} {t('diary.planPreview.previewSuffix')}
+              </DialogTitle>
+            </DialogHeader>
+            {(() => {
+              const schedules = getLinkedPlanSchedules(diary);
+              const getCategoryColor = (category: string) => {
+                const colors: Record<string, string> = {
+                  accommodation: 'bg-secondary text-foreground',
+                  transport: 'bg-secondary text-foreground',
+                  meal: 'bg-emerald-100 text-emerald-800',
+                  activity: 'bg-indigo-100 text-indigo-800',
+                  shopping: 'bg-orange-100 text-orange-800',
+                  other: 'bg-slate-100 text-slate-800',
+                };
+                return colors[category] || colors.other;
+              };
+              const getCategoryLabel = (category: string) => {
+                const labels: Record<string, string> = {
+                  accommodation: t('diary.category.accommodation'), transport: t('diary.category.transport'), meal: t('diary.category.meal'),
+                  activity: t('diary.category.activity'), shopping: t('diary.category.shopping'), other: t('diary.category.other'),
+                };
+                return labels[category] || t('diary.category.other');
+              };
+              return schedules.length > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto pt-2">
+                  {schedules
+                    .slice()
+                    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                    .map(s => (
+                      <div key={s.id} className="flex items-start gap-3 p-2 bg-secondary rounded-lg text-sm">
+                        <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0 pt-0.5">{s.date}</span>
+                        <span className="text-sky-500 font-mono text-xs w-24 flex-shrink-0 pt-0.5">{s.time}{s.endTime ? `~${s.endTime}` : ''}</span>
+                        <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
+                          {getCategoryLabel(s.category)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-semibold text-foreground truncate block">{s.title}</span>
+                          {s.location && (
+                            <span className="text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground pt-2">{t('community.detail.noSchedule')}</p>
+              );
+            })()}
           </DialogContent>
         </Dialog>
       </div>

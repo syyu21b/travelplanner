@@ -29,6 +29,23 @@ interface DiaryBlock {
   caption?: string;
 }
 
+interface ScheduleItem {
+  id: string;
+  date: string;
+  time: string;
+  endTime?: string;
+  title: string;
+  category: 'accommodation' | 'transport' | 'meal' | 'activity' | 'other';
+  location?: string;
+  lat?: number;
+  lng?: number;
+  cost?: number;
+  link?: string;
+  notes?: string;
+  preparations?: string[];
+  completed?: boolean;
+}
+
 interface DiaryEntry {
   id: string;
   userId: string;
@@ -46,6 +63,7 @@ interface DiaryEntry {
   isPublic: boolean;
   linkedPlanId?: string;
   linkedPlanTitle?: string;
+  linkedPlanSchedules?: ScheduleItem[];
   createdAt: string;
   updatedAt: string;
   likes: string[];
@@ -57,7 +75,7 @@ interface TravelPlan {
   title: string;
   startDate: string;
   endDate: string;
-  schedules: any[];
+  schedules: ScheduleItem[];
   budgets: any[];
   shoppingList: any[];
 }
@@ -135,6 +153,32 @@ export default function TravelDiary() {
   const [editTagInput, setEditTagInput] = useState('');
   const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [previewPlanId, setPreviewPlanId] = useState<string | null>(null);
+  const [previewSnapshot, setPreviewSnapshot] = useState<DiaryEntry | null>(null);
+
+  const openPlanPreview = (planId: string | undefined, snapshot?: DiaryEntry) => {
+    setPreviewPlanId(planId || null);
+    setPreviewSnapshot(snapshot || null);
+    setShowPlanPreview(true);
+  };
+
+  // 연결된 계획이 삭제/변경됐어도 기록 작성 시점에 첨부된 일정 스냅샷으로 대체 표시
+  const getPreviewPlan = (): TravelPlan | undefined => {
+    const live = userPlans.find(p => p.id === previewPlanId);
+    if (live) return live;
+    if (previewSnapshot?.linkedPlanSchedules) {
+      return {
+        id: previewSnapshot.linkedPlanId || '',
+        userId: previewSnapshot.userId,
+        title: previewSnapshot.linkedPlanTitle || previewSnapshot.title,
+        startDate: previewSnapshot.startDate,
+        endDate: previewSnapshot.endDate,
+        schedules: previewSnapshot.linkedPlanSchedules,
+        budgets: [],
+        shoppingList: [],
+      };
+    }
+    return undefined;
+  };
 
   const myDiaries = diaries.filter(d => d.userId === user?.id);
 
@@ -441,6 +485,7 @@ export default function TravelDiary() {
       isPublic: newIsPublic,
       linkedPlanId: newLinkedPlanId || undefined,
       linkedPlanTitle: linkedPlan?.title,
+      linkedPlanSchedules: linkedPlan?.schedules,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       likes: [],
@@ -538,6 +583,43 @@ export default function TravelDiary() {
                   <Input type="date" value={editData.endDate} onChange={e => setEditData({ ...editData, endDate: e.target.value })} className="h-11" />
                 </div>
               </div>
+
+              {userPlans.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Plane className="w-4 h-4 text-primary" /> {t('diary.newDialog.linkPlan')} <span className="text-muted-foreground font-normal">{t('diary.common.optional')}</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={editData.linkedPlanId || ''}
+                      onChange={e => {
+                        const plan = userPlans.find(p => p.id === e.target.value);
+                        setEditData({
+                          ...editData,
+                          linkedPlanId: e.target.value || undefined,
+                          linkedPlanTitle: plan?.title,
+                          linkedPlanSchedules: plan?.schedules,
+                        });
+                      }}
+                      className="flex-1 h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
+                    >
+                      <option value="">{t('diary.newDialog.noPlanSelected')}</option>
+                      {userPlans.map(plan => (
+                        <option key={plan.id} value={plan.id}>{plan.title} ({plan.startDate} ~ {plan.endDate})</option>
+                      ))}
+                    </select>
+                    {editData.linkedPlanId && (
+                      <Button
+                        onClick={() => openPlanPreview(editData.linkedPlanId, editData)}
+                        variant="outline"
+                        className="h-11 px-4"
+                      >
+                        {t('diary.common.preview')}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">{t('diary.form.contentLabel')}</label>
@@ -886,9 +968,12 @@ export default function TravelDiary() {
               {EMOJI_RATINGS[diary.rating - 1]} {diary.rating}/5
             </span>
             {diary.linkedPlanTitle && (
-              <span className="flex items-center gap-1 text-primary font-semibold">
+              <button
+                onClick={() => openPlanPreview(diary.linkedPlanId, diary)}
+                className="flex items-center gap-1 text-primary font-semibold hover:underline"
+              >
                 <Plane className="w-4 h-4" /> {diary.linkedPlanTitle}
-              </span>
+              </button>
             )}
             <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {new Date(diary.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'ko-KR')}</span>
           </div>
@@ -1210,7 +1295,7 @@ export default function TravelDiary() {
                   </select>
                   {newLinkedPlanId && (
                     <Button
-                      onClick={() => { setPreviewPlanId(newLinkedPlanId); setShowPlanPreview(true); }}
+                      onClick={() => openPlanPreview(newLinkedPlanId)}
                       variant="outline"
                       className="h-11 px-4"
                     >
@@ -1444,11 +1529,11 @@ export default function TravelDiary() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Plane className="w-5 h-5 text-primary" />
-              {userPlans.find(p => p.id === previewPlanId)?.title} {t('diary.planPreview.previewSuffix')}
+              {getPreviewPlan()?.title} {t('diary.planPreview.previewSuffix')}
             </DialogTitle>
           </DialogHeader>
-          {previewPlanId && userPlans.find(p => p.id === previewPlanId) && (() => {
-            const plan = userPlans.find(p => p.id === previewPlanId)!;
+          {getPreviewPlan() && (() => {
+            const plan = getPreviewPlan()!;
             const getCategoryColor = (category: string) => {
               const colors: Record<string, string> = {
                 accommodation: 'bg-secondary text-foreground',
@@ -1498,17 +1583,24 @@ export default function TravelDiary() {
                       <Clock className="w-4 h-4 text-primary" />
                       {t('diary.planPreview.allSchedules', { count: plan.schedules.length })}
                     </h4>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="space-y-2 max-h-72 overflow-y-auto">
                       {plan.schedules
                         .sort((a: any, b: any) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
                         .map((s: any) => (
-                          <div key={s.id} className="flex items-center gap-3 p-2 bg-secondary rounded-lg text-sm">
-                            <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0">{s.date}</span>
-                            <span className="text-sky-500 font-mono text-xs w-12 flex-shrink-0">{s.time}</span>
+                          <div key={s.id} className="flex items-start gap-3 p-2 bg-secondary rounded-lg text-sm">
+                            <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0 pt-0.5">{s.date}</span>
+                            <span className="text-sky-500 font-mono text-xs w-24 flex-shrink-0 pt-0.5">{s.time}{s.endTime ? `~${s.endTime}` : ''}</span>
                             <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
                               {getCategoryLabel(s.category)}
                             </span>
-                            <span className="font-semibold text-foreground truncate">{s.title}</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-semibold text-foreground truncate block">{s.title}</span>
+                              {s.location && (
+                                <span className="text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
+                                  <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ))}
                     </div>

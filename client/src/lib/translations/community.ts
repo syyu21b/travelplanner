@@ -58,6 +58,8 @@ export const community = {
     detail: {
       back: "커뮤니티",
       linkedPlan: "연결된 여행 계획",
+      viewSchedule: "전체 일정 보기",
+      noSchedule: "등록된 일정이 없습니다.",
       likes: "좋아요",
       comments: "댓글",
       commentsHeading: "댓글 ({{count}})",
@@ -147,6 +149,8 @@ export const community = {
     detail: {
       back: "Community",
       linkedPlan: "Linked trip plan",
+      viewSchedule: "View full itinerary",
+      noSchedule: "No itinerary items yet.",
       likes: "likes",
       comments: "comments",
       commentsHeading: "Comments ({{count}})",
