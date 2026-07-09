@@ -10,6 +10,7 @@ import {
   Filter, SortAsc, Plane, BookOpen, Edit2, Check, X, Shield
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { StarRatingDisplay } from '@/components/StarRating';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -86,8 +87,6 @@ interface RegisteredUser {
   name: string;
   email: string;
 }
-
-const EMOJI_RATINGS = ['😞', '😐', '🙂', '😊', '🤩'];
 
 type SortType = 'latest' | 'popular' | 'comments';
 type FilterType = 'all' | 'following';
@@ -518,7 +517,7 @@ export default function Community() {
           <div className="flex flex-wrap gap-3 mb-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-primary" /> {diary.location}</span>
             <span className="flex items-center gap-1"><Calendar className="w-4 h-4 text-primary" /> {diary.startDate}{diary.endDate !== diary.startDate ? ` ~ ${diary.endDate}` : ''}</span>
-            <span className="text-xl">{EMOJI_RATINGS[diary.rating - 1]}</span>
+            <StarRatingDisplay value={diary.rating} size="sm" showLabel />
           </div>
 
           {/* Tags */}
@@ -1080,7 +1079,7 @@ export default function Community() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">{EMOJI_RATINGS[diary.rating - 1]}</span>
+                          <StarRatingDisplay value={diary.rating} size="sm" />
                           {(user?.isAdmin || diary.userId === user?.id) && (
                             <button
                               onClick={e => { e.stopPropagation(); setDeleteDiaryId(diary.id); }}

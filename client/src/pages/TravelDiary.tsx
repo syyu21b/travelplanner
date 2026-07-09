@@ -14,6 +14,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { StarRatingInput, StarRatingDisplay } from '@/components/StarRating';
+import { LocationPickerDialog } from '@/components/LocationPickerDialog';
+import { MapView, type MapMarker } from '@/components/Map';
 
 interface DiaryPhoto {
   id: string;
@@ -80,7 +83,38 @@ interface TravelPlan {
   shoppingList: any[];
 }
 
-const EMOJI_RATINGS = ['😞', '😐', '🙂', '😊', '🤩'];
+interface AlbumPhoto {
+  id: string;
+  url: string;
+  caption?: string;
+  type?: 'photo' | 'video';
+  lat?: number;
+  lng?: number;
+  address?: string;
+}
+
+interface Album {
+  id: string;
+  userId: string;
+  title: string;
+  photos: AlbumPhoto[];
+  linkedPlanId?: string;
+  linkedPlanTitle?: string;
+  linkedPlanSchedules?: ScheduleItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 여행 기록/앨범 어느 쪽에서든 계획 미리보기 다이얼로그를 열 수 있도록 하는 공통 스냅샷 형태
+interface PlanPreviewSnapshot {
+  userId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  linkedPlanId?: string;
+  linkedPlanTitle?: string;
+  linkedPlanSchedules?: ScheduleItem[];
+}
 
 export default function TravelDiary() {
   const { user } = useAuth();
@@ -123,11 +157,27 @@ export default function TravelDiary() {
     return null;
   };
 
+  const loadAlbums = (): Album[] => {
+    return JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[];
+  };
+
+  const loadCurrentAlbum = () => {
+    const saved = localStorage.getItem('currentAlbumId');
+    if (saved) {
+      const albums = JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[];
+      return albums.find(a => a.id === saved) || null;
+    }
+    return null;
+  };
+
   const draft = loadDraftForm();
 
   const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
   const [userPlans] = useState<TravelPlan[]>(loadUserPlans);
   const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(loadCurrentDiary);
+  const [albums, setAlbums] = useState<Album[]>(loadAlbums);
+  const [currentAlbum, setCurrentAlbum] = useState<Album | null>(loadCurrentAlbum);
+  const [activeTab, setActiveTab] = useState<'records' | 'albums'>('records');
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -147,15 +197,37 @@ export default function TravelDiary() {
   const [newLinkedPlanId, setNewLinkedPlanId] = useState(draft?.linkedPlanId || '');
   const [activePhotoCaption, setActivePhotoCaption] = useState<string | null>(null);
 
+  // New album form state
+  const [showNewAlbumDialog, setShowNewAlbumDialog] = useState(false);
+  const [newAlbumTitle, setNewAlbumTitle] = useState('');
+  const [newAlbumPhotos, setNewAlbumPhotos] = useState<AlbumPhoto[]>([]);
+  const [newAlbumLinkedPlanId, setNewAlbumLinkedPlanId] = useState('');
+
+  // Album edit state
+  const [isEditingAlbum, setIsEditingAlbum] = useState(false);
+  const [editAlbumData, setEditAlbumData] = useState<Album | null>(null);
+
+  // Album detail view mode
+  const [albumViewMode, setAlbumViewMode] = useState<'grid' | 'map'>('grid');
+
+  // 사진 위치 지정 다이얼로그 (새 앨범 / 앨범 수정 공용)
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [locationPickerPhotoId, setLocationPickerPhotoId] = useState<string | null>(null);
+  const [locationPickerContext, setLocationPickerContext] = useState<'new' | 'edit' | null>(null);
+
+  const albumFileInputRef = useRef<HTMLInputElement>(null);
+  const editAlbumFileInputRef = useRef<HTMLInputElement>(null);
+  const albumMapRef = useRef<naver.maps.Map | null>(null);
+
   // Edit state
   const [editData, setEditData] = useState<DiaryEntry | null>(null);
   const [editPhotoCaption, setEditPhotoCaption] = useState<string | null>(null);
   const [editTagInput, setEditTagInput] = useState('');
   const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [previewPlanId, setPreviewPlanId] = useState<string | null>(null);
-  const [previewSnapshot, setPreviewSnapshot] = useState<DiaryEntry | null>(null);
+  const [previewSnapshot, setPreviewSnapshot] = useState<PlanPreviewSnapshot | null>(null);
 
-  const openPlanPreview = (planId: string | undefined, snapshot?: DiaryEntry) => {
+  const openPlanPreview = (planId: string | undefined, snapshot?: PlanPreviewSnapshot) => {
     setPreviewPlanId(planId || null);
     setPreviewSnapshot(snapshot || null);
     setShowPlanPreview(true);
@@ -281,6 +353,7 @@ export default function TravelDiary() {
   );
 
   const myDiaries = diaries.filter(d => d.userId === user?.id);
+  const myAlbums = albums.filter(a => a.userId === user?.id);
 
   
   // 폼 변경 시 자동 저장
@@ -314,6 +387,20 @@ export default function TravelDiary() {
     }
   }, [currentDiary]);
 
+  // 현재 앨범 저장
+  useEffect(() => {
+    if (currentAlbum) {
+      localStorage.setItem('currentAlbumId', currentAlbum.id);
+    } else {
+      localStorage.removeItem('currentAlbumId');
+    }
+  }, [currentAlbum]);
+
+  // 앨범 상세를 새로 열 때마다 사진 보기로 초기화
+  useEffect(() => {
+    setAlbumViewMode('grid');
+  }, [currentAlbum?.id]);
+
   const saveDiaries = (updated: DiaryEntry[]) => {
     try {
       localStorage.setItem('travelDiaries', JSON.stringify(updated));
@@ -323,7 +410,17 @@ export default function TravelDiary() {
     }
   };
 
+  const saveAlbums = (updated: Album[]) => {
+    try {
+      localStorage.setItem('travelAlbums', JSON.stringify(updated));
+      setAlbums(updated);
+    } catch {
+      toast.error(t('diary.errors.storageFull'));
+    }
+  };
+
   const MAX_VIDEO_MB = 15;
+  const ALBUM_MAX_PHOTOS = 50;
 
   const readFileAsDataURL = (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -412,6 +509,52 @@ export default function TravelDiary() {
           }
         } else {
           setNewPhotos(prev => [...prev, photo]);
+        }
+      }
+      if (skipped > 0) {
+        toast.error(t('diary.errors.videoTooLargeSkipped', { maxMb: MAX_VIDEO_MB, skipped }), { id: toastId });
+      } else {
+        toast.success(t('diary.toast.added'), { id: toastId });
+      }
+    } catch (error) {
+      toast.error(t('diary.errors.uploadError'), { id: toastId });
+    }
+    e.target.value = '';
+  };
+
+  const handleAlbumPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
+    const files = Array.from(e.target.files || []);
+    const currentPhotosCount = isEdit ? (editAlbumData?.photos.length || 0) : newAlbumPhotos.length;
+
+    if (currentPhotosCount + files.length > ALBUM_MAX_PHOTOS) {
+      toast.error(t('diary.album.errors.maxUploads'));
+      return;
+    }
+
+    const toastId = toast.loading(t('diary.toast.processingMedia'));
+    let skipped = 0;
+
+    try {
+      for (const file of files) {
+        const isVideo = file.type.startsWith('video/');
+        if (isVideo && file.size > MAX_VIDEO_MB * 1024 * 1024) {
+          skipped++;
+          continue;
+        }
+
+        const base64 = await readFileAsDataURL(file);
+        const finalUrl = isVideo ? base64 : await compressImage(base64);
+        const photo: AlbumPhoto = {
+          id: Date.now().toString() + Math.random(),
+          url: finalUrl,
+          caption: '',
+          type: isVideo ? 'video' : 'photo',
+        };
+
+        if (isEdit) {
+          setEditAlbumData(prev => prev ? { ...prev, photos: [...prev.photos, photo] } : null);
+        } else {
+          setNewAlbumPhotos(prev => [...prev, photo]);
         }
       }
       if (skipped > 0) {
@@ -623,6 +766,116 @@ export default function TravelDiary() {
     toast.success(t('diary.toast.diaryUpdated'));
   };
 
+  const resetNewAlbumForm = () => {
+    setNewAlbumTitle('');
+    setNewAlbumPhotos([]);
+    setNewAlbumLinkedPlanId('');
+  };
+
+  const handleCreateAlbum = () => {
+    if (!user) {
+      toast.error(t('session.loginRequired'));
+      return;
+    }
+    if (!newAlbumTitle.trim()) {
+      toast.error(t('diary.errors.requiredFields'));
+      return;
+    }
+
+    const linkedPlan = userPlans.find(p => p.id === newAlbumLinkedPlanId);
+
+    const album: Album = {
+      id: Date.now().toString(),
+      userId: user!.id,
+      title: newAlbumTitle.trim(),
+      photos: newAlbumPhotos,
+      linkedPlanId: newAlbumLinkedPlanId || undefined,
+      linkedPlanTitle: linkedPlan?.title,
+      linkedPlanSchedules: linkedPlan?.schedules,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    saveAlbums([album, ...albums]);
+    resetNewAlbumForm();
+    setShowNewAlbumDialog(false);
+    toast.success(t('diary.album.toast.albumCreated'));
+  };
+
+  const handleDeleteAlbum = (id: string) => {
+    saveAlbums(albums.filter(a => a.id !== id));
+    if (currentAlbum?.id === id) setCurrentAlbum(null);
+    toast.success(t('diary.album.toast.albumDeleted'));
+  };
+
+  const handleSaveAlbumEdit = () => {
+    if (!editAlbumData) return;
+    const updated = albums.map(a => a.id === editAlbumData.id ? { ...editAlbumData, updatedAt: new Date().toISOString() } : a);
+    saveAlbums(updated);
+    setCurrentAlbum(editAlbumData);
+    setIsEditingAlbum(false);
+    toast.success(t('diary.album.toast.albumUpdated'));
+  };
+
+  const albumToPreviewSnapshot = (album: Album): PlanPreviewSnapshot => {
+    const dates = (album.linkedPlanSchedules || []).map(s => s.date).sort();
+    return {
+      userId: album.userId,
+      title: album.linkedPlanTitle || album.title,
+      startDate: dates[0] || '',
+      endDate: dates[dates.length - 1] || '',
+      linkedPlanId: album.linkedPlanId,
+      linkedPlanTitle: album.linkedPlanTitle,
+      linkedPlanSchedules: album.linkedPlanSchedules,
+    };
+  };
+
+  const openLocationPickerForPhoto = (photoId: string, context: 'new' | 'edit') => {
+    setLocationPickerPhotoId(photoId);
+    setLocationPickerContext(context);
+    setShowLocationPicker(true);
+  };
+
+  const getLocationPickerTarget = (): AlbumPhoto | undefined => {
+    const photos = locationPickerContext === 'edit' ? editAlbumData?.photos : newAlbumPhotos;
+    return photos?.find(p => p.id === locationPickerPhotoId);
+  };
+
+  const handleLocationConfirm = (lat: number, lng: number, address?: string) => {
+    if (!locationPickerPhotoId) return;
+    const patch = (photos: AlbumPhoto[]) =>
+      photos.map(p => p.id === locationPickerPhotoId ? { ...p, lat, lng, address } : p);
+
+    if (locationPickerContext === 'edit') {
+      setEditAlbumData(prev => prev ? { ...prev, photos: patch(prev.photos) } : null);
+    } else {
+      setNewAlbumPhotos(prev => patch(prev));
+    }
+  };
+
+  const handleClearPhotoLocation = (photoId: string, context: 'new' | 'edit') => {
+    const clear = (photos: AlbumPhoto[]) =>
+      photos.map(p => p.id === photoId ? { ...p, lat: undefined, lng: undefined, address: undefined } : p);
+
+    if (context === 'edit') {
+      setEditAlbumData(prev => prev ? { ...prev, photos: clear(prev.photos) } : null);
+    } else {
+      setNewAlbumPhotos(prev => clear(prev));
+    }
+  };
+
+  // 새 앨범/앨범 수정 화면 어디서든 사진 위치를 지정할 수 있도록 공용으로 재사용하는 다이얼로그
+  const locationPickerDialog = (
+    <LocationPickerDialog
+      open={showLocationPicker}
+      onOpenChange={setShowLocationPicker}
+      initialLat={getLocationPickerTarget()?.lat}
+      initialLng={getLocationPickerTarget()?.lng}
+      title={t('diary.album.locationPickerTitle')}
+      onConfirm={handleLocationConfirm}
+    />
+  );
+
   const handleToggleLike = (diaryId: string) => {
     if (!user) {
       toast.error(t('session.loginRequired'));
@@ -776,20 +1029,9 @@ export default function TravelDiary() {
 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">{t('diary.form.ratingLabel')}</label>
-                <div className="flex gap-2">
-                  {EMOJI_RATINGS.map((emoji, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setEditData({ ...editData, rating: i + 1 })}
-                      className={cn(
-                        "text-3xl transition-all hover:scale-110",
-                        editData.rating === i + 1 ? "scale-125" : "opacity-50"
-                      )}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                  <span className="ml-3 text-sm text-muted-foreground self-center font-semibold">{editData.rating}/5</span>
+                <div className="flex gap-2 items-center">
+                  <StarRatingInput value={editData.rating} onChange={r => setEditData({ ...editData, rating: r })} size="lg" />
+                  <span className="ml-1 text-sm text-muted-foreground font-semibold">{editData.rating}/5</span>
                 </div>
               </div>
 
@@ -1065,9 +1307,7 @@ export default function TravelDiary() {
           {/* Meta info */}
           <div className="flex flex-wrap gap-3 mb-6 text-sm text-muted-foreground">
             <span className="flex items-center gap-1"><Calendar className="w-4 h-4 text-primary" /> {diary.startDate}{diary.endDate !== diary.startDate ? ` ~ ${diary.endDate}` : ''}</span>
-            <span className="flex items-center gap-1">
-              {EMOJI_RATINGS[diary.rating - 1]} {diary.rating}/5
-            </span>
+            <StarRatingDisplay value={diary.rating} size="sm" showLabel />
             {diary.linkedPlanTitle && (
               <button
                 onClick={() => openPlanPreview(diary.linkedPlanId, diary)}
@@ -1198,6 +1438,309 @@ export default function TravelDiary() {
     );
   }
 
+  if (currentAlbum) {
+    const album = albums.find(a => a.id === currentAlbum.id) || currentAlbum;
+    const isAlbumOwner = album.userId === user?.id;
+
+    if (isEditingAlbum && editAlbumData) {
+      return (
+        <div className="min-h-screen bg-background pb-16">
+          <div className="container mx-auto px-4 py-8 max-w-3xl">
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={() => { setIsEditingAlbum(false); setEditAlbumData(null); }}
+                className="text-primary font-semibold text-sm hover:underline flex items-center gap-1"
+              >
+                <ChevronLeft className="w-4 h-4" /> {t('diary.common.cancel')}
+              </button>
+              <h2 className="text-xl font-bold text-foreground">{t('diary.album.editMode.title')}</h2>
+            </div>
+
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground">{t('diary.album.newDialog.titleLabel')}</label>
+                <Input value={editAlbumData.title} onChange={e => setEditAlbumData({ ...editAlbumData, title: e.target.value })} className="h-11" />
+              </div>
+
+              {userPlans.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Plane className="w-4 h-4 text-primary" /> {t('diary.newDialog.linkPlan')} <span className="text-muted-foreground font-normal">{t('diary.common.optional')}</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={editAlbumData.linkedPlanId || ''}
+                      onChange={e => {
+                        const plan = userPlans.find(p => p.id === e.target.value);
+                        setEditAlbumData({
+                          ...editAlbumData,
+                          linkedPlanId: e.target.value || undefined,
+                          linkedPlanTitle: plan?.title,
+                          linkedPlanSchedules: plan?.schedules,
+                        });
+                      }}
+                      className="flex-1 h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
+                    >
+                      <option value="">{t('diary.newDialog.noPlanSelected')}</option>
+                      {userPlans.map(plan => (
+                        <option key={plan.id} value={plan.id}>{plan.title} ({plan.startDate} ~ {plan.endDate})</option>
+                      ))}
+                    </select>
+                    {editAlbumData.linkedPlanId && (
+                      <Button
+                        onClick={() => openPlanPreview(editAlbumData.linkedPlanId, albumToPreviewSnapshot(editAlbumData))}
+                        variant="outline"
+                        className="h-11 px-4"
+                      >
+                        {t('diary.common.preview')}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Camera className="w-4 h-4" /> {t('diary.album.photosLabel')}
+                  </label>
+                  <span className="text-xs text-muted-foreground">{t('diary.album.maxPhotosHint')}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {editAlbumData.photos.map(photo => (
+                    <div key={photo.id} className="relative group">
+                      {photo.type === 'video' ? (
+                        <video src={photo.url} controls className="w-full h-28 object-cover rounded-lg border border-border bg-black" />
+                      ) : (
+                        <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-gray-100" />
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
+                        <input
+                          type="text"
+                          value={photo.caption || ''}
+                          onChange={e => {
+                            const photos = editAlbumData.photos.map(p => p.id === photo.id ? { ...p, caption: e.target.value } : p);
+                            setEditAlbumData({ ...editAlbumData, photos });
+                          }}
+                          placeholder={t('diary.form.captionPlaceholder')}
+                          className="text-xs bg-white/90 rounded px-2 py-1 w-full"
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </div>
+                      <button
+                        onClick={() => setEditAlbumData({ ...editAlbumData, photos: editAlbumData.photos.filter(p => p.id !== photo.id) })}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <div className="absolute bottom-1 left-1 flex gap-1">
+                        <button
+                          onClick={() => openLocationPickerForPhoto(photo.id, 'edit')}
+                          title={photo.lat !== undefined ? t('diary.album.locationTagged') : t('diary.album.tagLocation')}
+                          className={cn(
+                            "rounded-full p-1 transition-opacity",
+                            photo.lat !== undefined ? "bg-primary text-white" : "bg-black/50 text-white opacity-0 group-hover:opacity-100"
+                          )}
+                        >
+                          <MapPin className="w-3 h-3" />
+                        </button>
+                        {photo.lat !== undefined && (
+                          <button
+                            onClick={() => handleClearPhotoLocation(photo.id, 'edit')}
+                            title={t('diary.album.removeLocation')}
+                            className="rounded-full p-1 bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => editAlbumFileInputRef.current?.click()}
+                    className="h-28 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="text-xs">{t('diary.common.add')}</span>
+                  </button>
+                </div>
+                <input ref={editAlbumFileInputRef} type="file" accept="image/*,video/*" multiple onChange={e => handleAlbumPhotoUpload(e, true)} className="hidden" />
+              </div>
+
+              <div className="flex gap-3">
+                <Button onClick={handleSaveAlbumEdit} className="flex-1 bg-primary text-white h-11">
+                  <Check className="w-4 h-4 mr-2" /> {t('diary.common.save')}
+                </Button>
+                <Button onClick={() => { setIsEditingAlbum(false); setEditAlbumData(null); }} variant="outline" className="flex-1 h-11">
+                  {t('diary.common.cancel')}
+                </Button>
+              </div>
+            </div>
+          </div>
+          {planPreviewDialog}
+          {locationPickerDialog}
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-background pb-16">
+        <div className="bg-gradient-to-br from-primary/20 to-primary/5 pt-6 pb-8 px-4">
+          <div className="container mx-auto max-w-4xl">
+            <button
+              onClick={() => setCurrentAlbum(null)}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 mb-4"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('diary.common.backToList')}
+            </button>
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl font-black text-foreground">{album.title}</h1>
+                {album.linkedPlanTitle && (
+                  <button
+                    onClick={() => openPlanPreview(album.linkedPlanId, albumToPreviewSnapshot(album))}
+                    className="mt-2 flex items-center gap-1 text-primary font-semibold hover:underline text-sm"
+                  >
+                    <Plane className="w-4 h-4" /> {album.linkedPlanTitle}
+                  </button>
+                )}
+              </div>
+              {isAlbumOwner && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setEditAlbumData({ ...album }); setIsEditingAlbum(true); }}
+                    className="p-2 text-muted-foreground hover:text-primary transition"
+                  >
+                    <Edit2 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAlbum(album.id)}
+                    className="p-2 text-muted-foreground hover:text-red-500 transition"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-6 max-w-4xl">
+          <div className="flex bg-secondary p-1 rounded-lg w-fit mb-6">
+            <button
+              onClick={() => setAlbumViewMode('grid')}
+              className={cn("text-sm px-4 py-1.5 rounded-md transition font-semibold flex items-center gap-1.5", albumViewMode === 'grid' ? "bg-white text-primary shadow-sm" : "text-muted-foreground")}
+            >
+              <Camera className="w-4 h-4" /> {t('diary.album.detail.viewGrid')}
+            </button>
+            <button
+              onClick={() => setAlbumViewMode('map')}
+              className={cn("text-sm px-4 py-1.5 rounded-md transition font-semibold flex items-center gap-1.5", albumViewMode === 'map' ? "bg-white text-primary shadow-sm" : "text-muted-foreground")}
+            >
+              <MapPin className="w-4 h-4" /> {t('diary.album.detail.viewMap')}
+            </button>
+          </div>
+
+          {albumViewMode === 'grid' ? (
+            album.photos.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <Camera className="w-10 h-10 mx-auto mb-3 text-border" />
+                <p className="text-sm">{t('diary.album.emptyState.subtitle')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {album.photos.map(photo => (
+                  <div key={photo.id} className="relative group aspect-square">
+                    {photo.type === 'video' ? (
+                      <video src={photo.url} controls className="w-full h-full object-cover rounded-xl border border-border bg-black" />
+                    ) : (
+                      <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-gray-100" />
+                    )}
+                    {photo.lat !== undefined && (
+                      <span className="absolute top-2 left-2 bg-primary text-white rounded-full p-1">
+                        <MapPin className="w-3 h-3" />
+                      </span>
+                    )}
+                    {photo.caption && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                        {photo.caption}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (() => {
+            const geotagged = album.photos.filter(p => p.lat !== undefined && p.lng !== undefined);
+            if (geotagged.length === 0) {
+              return (
+                <div className="text-center py-16 text-muted-foreground">
+                  <MapPin className="w-10 h-10 mx-auto mb-3 text-border" />
+                  <p className="text-sm">{t('diary.album.detail.mapEmptyState')}</p>
+                  <p className="text-xs mt-1">{t('diary.album.detail.mapEmptyStateHint')}</p>
+                </div>
+              );
+            }
+            const markers: MapMarker[] = geotagged.map((p, i) => ({
+              id: p.id,
+              lat: p.lat as number,
+              lng: p.lng as number,
+              title: p.caption || p.address || String(i + 1),
+              draggable: false,
+              label: String(i + 1),
+            }));
+            const panToPhoto = (p: AlbumPhoto) => {
+              const map = albumMapRef.current;
+              if (!map || p.lat === undefined || p.lng === undefined || !window.naver) return;
+              map.morph(new window.naver.maps.LatLng(p.lat, p.lng), Math.max(map.getZoom(), 15));
+            };
+            return (
+              <div>
+                <p className="text-sm text-muted-foreground mb-3">{t('diary.album.detail.geotaggedCount', { count: geotagged.length })}</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2">
+                    <MapView
+                      markers={markers}
+                      fitToMarkers
+                      onMapReady={map => { albumMapRef.current = map; }}
+                    />
+                  </div>
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                    {geotagged.map((p, i) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => panToPhoto(p)}
+                        className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                      >
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          {p.type === 'video' ? (
+                            <video src={p.url} className="w-full h-16 object-cover rounded-lg bg-black mb-1" />
+                          ) : (
+                            <img src={p.url} alt="" className="w-full h-16 object-cover rounded-lg mb-1" />
+                          )}
+                          {p.address && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                              <MapPin className="w-3 h-3 flex-shrink-0" /> {p.address}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+        {planPreviewDialog}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -1215,125 +1758,219 @@ export default function TravelDiary() {
                 toast.error(t('session.loginRequired'));
                 return;
               }
-              setShowNewDialog(true);
+              if (activeTab === 'albums') {
+                setShowNewAlbumDialog(true);
+              } else {
+                setShowNewDialog(true);
+              }
             }}
             className="gap-2 bg-primary text-white rounded-full px-5"
           >
-            <Plus className="w-4 h-4" /> {t('diary.header.newEntry')}
+            <Plus className="w-4 h-4" /> {activeTab === 'albums' ? t('diary.album.newAlbumCta') : t('diary.header.newEntry')}
           </Button>
         </div>
 
-        {/* Stats */}
-        {myDiaries.length > 0 && (
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <Card className="p-4 bg-white border-border text-center">
-              <p className="text-3xl font-black text-primary">{myDiaries.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalEntries')}</p>
-            </Card>
-            <Card className="p-4 bg-white border-border text-center">
-              <p className="text-3xl font-black text-primary">
-                {[...new Set(myDiaries.map(d => d.location))].length}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.visitedPlaces')}</p>
-            </Card>
-            <Card className="p-4 bg-white border-border text-center">
-              <p className="text-3xl font-black text-primary">
-                {myDiaries.reduce((sum, d) => sum + d.photos.length, 0)}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalPhotos')}</p>
-            </Card>
-          </div>
-        )}
+        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'records' | 'albums')}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="records">{t('diary.tabs.records')}</TabsTrigger>
+            <TabsTrigger value="albums">{t('diary.tabs.albums')}</TabsTrigger>
+          </TabsList>
 
-        {/* Diaries list */}
-        {myDiaries.length === 0 ? (
-          <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
-            <BookOpen className="w-16 h-16 text-border mb-4" />
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.emptyState.title')}</h3>
-            <p className="text-muted-foreground mb-6 text-center">{t('diary.emptyState.subtitle')}</p>
-            <Button
-              onClick={() => {
-                if (!user) {
-                  toast.error(t('session.loginRequired'));
-                  return;
-                }
-                setShowNewDialog(true);
-              }}
-              className="bg-primary text-white rounded-full px-6"
-            >
-              {t('diary.emptyState.cta')}
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {myDiaries
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-              .map(diary => {
-                const cardThumb = diary.mainPhoto || diary.photos.find(p => p.type !== 'video');
-                return (
-                <Card
-                  key={diary.id}
-                  className="group cursor-pointer hover:shadow-xl transition-all border-border bg-white overflow-hidden"
-                  onClick={() => setCurrentDiary(diary)}
+          <TabsContent value="records">
+            {/* Stats */}
+            {myDiaries.length > 0 && (
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <Card className="p-4 bg-white border-border text-center">
+                  <p className="text-3xl font-black text-primary">{myDiaries.length}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalEntries')}</p>
+                </Card>
+                <Card className="p-4 bg-white border-border text-center">
+                  <p className="text-3xl font-black text-primary">
+                    {[...new Set(myDiaries.map(d => d.location))].length}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.visitedPlaces')}</p>
+                </Card>
+                <Card className="p-4 bg-white border-border text-center">
+                  <p className="text-3xl font-black text-primary">
+                    {myDiaries.reduce((sum, d) => sum + d.photos.length, 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalPhotos')}</p>
+                </Card>
+              </div>
+            )}
+
+            {/* Diaries list */}
+            {myDiaries.length === 0 ? (
+              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
+                <BookOpen className="w-16 h-16 text-border mb-4" />
+                <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.emptyState.title')}</h3>
+                <p className="text-muted-foreground mb-6 text-center">{t('diary.emptyState.subtitle')}</p>
+                <Button
+                  onClick={() => {
+                    if (!user) {
+                      toast.error(t('session.loginRequired'));
+                      return;
+                    }
+                    setShowNewDialog(true);
+                  }}
+                  className="bg-primary text-white rounded-full px-6"
                 >
-                  {cardThumb ? (
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={cardThumb.url}
-                        alt={diary.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        {!diary.isPublic && (
-                          <span className="bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Lock className="w-3 h-3" /> {t('diary.common.private')}
+                  {t('diary.emptyState.cta')}
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {myDiaries
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map(diary => {
+                    const cardThumb = diary.mainPhoto || diary.photos.find(p => p.type !== 'video');
+                    return (
+                    <Card
+                      key={diary.id}
+                      className="group cursor-pointer hover:shadow-xl transition-all border-border bg-white overflow-hidden"
+                      onClick={() => setCurrentDiary(diary)}
+                    >
+                      {cardThumb ? (
+                        <div className="relative h-48 overflow-hidden">
+                          <img
+                            src={cardThumb.url}
+                            alt={diary.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            {!diary.isPublic && (
+                              <span className="bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Lock className="w-3 h-3" /> {t('diary.common.private')}
+                              </span>
+                            )}
+                          </div>
+                          {diary.photos.length > 1 && (
+                            <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Camera className="w-3 h-3" /> {diary.photos.length}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="h-24 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                          <BookOpen className="w-10 h-10 text-primary/30" />
+                        </div>
+                      )}
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-black text-foreground text-lg group-hover:text-primary transition-colors truncate">{diary.title}</h3>
+                            <p className="text-muted-foreground text-sm flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-primary flex-shrink-0" /> {diary.location}
+                            </p>
+                          </div>
+                          <span className="ml-2 flex-shrink-0"><StarRatingDisplay value={diary.rating} size="sm" /></span>
+                        </div>
+                        <p className="text-muted-foreground text-sm line-clamp-2 mb-3">{diary.content}</p>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {diary.startDate}
                           </span>
+                          <span className="flex items-center gap-1">
+                            <Heart className="w-3 h-3" /> {diary.likes.length}
+                          </span>
+                        </div>
+                        {diary.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-3">
+                            {diary.tags.slice(0, 3).map((tag, i) => (
+                              <span key={i} className="bg-secondary text-primary text-xs px-2 py-0.5 rounded-full">#{tag}</span>
+                            ))}
+                            {diary.tags.length > 3 && <span className="text-xs text-muted-foreground">+{diary.tags.length - 3}</span>}
+                          </div>
                         )}
                       </div>
-                      {diary.photos.length > 1 && (
-                        <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Camera className="w-3 h-3" /> {diary.photos.length}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="h-24 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                      <BookOpen className="w-10 h-10 text-primary/30" />
-                    </div>
-                  )}
-                  <div className="p-5">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-black text-foreground text-lg group-hover:text-primary transition-colors truncate">{diary.title}</h3>
-                        <p className="text-muted-foreground text-sm flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-primary flex-shrink-0" /> {diary.location}
-                        </p>
-                      </div>
-                      <span className="text-xl ml-2 flex-shrink-0">{EMOJI_RATINGS[diary.rating - 1]}</span>
-                    </div>
-                    <p className="text-muted-foreground text-sm line-clamp-2 mb-3">{diary.content}</p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> {diary.startDate}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Heart className="w-3 h-3" /> {diary.likes.length}
-                      </span>
-                    </div>
-                    {diary.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-3">
-                        {diary.tags.slice(0, 3).map((tag, i) => (
-                          <span key={i} className="bg-secondary text-primary text-xs px-2 py-0.5 rounded-full">#{tag}</span>
-                        ))}
-                        {diary.tags.length > 3 && <span className="text-xs text-muted-foreground">+{diary.tags.length - 3}</span>}
-                      </div>
-                    )}
-                  </div>
+                    </Card>
+                    );
+                  })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="albums">
+            {/* Album Stats */}
+            {myAlbums.length > 0 && (
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <Card className="p-4 bg-white border-border text-center">
+                  <p className="text-3xl font-black text-primary">{myAlbums.length}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('diary.album.stats.totalAlbums')}</p>
                 </Card>
-                );
-              })}
-          </div>
-        )}
+                <Card className="p-4 bg-white border-border text-center">
+                  <p className="text-3xl font-black text-primary">
+                    {myAlbums.reduce((sum, a) => sum + a.photos.length, 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('diary.album.stats.totalMedia')}</p>
+                </Card>
+              </div>
+            )}
+
+            {/* Albums list */}
+            {myAlbums.length === 0 ? (
+              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
+                <Camera className="w-16 h-16 text-border mb-4" />
+                <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.album.emptyState.title')}</h3>
+                <p className="text-muted-foreground mb-6 text-center">{t('diary.album.emptyState.subtitle')}</p>
+                <Button
+                  onClick={() => {
+                    if (!user) {
+                      toast.error(t('session.loginRequired'));
+                      return;
+                    }
+                    setShowNewAlbumDialog(true);
+                  }}
+                  className="bg-primary text-white rounded-full px-6"
+                >
+                  {t('diary.album.emptyState.cta')}
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {myAlbums
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map(album => {
+                    const cardThumb = album.photos.find(p => p.type !== 'video') || album.photos[0];
+                    return (
+                    <Card
+                      key={album.id}
+                      className="group cursor-pointer hover:shadow-xl transition-all border-border bg-white overflow-hidden"
+                      onClick={() => setCurrentAlbum(album)}
+                    >
+                      {cardThumb ? (
+                        <div className="relative h-48 overflow-hidden">
+                          <img
+                            src={cardThumb.url}
+                            alt={album.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          {album.photos.length > 0 && (
+                            <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Camera className="w-3 h-3" /> {album.photos.length}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="h-24 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                          <Camera className="w-10 h-10 text-primary/30" />
+                        </div>
+                      )}
+                      <div className="p-5">
+                        <h3 className="font-black text-foreground text-lg group-hover:text-primary transition-colors truncate">{album.title}</h3>
+                        {album.linkedPlanTitle && (
+                          <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
+                            <Plane className="w-3 h-3 text-primary flex-shrink-0" /> {album.linkedPlanTitle}
+                          </p>
+                        )}
+                      </div>
+                    </Card>
+                    );
+                  })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* New Diary Dialog */}
@@ -1420,21 +2057,9 @@ export default function TravelDiary() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-foreground">{t('diary.newDialog.satisfactionLabel')}</label>
-              <div className="flex gap-3">
-                {EMOJI_RATINGS.map((emoji, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setNewRating(i + 1)}
-                    className={cn(
-                      "text-3xl transition-all hover:scale-110",
-                      newRating === i + 1 ? "scale-125" : "opacity-40"
-                    )}
-                    title={[t('diary.ratingLabels.poor'), t('diary.ratingLabels.soso'), t('diary.ratingLabels.okay'), t('diary.ratingLabels.good'), t('diary.ratingLabels.best')][i]}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-                <span className="ml-2 text-sm text-muted-foreground self-center font-semibold">{newRating}/5</span>
+              <div className="flex gap-3 items-center">
+                <StarRatingInput value={newRating} onChange={setNewRating} size="lg" />
+                <span className="ml-1 text-sm text-muted-foreground font-semibold">{newRating}/5</span>
               </div>
             </div>
 
@@ -1625,7 +2250,108 @@ export default function TravelDiary() {
         </DialogContent>
       </Dialog>
 
+      {/* New Album Dialog */}
+      <Dialog open={showNewAlbumDialog} onOpenChange={setShowNewAlbumDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Camera className="w-5 h-5 text-primary" /> {t('diary.album.newDialog.title')}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('diary.album.newDialog.titleLabel')}</label>
+              <Input
+                placeholder={t('diary.album.newDialog.titlePlaceholder')}
+                value={newAlbumTitle}
+                onChange={e => setNewAlbumTitle(e.target.value)}
+                className="h-11"
+              />
+            </div>
+
+            {userPlans.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Plane className="w-4 h-4 text-primary" /> {t('diary.newDialog.linkPlan')} <span className="text-muted-foreground font-normal">{t('diary.common.optional')}</span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={newAlbumLinkedPlanId}
+                    onChange={e => setNewAlbumLinkedPlanId(e.target.value)}
+                    className="flex-1 h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
+                  >
+                    <option value="">{t('diary.newDialog.noPlanSelected')}</option>
+                    {userPlans.map(plan => (
+                      <option key={plan.id} value={plan.id}>{plan.title} ({plan.startDate} ~ {plan.endDate})</option>
+                    ))}
+                  </select>
+                  {newAlbumLinkedPlanId && (
+                    <Button
+                      onClick={() => openPlanPreview(newAlbumLinkedPlanId)}
+                      variant="outline"
+                      className="h-11 px-4"
+                    >
+                      {t('diary.common.preview')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Camera className="w-4 h-4" /> {t('diary.album.photosLabel')}
+                </label>
+                <span className="text-xs text-muted-foreground">{t('diary.album.maxPhotosHint')}</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {newAlbumPhotos.map(photo => (
+                  <div key={photo.id} className="relative group">
+                    {photo.type === 'video' ? (
+                      <video src={photo.url} controls className="w-full h-20 object-cover rounded-lg border border-border bg-black" />
+                    ) : (
+                      <img src={photo.url} alt="" className="w-full h-20 object-cover rounded-lg border border-border" />
+                    )}
+                    <button
+                      onClick={() => setNewAlbumPhotos(prev => prev.filter(p => p.id !== photo.id))}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => openLocationPickerForPhoto(photo.id, 'new')}
+                      title={photo.lat !== undefined ? t('diary.album.locationTagged') : t('diary.album.tagLocation')}
+                      className={cn(
+                        "absolute bottom-1 left-1 rounded-full p-1 transition-colors",
+                        photo.lat !== undefined ? "bg-primary text-white" : "bg-black/50 text-white opacity-0 group-hover:opacity-100"
+                      )}
+                    >
+                      <MapPin className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => albumFileInputRef.current?.click()}
+                  className="h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="text-xs">{t('diary.common.add')}</span>
+                </button>
+              </div>
+              <input ref={albumFileInputRef} type="file" accept="image/*,video/*" multiple onChange={e => handleAlbumPhotoUpload(e, false)} className="hidden" />
+            </div>
+
+            <Button onClick={handleCreateAlbum} className="w-full bg-primary text-white h-11 text-base font-semibold">
+              <Camera className="w-4 h-4 mr-2" /> {t('diary.album.newDialog.submit')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {planPreviewDialog}
+      {locationPickerDialog}
     </div>
   );
 }

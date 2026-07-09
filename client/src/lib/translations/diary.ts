@@ -108,13 +108,6 @@ export const diary = {
       tagsPlaceholder: "쉼표로 구분: 일본, 맛집여행, 혼행",
       submit: "기록 저장하기",
     },
-    ratingLabels: {
-      poor: "별로",
-      soso: "그저그래",
-      okay: "괜찮아",
-      good: "좋아",
-      best: "최고",
-    },
     planPreview: {
       previewSuffix: "- 미리보기",
       duration: "여행 기간",
@@ -132,6 +125,52 @@ export const diary = {
       activity: "활동",
       shopping: "쇼핑",
       other: "기타",
+    },
+    tabs: {
+      records: "기록",
+      albums: "앨범",
+    },
+    album: {
+      newAlbumCta: "새 앨범 생성",
+      newDialog: {
+        title: "새 사진 앨범",
+        titleLabel: "앨범 제목 *",
+        titlePlaceholder: "예: 오사카 벚꽃 여행",
+        submit: "앨범 만들기",
+      },
+      photosLabel: "사진/동영상",
+      maxPhotosHint: "최대 50장까지 추가할 수 있어요.",
+      errors: {
+        maxUploads: "사진/동영상은 최대 50개까지 업로드 가능합니다.",
+      },
+      tagLocation: "위치 태그",
+      locationTagged: "위치 태그됨",
+      removeLocation: "위치 삭제",
+      locationPickerTitle: "사진 위치 지정",
+      emptyState: {
+        title: "아직 앨범이 없어요",
+        subtitle: "여행 사진들을 앨범으로 모아보세요!",
+        cta: "첫 앨범 만들기",
+      },
+      stats: {
+        totalAlbums: "총 앨범",
+        totalMedia: "총 사진/동영상",
+      },
+      detail: {
+        viewGrid: "사진 보기",
+        viewMap: "지도 보기",
+        mapEmptyState: "위치가 태그된 사진이 없어요.",
+        mapEmptyStateHint: "사진을 수정해서 위치를 태그해보세요.",
+        geotaggedCount: "{{count}}개 위치 표시됨",
+      },
+      editMode: {
+        title: "앨범 수정",
+      },
+      toast: {
+        albumCreated: "앨범이 생성되었습니다!",
+        albumDeleted: "앨범이 삭제되었습니다.",
+        albumUpdated: "앨범이 수정되었습니다!",
+      },
     },
   },
   en: {
@@ -243,13 +282,6 @@ export const diary = {
       tagsPlaceholder: "Separate with commas: Japan, food trip, solo travel",
       submit: "Save Entry",
     },
-    ratingLabels: {
-      poor: "Poor",
-      soso: "So-so",
-      okay: "Okay",
-      good: "Good",
-      best: "Best",
-    },
     planPreview: {
       previewSuffix: "- Preview",
       duration: "Trip Duration",
@@ -267,6 +299,52 @@ export const diary = {
       activity: "Activity",
       shopping: "Shopping",
       other: "Other",
+    },
+    tabs: {
+      records: "Records",
+      albums: "Albums",
+    },
+    album: {
+      newAlbumCta: "Create Album",
+      newDialog: {
+        title: "New Photo Album",
+        titleLabel: "Album Title *",
+        titlePlaceholder: "e.g. Osaka Cherry Blossom Trip",
+        submit: "Create Album",
+      },
+      photosLabel: "Photos/Videos",
+      maxPhotosHint: "You can add up to 50 photos/videos.",
+      errors: {
+        maxUploads: "You can upload up to 50 photos/videos.",
+      },
+      tagLocation: "Tag Location",
+      locationTagged: "Location tagged",
+      removeLocation: "Remove location",
+      locationPickerTitle: "Tag Photo Location",
+      emptyState: {
+        title: "No albums yet",
+        subtitle: "Gather your travel photos into an album!",
+        cta: "Create Your First Album",
+      },
+      stats: {
+        totalAlbums: "Total Albums",
+        totalMedia: "Total Photos/Videos",
+      },
+      detail: {
+        viewGrid: "Photos",
+        viewMap: "Map",
+        mapEmptyState: "No photos have a tagged location yet.",
+        mapEmptyStateHint: "Edit a photo to tag its location.",
+        geotaggedCount: "{{count}} locations shown",
+      },
+      editMode: {
+        title: "Edit Album",
+      },
+      toast: {
+        albumCreated: "Album created!",
+        albumDeleted: "Album deleted.",
+        albumUpdated: "Album updated!",
+      },
     },
   },
 } as const;
