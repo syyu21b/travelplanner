@@ -412,6 +412,18 @@ export default function Home() {
     });
   };
 
+  const handleToggleScheduleCompleteForPlan = (planId: string, scheduleId: string) => {
+    const updated = travelPlans.map(p =>
+      p.id === planId
+        ? { ...p, schedules: p.schedules.map(s => s.id === scheduleId ? { ...s, completed: !s.completed } : s) }
+        : p
+    );
+    updateTravelPlans(updated);
+    const updatedPlan = updated.find(p => p.id === planId) || null;
+    if (currentPlan?.id === planId) setCurrentPlan(updatedPlan);
+    setSummaryPreviewPlan(prev => (prev && prev.id === planId ? updatedPlan : prev));
+  };
+
   const handleAddBudget = (budget: Budget) => {
     if (!currentPlan) return;
     updateCurrentPlan({ ...currentPlan, budgets: [...currentPlan.budgets, budget] });
@@ -685,8 +697,9 @@ export default function Home() {
         .sort((a, b) => b.amount - a.amount)
     : [];
 
-  const renderTimelineContent = (plan: TravelPlan | null, interactive: boolean = true) => {
+  const renderTimelineContent = (plan: TravelPlan | null, onToggle?: (scheduleId: string) => void) => {
     if (!plan) return null;
+    const interactive = !!onToggle;
     if (plan.schedules.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
@@ -724,7 +737,7 @@ export default function Home() {
                 <div key={s.id} className="relative">
                   <button
                     type="button"
-                    onClick={interactive ? () => handleToggleScheduleComplete(s.id) : undefined}
+                    onClick={onToggle ? () => onToggle(s.id) : undefined}
                     aria-label={s.completed ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
                     disabled={!interactive}
                     className={cn(
@@ -1770,8 +1783,6 @@ export default function Home() {
                                   innerRadius="55%"
                                   outerRadius="85%"
                                   paddingAngle={2}
-                                  stroke="#000000"
-                                  strokeWidth={1.5}
                                 >
                                   {categorySpending.map(entry => (
                                     <Cell key={entry.category} fill={CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other} />
@@ -1791,7 +1802,7 @@ export default function Home() {
                                 <div key={entry.category} className="flex items-center gap-3">
                                   <span
                                     className="w-3 h-3 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other, border: '1.5px solid #000000' }}
+                                    style={{ backgroundColor: CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other }}
                                   />
                                   <span className="text-sm font-semibold text-foreground flex-1 truncate">{getCategoryLabel(entry.category)}</span>
                                   <span className="text-sm font-bold text-foreground">₩{entry.amount.toLocaleString()}</span>
@@ -1938,7 +1949,7 @@ export default function Home() {
                           </span>
                         )}
                       </div>
-                      {renderTimelineContent(currentPlan, true)}
+                      {renderTimelineContent(currentPlan, handleToggleScheduleComplete)}
                     </Card>
                   </TabsContent>
                 </Tabs>
@@ -2239,7 +2250,12 @@ export default function Home() {
               <Clock className="w-5 h-5 text-primary" /> {t('home.timeline.title')}
             </DialogTitle>
           </DialogHeader>
-          <div className="pt-2">{renderTimelineContent(summaryPreviewPlan, false)}</div>
+          <div className="pt-2">
+            {renderTimelineContent(
+              summaryPreviewPlan,
+              summaryPreviewPlan ? (scheduleId: string) => handleToggleScheduleCompleteForPlan(summaryPreviewPlan.id, scheduleId) : undefined
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
