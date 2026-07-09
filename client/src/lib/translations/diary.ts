@@ -78,6 +78,8 @@ export const diary = {
       photoCount: "사진 ({{count}}장)",
       like: "좋아요",
       share: "공유",
+      prevPhoto: "이전 사진",
+      nextPhoto: "다음 사진",
     },
     header: {
       title: "여행 기록",
@@ -252,6 +254,8 @@ export const diary = {
       photoCount: "Photos ({{count}})",
       like: "Like",
       share: "Share",
+      prevPhoto: "Previous photo",
+      nextPhoto: "Next photo",
     },
     header: {
       title: "Travel Diary",

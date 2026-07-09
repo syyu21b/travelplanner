@@ -175,6 +175,7 @@ export default function TravelDiary() {
   const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
   const [userPlans] = useState<TravelPlan[]>(loadUserPlans);
   const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(loadCurrentDiary);
+  const [slidePhotoIndex, setSlidePhotoIndex] = useState(0);
   const [albums, setAlbums] = useState<Album[]>(loadAlbums);
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(loadCurrentAlbum);
   const [activeTab, setActiveTab] = useState<'records' | 'albums'>('records');
@@ -358,7 +359,11 @@ export default function TravelDiary() {
   const myDiaries = diaries.filter(d => d.userId === user?.id);
   const myAlbums = albums.filter(a => a.userId === user?.id);
 
-  
+  // 슬라이드형 사진 인덱스 - 다른 기록을 열면 처음 사진으로 초기화
+  useEffect(() => {
+    setSlidePhotoIndex(0);
+  }, [currentDiary?.id]);
+
   // 폼 변경 시 자동 저장
   useEffect(() => {
     if (showNewDialog) {
@@ -1388,32 +1393,57 @@ export default function TravelDiary() {
           )}
 
           {/* Photo Gallery */}
-          {diary.displayMode !== 'blog' && diary.photos.length > 1 && (
+          {diary.displayMode !== 'blog' && diary.photos.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-primary" /> {t('diary.detail.photoCount', { count: diary.photos.length })}
               </h3>
-              
-              {diary.displayMode === 'slide' ? (
-                <div className="space-y-4">
-                  {diary.photos.slice(1).map(photo => (
-                    <div key={photo.id} className="relative rounded-2xl overflow-hidden shadow-sm border border-border">
-                      {photo.type === 'video' ? (
-                        <video src={photo.url} controls className="w-full object-contain max-h-[700px] bg-black" />
+
+              {diary.displayMode === 'slide' ? (() => {
+                const activeIndex = Math.min(slidePhotoIndex, diary.photos.length - 1);
+                const activePhoto = diary.photos[activeIndex];
+                return (
+                  <div>
+                    <div className="relative rounded-2xl overflow-hidden shadow-sm border border-border">
+                      {activePhoto.type === 'video' ? (
+                        <video src={activePhoto.url} controls className="w-full object-contain max-h-[700px] bg-black" />
                       ) : (
-                        <img src={photo.url} alt={photo.caption || ''} className="w-full object-contain max-h-[700px] bg-slate-50" />
+                        <img src={activePhoto.url} alt={activePhoto.caption || ''} className="w-full object-contain max-h-[700px] bg-slate-50" />
                       )}
-                      {photo.caption && (
-                        <div className="p-4 bg-white border-t border-border">
-                          <p className="text-sm text-foreground">{photo.caption}</p>
-                        </div>
+                      {diary.photos.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setSlidePhotoIndex((activeIndex - 1 + diary.photos.length) % diary.photos.length)}
+                            aria-label={t('diary.detail.prevPhoto')}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSlidePhotoIndex((activeIndex + 1) % diary.photos.length)}
+                            aria-label={t('diary.detail.nextPhoto')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                          <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                            {activeIndex + 1} / {diary.photos.length}
+                          </span>
+                        </>
                       )}
                     </div>
-                  ))}
-                </div>
-              ) : (
+                    {activePhoto.caption && (
+                      <div className="p-4 bg-white border border-t-0 border-border rounded-b-2xl">
+                        <p className="text-sm text-foreground">{activePhoto.caption}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {diary.photos.slice(1).map(photo => (
+                  {diary.photos.map(photo => (
                     <div key={photo.id} className="relative group aspect-square">
                       {photo.type === 'video' ? (
                         <video src={photo.url} controls className="w-full h-full object-cover rounded-xl border border-border bg-black" />
