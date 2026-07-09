@@ -54,7 +54,7 @@ export const home = {
       emptyButton: "시작하기",
       filterEmpty: "'{{filter}}' 여행이 없습니다.",
       scheduleCount: "일정 {{n}}개",
-      budgetLabel: "예산",
+      summaryButton: "여행 요약",
     },
     newPlanDialog: {
       title: "새로운 여행 계획",
@@ -336,7 +336,7 @@ export const home = {
       emptyButton: "Get Started",
       filterEmpty: "No '{{filter}}' trips.",
       scheduleCount: "{{n}} schedules",
-      budgetLabel: "Budget",
+      summaryButton: "Trip Summary",
     },
     newPlanDialog: {
       title: "New Trip Plan",

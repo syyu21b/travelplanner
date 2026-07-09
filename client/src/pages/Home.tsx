@@ -54,12 +54,12 @@ interface Budget {
 }
 
 const CATEGORY_CHART_COLORS: Record<string, string> = {
-  accommodation: '#E07856',
-  transport: '#D6597A',
-  meal: '#C23B3B',
-  activity: '#6E8A22',
-  shopping: '#96432A',
-  other: '#A79489',
+  accommodation: '#FBE9E3',
+  transport: '#FBCFCA',
+  meal: '#F4B9B9',
+  activity: '#8A8F75',
+  shopping: '#7B5F52',
+  other: '#E6DCD8',
 };
 
 interface ShoppingItem {
@@ -216,10 +216,14 @@ export default function Home() {
   // 계획 상세 달력 상태
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
-  // 여행 요약 카드 - 미리보기 다이얼로그 상태
+  // 여행 요약 - 미리보기 다이얼로그 상태
+  const [summaryPreviewPlan, setSummaryPreviewPlan] = useState<TravelPlan | null>(null);
+  const [showSummaryPreview, setShowSummaryPreview] = useState(false);
   const [showAllSchedulesPreview, setShowAllSchedulesPreview] = useState(false);
   const [showTimelinePreview, setShowTimelinePreview] = useState(false);
   const [showPreparationsPreview, setShowPreparationsPreview] = useState(false);
+  const [detailSchedule, setDetailSchedule] = useState<ScheduleItem | null>(null);
+  const [showScheduleDetail, setShowScheduleDetail] = useState(false);
 
   const pdfRef = useRef<HTMLDivElement>(null);
   const scheduleMapRef = useRef<naver.maps.Map | null>(null);
@@ -649,8 +653,8 @@ export default function Home() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      accommodation: 'bg-secondary text-foreground',
-      transport: 'bg-secondary text-foreground',
+      accommodation: 'bg-blue-100 text-blue-800',
+      transport: 'bg-amber-100 text-amber-800',
       meal: 'bg-emerald-100 text-emerald-800',
       activity: 'bg-indigo-100 text-indigo-800',
       shopping: 'bg-orange-100 text-orange-800',
@@ -681,16 +685,16 @@ export default function Home() {
         .sort((a, b) => b.amount - a.amount)
     : [];
 
-  const renderTimelineContent = () => {
-    if (!currentPlan) return null;
-    if (currentPlan.schedules.length === 0) {
+  const renderTimelineContent = (plan: TravelPlan | null, interactive: boolean = true) => {
+    if (!plan) return null;
+    if (plan.schedules.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
           <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
         </div>
       );
     }
-    const sorted = [...currentPlan.schedules].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    const sorted = [...plan.schedules].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
     const grouped = sorted.reduce<Record<string, ScheduleItem[]>>((acc, s) => {
       (acc[s.date] ??= []).push(s);
       return acc;
@@ -720,18 +724,21 @@ export default function Home() {
                 <div key={s.id} className="relative">
                   <button
                     type="button"
-                    onClick={() => handleToggleScheduleComplete(s.id)}
+                    onClick={interactive ? () => handleToggleScheduleComplete(s.id) : undefined}
                     aria-label={s.completed ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
+                    disabled={!interactive}
                     className={cn(
                       "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
-                      s.completed ? "bg-primary border-primary" : "bg-white border-border hover:border-primary"
+                      s.completed ? "bg-primary border-primary" : "bg-white border-border",
+                      interactive && !s.completed && "hover:border-primary",
+                      !interactive && "cursor-default"
                     )}
                   >
                     {s.completed && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                   </button>
                   <div className={cn("flex items-start justify-between gap-2 transition-opacity", s.completed && "opacity-50")}>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-primary mb-0.5">{s.time}</p>
+                      <p className="text-xs font-bold text-primary mb-0.5">{s.time}{s.endTime ? ` ~ ${s.endTime}` : ''}</p>
                       <p className={cn("font-bold text-foreground truncate", s.completed && "line-through")}>{s.title}</p>
                       {s.location && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
@@ -755,9 +762,9 @@ export default function Home() {
     );
   };
 
-  const renderPreparationsByScheduleContent = () => {
-    if (!currentPlan) return null;
-    const withPreps = currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0);
+  const renderPreparationsByScheduleContent = (plan: TravelPlan | null) => {
+    if (!plan) return null;
+    const withPreps = plan.schedules.filter(s => s.preparations && s.preparations.length > 0);
     if (withPreps.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
@@ -779,6 +786,39 @@ export default function Home() {
             </div>
           </div>
         ))}
+      </div>
+    );
+  };
+
+  const renderAllSchedulesContent = (plan: TravelPlan | null) => {
+    if (!plan) return null;
+    if (plan.schedules.length === 0) {
+      return (
+        <div className="text-center py-12 bg-secondary rounded-2xl">
+          <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-2">
+        {[...plan.schedules]
+          .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+          .map(s => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => { setDetailSchedule(s); setShowScheduleDetail(true); }}
+              className="w-full flex items-center gap-3 p-2.5 bg-secondary rounded-lg text-sm hover:bg-secondary/70 transition-colors text-left"
+            >
+              <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0">{s.date}</span>
+              <span className="text-sky-600 font-mono text-xs w-28 flex-shrink-0">{s.time}{s.endTime ? ` ~ ${s.endTime}` : ''}</span>
+              <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
+                {getCategoryLabel(s.category)}
+              </span>
+              <span className="font-semibold text-foreground truncate flex-1">{s.title}</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            </button>
+          ))}
       </div>
     );
   };
@@ -1210,7 +1250,6 @@ export default function Home() {
                     {filtered.map((plan, idx) => {
                       const status = getPlanStatus(plan);
                       const thumbnail = plan.coverPhoto || getPlanThumbnail(plan.id);
-                      const budget = plan.budgets.reduce((s, b) => s + b.amount, 0);
                       return (
                         <Card
                           key={plan.id}
@@ -1241,10 +1280,16 @@ export default function Home() {
                             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                               <Calendar className="w-4 h-4" /> {plan.startDate} ~ {plan.endDate}
                             </p>
-                            <div className="flex items-center gap-3 mt-2.5 text-sm">
-                              <span className="text-muted-foreground">{t('home.planList.scheduleCount', { n: plan.schedules.length })}</span>
-                              <span className="text-muted-foreground">·</span>
-                              <span className="text-primary font-semibold">{t('home.planList.budgetLabel')} ₩{budget.toLocaleString()}</span>
+                            <div className="flex items-center justify-between gap-3 mt-2.5">
+                              <span className="text-muted-foreground text-sm">{t('home.planList.scheduleCount', { n: plan.schedules.length })}</span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={e => { e.stopPropagation(); setSummaryPreviewPlan(plan); setShowSummaryPreview(true); }}
+                                className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> {t('home.planList.summaryButton')}
+                              </Button>
                             </div>
                           </div>
                           <button
@@ -1417,42 +1462,6 @@ export default function Home() {
                   />
                   <div className="mt-4 p-3 bg-secondary rounded-lg text-xs text-muted-foreground">
                     <p>💡 {t('home.planDetail.calendarTip')}</p>
-                  </div>
-                </Card>
-
-                <Card className="p-6 bg-gradient-to-br from-primary to-[#8B7968] text-white shadow-lg shadow-border">
-                  <h3 className="text-lg font-bold mb-4">{t('home.planDetail.summaryTitle')}</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowAllSchedulesPreview(true)}
-                      className="bg-white/20 p-3 rounded-xl text-left hover:bg-white/30 transition-colors cursor-pointer"
-                    >
-                      <p className="text-xs font-bold">{t('home.planDetail.totalSchedulesLabel')}</p>
-                      <p className="text-xl font-bold">{t('home.unitCount', { n: currentPlan.schedules.length })}</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowTimelinePreview(true)}
-                      className="bg-white/20 p-3 rounded-xl text-left hover:bg-white/30 transition-colors cursor-pointer"
-                    >
-                      <p className="text-xs font-bold">{t('home.planDetail.timelineLabel')}</p>
-                      <p className="text-xl font-bold">
-                        {currentPlan.schedules.length > 0
-                          ? t('home.timeline.percentComplete', { n: Math.round((currentPlan.schedules.filter(s => s.completed).length / currentPlan.schedules.length) * 100) })
-                          : t('home.unitCount', { n: 0 })}
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowPreparationsPreview(true)}
-                      className="bg-white/20 p-3 rounded-xl text-left hover:bg-white/30 transition-colors cursor-pointer col-span-2"
-                    >
-                      <p className="text-xs font-bold">{t('home.planDetail.preparationsLabel')}</p>
-                      <p className="text-xl font-bold">
-                        {t('home.unitCount', { n: currentPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length })}
-                      </p>
-                    </button>
                   </div>
                 </Card>
               </div>
@@ -1761,8 +1770,8 @@ export default function Home() {
                                   innerRadius="55%"
                                   outerRadius="85%"
                                   paddingAngle={2}
-                                  stroke="#fcfcfb"
-                                  strokeWidth={2}
+                                  stroke="#000000"
+                                  strokeWidth={1.5}
                                 >
                                   {categorySpending.map(entry => (
                                     <Cell key={entry.category} fill={CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other} />
@@ -1782,7 +1791,7 @@ export default function Home() {
                                 <div key={entry.category} className="flex items-center gap-3">
                                   <span
                                     className="w-3 h-3 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other }}
+                                    style={{ backgroundColor: CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other, border: '1.5px solid #000000' }}
                                   />
                                   <span className="text-sm font-semibold text-foreground flex-1 truncate">{getCategoryLabel(entry.category)}</span>
                                   <span className="text-sm font-bold text-foreground">₩{entry.amount.toLocaleString()}</span>
@@ -1841,7 +1850,7 @@ export default function Home() {
                       {/* 좌측: 일정별 준비물 */}
                       <Card className="p-6 bg-white border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4">{t('home.summary.byScheduleTitle')}</h3>
-                        {renderPreparationsByScheduleContent()}
+                        {renderPreparationsByScheduleContent(currentPlan)}
                       </Card>
 
                       {/* 우측: 전체 준비물 체크리스트 */}
@@ -1929,7 +1938,7 @@ export default function Home() {
                           </span>
                         )}
                       </div>
-                      {renderTimelineContent()}
+                      {renderTimelineContent(currentPlan, true)}
                     </Card>
                   </TabsContent>
                 </Tabs>
@@ -2165,6 +2174,51 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
+      {/* 여행 요약 - 선택 다이얼로그 (전체 일정 / 타임라인 / 준비물) */}
+      <Dialog open={showSummaryPreview} onOpenChange={setShowSummaryPreview}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Eye className="w-5 h-5 text-primary" /> {summaryPreviewPlan?.title} - {t('home.planDetail.summaryTitle')}
+            </DialogTitle>
+          </DialogHeader>
+          {summaryPreviewPlan && (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => { setShowSummaryPreview(false); setShowAllSchedulesPreview(true); }}
+                className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors"
+              >
+                <p className="text-xs font-bold text-muted-foreground">{t('home.planDetail.totalSchedulesLabel')}</p>
+                <p className="text-xl font-bold text-foreground">{t('home.unitCount', { n: summaryPreviewPlan.schedules.length })}</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowSummaryPreview(false); setShowTimelinePreview(true); }}
+                className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors"
+              >
+                <p className="text-xs font-bold text-muted-foreground">{t('home.planDetail.timelineLabel')}</p>
+                <p className="text-xl font-bold text-foreground">
+                  {summaryPreviewPlan.schedules.length > 0
+                    ? t('home.timeline.percentComplete', { n: Math.round((summaryPreviewPlan.schedules.filter(s => s.completed).length / summaryPreviewPlan.schedules.length) * 100) })
+                    : t('home.unitCount', { n: 0 })}
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowSummaryPreview(false); setShowPreparationsPreview(true); }}
+                className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors col-span-2"
+              >
+                <p className="text-xs font-bold text-muted-foreground">{t('home.planDetail.preparationsLabel')}</p>
+                <p className="text-xl font-bold text-foreground">
+                  {t('home.unitCount', { n: summaryPreviewPlan.schedules.filter(s => s.preparations && s.preparations.length > 0).length })}
+                </p>
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* 여행 요약 - 전체 일정 미리보기 다이얼로그 */}
       <Dialog open={showAllSchedulesPreview} onOpenChange={setShowAllSchedulesPreview}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
@@ -2173,28 +2227,7 @@ export default function Home() {
               <Clock className="w-5 h-5 text-primary" /> {t('home.planDetail.totalSchedulesLabel')}
             </DialogTitle>
           </DialogHeader>
-          {currentPlan && (
-            currentPlan.schedules.length === 0 ? (
-              <div className="text-center py-12 bg-secondary rounded-2xl">
-                <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
-              </div>
-            ) : (
-              <div className="space-y-2 pt-2">
-                {[...currentPlan.schedules]
-                  .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-                  .map(s => (
-                    <div key={s.id} className="flex items-center gap-3 p-2 bg-secondary rounded-lg text-sm">
-                      <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0">{s.date}</span>
-                      <span className="text-sky-500 font-mono text-xs w-12 flex-shrink-0">{s.time}</span>
-                      <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
-                        {getCategoryLabel(s.category)}
-                      </span>
-                      <span className="font-semibold text-foreground truncate">{s.title}</span>
-                    </div>
-                  ))}
-              </div>
-            )
-          )}
+          <div className="pt-2">{renderAllSchedulesContent(summaryPreviewPlan)}</div>
         </DialogContent>
       </Dialog>
 
@@ -2206,7 +2239,7 @@ export default function Home() {
               <Clock className="w-5 h-5 text-primary" /> {t('home.timeline.title')}
             </DialogTitle>
           </DialogHeader>
-          <div className="pt-2">{renderTimelineContent()}</div>
+          <div className="pt-2">{renderTimelineContent(summaryPreviewPlan, false)}</div>
         </DialogContent>
       </Dialog>
 
@@ -2218,7 +2251,66 @@ export default function Home() {
               <Check className="w-5 h-5 text-primary" /> {t('home.planDetail.preparationsLabel')}
             </DialogTitle>
           </DialogHeader>
-          <div className="pt-2">{renderPreparationsByScheduleContent()}</div>
+          <div className="pt-2">{renderPreparationsByScheduleContent(summaryPreviewPlan)}</div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 일정 상세 다이얼로그 */}
+      <Dialog open={showScheduleDetail} onOpenChange={setShowScheduleDetail}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Clock className="w-5 h-5 text-primary" /> {detailSchedule?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {detailSchedule && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold", getCategoryColor(detailSchedule.category))}>
+                  {getCategoryLabel(detailSchedule.category)}
+                </span>
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" /> {detailSchedule.date}
+                </span>
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> {detailSchedule.time}{detailSchedule.endTime ? ` ~ ${detailSchedule.endTime}` : ''}
+                </span>
+              </div>
+              {detailSchedule.location && (
+                <p className="text-sm text-foreground flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-primary flex-shrink-0" /> {detailSchedule.location}
+                </p>
+              )}
+              {!!detailSchedule.cost && (
+                <p className="text-sm font-bold text-primary flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 flex-shrink-0" /> ₩{detailSchedule.cost.toLocaleString()}
+                </p>
+              )}
+              {detailSchedule.link && (
+                <a
+                  href={detailSchedule.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline flex items-center gap-1.5 break-all"
+                >
+                  <LinkIcon className="w-4 h-4 flex-shrink-0" /> {detailSchedule.link}
+                </a>
+              )}
+              {detailSchedule.notes && (
+                <p className="text-sm text-muted-foreground italic bg-secondary p-3 rounded-xl">"{detailSchedule.notes}"</p>
+              )}
+              {detailSchedule.preparations && detailSchedule.preparations.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground mb-1.5">{t('home.schedule.form.preparationsLabel')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {detailSchedule.preparations.map((p, idx) => (
+                      <span key={idx} className="bg-secondary px-3 py-1 rounded-full text-sm text-muted-foreground border border-border">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
