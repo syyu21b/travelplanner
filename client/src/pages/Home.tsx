@@ -16,6 +16,7 @@ import {
   Search, ChevronDown, Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import * as QRCodeLib from 'qrcode.react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -52,6 +53,15 @@ interface Budget {
   description: string;
 }
 
+const CATEGORY_CHART_COLORS: Record<string, string> = {
+  accommodation: '#2a78d6',
+  transport: '#1baf7a',
+  meal: '#008300',
+  activity: '#4a3aa7',
+  shopping: '#eb6834',
+  other: '#898781',
+};
+
 interface ShoppingItem {
   id: string;
   item: string;
@@ -71,6 +81,7 @@ interface TravelPlan {
   budgets: Budget[];
   shoppingList: ShoppingItem[];
   preparationChecks?: Record<string, boolean>;
+  totalBudgetAmount?: number;
 }
 
 function compressPlanCoverPhoto(file: File): Promise<string> {
@@ -186,6 +197,8 @@ export default function Home() {
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editingShoppingId, setEditingShoppingId] = useState<string | null>(null);
+  const [editingTotalBudget, setEditingTotalBudget] = useState(false);
+  const [totalBudgetInput, setTotalBudgetInput] = useState('');
   const [calcDisplay, setCalcDisplay] = useState('0');
   const [calcPrevValue, setCalcPrevValue] = useState<number>(0);
   const [calcOperation, setCalcOperation] = useState<string | null>(null);
@@ -415,6 +428,29 @@ export default function Home() {
     toast.success(t('home.toast.budgetDeleted'));
   };
 
+  const handleStartEditTotalBudget = () => {
+    if (!currentPlan) return;
+    setTotalBudgetInput(currentPlan.totalBudgetAmount ? String(currentPlan.totalBudgetAmount) : '');
+    setEditingTotalBudget(true);
+  };
+
+  const handleSaveTotalBudget = () => {
+    if (!currentPlan) return;
+    const parsed = parseInt(totalBudgetInput);
+    if (!totalBudgetInput || isNaN(parsed) || parsed < 0) {
+      toast.error(t('home.toast.enterAmount'));
+      return;
+    }
+    updateCurrentPlan({ ...currentPlan, totalBudgetAmount: parsed });
+    setEditingTotalBudget(false);
+    toast.success(t('home.budget.totalBudgetUpdated'));
+  };
+
+  const handleCancelEditTotalBudget = () => {
+    setEditingTotalBudget(false);
+    setTotalBudgetInput('');
+  };
+
   const handleAddShoppingItem = (item: string, imageUrl?: string, link?: string) => {
     if (!currentPlan) return;
     const newItem: ShoppingItem = { id: Date.now().toString(), item, checked: false, imageUrl, link };
@@ -627,6 +663,18 @@ export default function Home() {
   };
 
   const totalBudget = currentPlan?.budgets?.reduce((sum, b) => sum + b.amount, 0) || 0;
+  const plannedBudget = currentPlan?.totalBudgetAmount || 0;
+  const remainingBudget = plannedBudget - totalBudget;
+  const categorySpending = currentPlan
+    ? Object.entries(
+        currentPlan.budgets.reduce<Record<string, number>>((acc, b) => {
+          acc[b.category] = (acc[b.category] || 0) + b.amount;
+          return acc;
+        }, {})
+      )
+        .map(([category, amount]) => ({ category, amount }))
+        .sort((a, b) => b.amount - a.amount)
+    : [];
 
   const handleCalcNumber = (num: string) => setCalcDisplay(prev => prev === '0' ? num : prev + num);
   const handleCalcOperation = (op: string) => {
@@ -1478,10 +1526,70 @@ export default function Home() {
 
                   {/* 예산 탭 */}
                   <TabsContent value="budget" className="space-y-6">
+                    {/* 총 예산 개요 */}
+                    <Card className="p-6 bg-gradient-to-br from-primary to-[#8B7968] text-white shadow-lg shadow-border">
+                      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+                        <h3 className="text-lg font-bold">{t('home.budget.overviewTitle')}</h3>
+                        {!editingTotalBudget && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleStartEditTotalBudget}
+                            className="h-8 text-white hover:bg-white/20 hover:text-white"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                            {plannedBudget > 0 ? t('home.budget.editTotalBudget') : t('home.budget.setTotalBudget')}
+                          </Button>
+                        )}
+                      </div>
+                      {editingTotalBudget ? (
+                        <div className="flex items-center gap-2 mb-4">
+                          <Input
+                            type="number"
+                            value={totalBudgetInput}
+                            onChange={e => setTotalBudgetInput(e.target.value)}
+                            placeholder={t('home.budget.totalBudgetPlaceholder')}
+                            className="h-11 bg-white/90 text-foreground border-0"
+                            autoFocus
+                          />
+                          <Button onClick={handleSaveTotalBudget} className="h-11 w-11 p-0 bg-white text-primary hover:bg-white/90 flex-shrink-0"><Check className="w-4 h-4" /></Button>
+                          <Button onClick={handleCancelEditTotalBudget} variant="ghost" className="h-11 w-11 p-0 text-white hover:bg-white/20 hover:text-white flex-shrink-0"><X className="w-4 h-4" /></Button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          <div className="bg-white/20 p-3 rounded-xl">
+                            <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.plannedLabel')}</p>
+                            <p className="text-xl font-black truncate">₩{plannedBudget.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-white/20 p-3 rounded-xl">
+                            <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.spentLabel')}</p>
+                            <p className="text-xl font-black truncate">₩{totalBudget.toLocaleString()}</p>
+                          </div>
+                          <div className={cn("p-3 rounded-xl", plannedBudget > 0 && remainingBudget < 0 ? "bg-red-500/30" : "bg-white/20")}>
+                            <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.remainingLabel')}</p>
+                            <p className="text-xl font-black truncate">₩{remainingBudget.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      )}
+                      {plannedBudget > 0 && (
+                        <div>
+                          <div className="h-2.5 rounded-full bg-white/20 overflow-hidden">
+                            <div
+                              className={cn("h-full rounded-full transition-all", totalBudget > plannedBudget ? "bg-red-400" : "bg-white")}
+                              style={{ width: `${Math.min(100, Math.round((totalBudget / plannedBudget) * 100))}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-white/80 mt-1.5 font-semibold">
+                            {t('home.budget.usagePercent', { n: Math.round((totalBudget / plannedBudget) * 100) })}
+                          </p>
+                        </div>
+                      )}
+                    </Card>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card className="p-6 bg-white border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4">{t('home.budget.addTitle')}</h3>
-                        <BudgetForm onAdd={handleAddBudget} />
+                        <BudgetForm onAdd={handleAddBudget} remainingBudget={plannedBudget > 0 ? remainingBudget : null} />
                       </Card>
                       <Card className="p-6 bg-white border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
@@ -1512,6 +1620,60 @@ export default function Home() {
                         </div>
                       </Card>
                     </div>
+
+                    {/* 카테고리별 지출 차트 */}
+                    <Card className="p-6 bg-white border-border">
+                      <h3 className="text-lg font-bold text-foreground mb-4">{t('home.budget.categoryChartTitle')}</h3>
+                      {categorySpending.length === 0 ? (
+                        <div className="text-center py-12 bg-secondary rounded-2xl">
+                          <p className="text-slate-400">{t('home.budget.categoryChartEmptyState')}</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                          <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={categorySpending}
+                                  dataKey="amount"
+                                  nameKey="category"
+                                  innerRadius="55%"
+                                  outerRadius="85%"
+                                  paddingAngle={2}
+                                  stroke="#fcfcfb"
+                                  strokeWidth={2}
+                                >
+                                  {categorySpending.map(entry => (
+                                    <Cell key={entry.category} fill={CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other} />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  formatter={(value: number, _name: string, item: any) => [`₩${value.toLocaleString()}`, getCategoryLabel(item.payload.category)]}
+                                  contentStyle={{ borderRadius: 12, border: '1px solid #e1e0d9', fontSize: 13 }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="space-y-2.5">
+                            {categorySpending.map(entry => {
+                              const pct = totalBudget > 0 ? Math.round((entry.amount / totalBudget) * 100) : 0;
+                              return (
+                                <div key={entry.category} className="flex items-center gap-3">
+                                  <span
+                                    className="w-3 h-3 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other }}
+                                  />
+                                  <span className="text-sm font-semibold text-foreground flex-1 truncate">{getCategoryLabel(entry.category)}</span>
+                                  <span className="text-sm font-bold text-foreground">₩{entry.amount.toLocaleString()}</span>
+                                  <span className="text-xs text-muted-foreground w-10 text-right flex-shrink-0">{pct}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+
                     <div className="space-y-4">
                       <h3 className="text-xl font-bold text-foreground">{t('home.budget.expenseHistoryTitle')}</h3>
                       {currentPlan.budgets.map(budget => (
@@ -2414,7 +2576,7 @@ function ScheduleForm({ onAdd, existingSchedules }: { onAdd: (schedule: Schedule
   );
 }
 
-function BudgetForm({ onAdd }: { onAdd: (budget: Budget) => void }) {
+function BudgetForm({ onAdd, remainingBudget }: { onAdd: (budget: Budget) => void; remainingBudget: number | null }) {
   const { t } = useLanguage();
   const [category, setCategory] = useState<Budget['category']>('other');
   const [amount, setAmount] = useState('');
@@ -2425,6 +2587,8 @@ function BudgetForm({ onAdd }: { onAdd: (budget: Budget) => void }) {
     onAdd({ id: Date.now().toString(), category, amount: parseInt(amount), description });
     setAmount(''); setDescription('');
   };
+
+  const projectedRemaining = remainingBudget !== null && amount ? remainingBudget - (parseInt(amount) || 0) : null;
 
   return (
     <div className="space-y-4">
@@ -2446,6 +2610,11 @@ function BudgetForm({ onAdd }: { onAdd: (budget: Budget) => void }) {
       <div className="space-y-1.5">
         <label className="text-sm font-semibold text-foreground">{t('home.budget.form.amountLabel')} <span className="text-red-500">*</span></label>
         <Input type="number" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} className="h-11" />
+        {projectedRemaining !== null && (
+          <p className={cn("text-xs font-semibold", projectedRemaining < 0 ? "text-red-500" : "text-muted-foreground")}>
+            {t('home.budget.form.afterAddRemaining', { amount: projectedRemaining.toLocaleString() })}
+          </p>
+        )}
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-semibold text-foreground">{t('home.budget.form.descriptionLabel')}</label>
