@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  ChevronDown, Camera
+  ChevronDown, Camera, Hotel, Phone, Navigation, Hash
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -71,6 +71,22 @@ interface ShoppingItem {
   link?: string;
 }
 
+interface Accommodation {
+  id: string;
+  name: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  checkInDate: string;
+  checkInTime?: string;
+  checkOutDate: string;
+  checkOutTime?: string;
+  phone?: string;
+  reservationNumber?: string;
+  link?: string;
+  notes?: string;
+}
+
 interface TravelPlan {
   id: string;
   userId: string;
@@ -81,6 +97,7 @@ interface TravelPlan {
   schedules: ScheduleItem[];
   budgets: Budget[];
   shoppingList: ShoppingItem[];
+  accommodations?: Accommodation[];
   preparationChecks?: Record<string, boolean>;
   totalBudgetAmount?: number;
 }
@@ -115,6 +132,17 @@ function schedulesOverlap(aDate: string, aStart: string, aEnd: string | undefine
   const s1 = aStart, e1 = aEnd || aStart;
   const s2 = b.time, e2 = b.endTime || b.time;
   return s1 < e2 && s2 < e1;
+}
+
+// 길찾기: 구글 지도의 공식 URL 스킴을 사용 (API 키 불필요, 모바일에서 지도 앱/웹으로 안정적으로 연결됨)
+function openDirections(lat?: number, lng?: number, address?: string) {
+  const url = (lat !== undefined && lng !== undefined)
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    : address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+      : null;
+  if (!url) return;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 export default function Home() {
@@ -198,6 +226,7 @@ export default function Home() {
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editingShoppingId, setEditingShoppingId] = useState<string | null>(null);
+  const [editingAccommodationId, setEditingAccommodationId] = useState<string | null>(null);
   const [editingTotalBudget, setEditingTotalBudget] = useState(false);
   const [totalBudgetInput, setTotalBudgetInput] = useState('');
   const [calcDisplay, setCalcDisplay] = useState('0');
@@ -278,6 +307,7 @@ export default function Home() {
       schedules: [],
       budgets: [],
       shoppingList: [],
+      accommodations: [],
     };
     const updated = [...travelPlans, newPlan];
     updateTravelPlans(updated);
@@ -404,6 +434,31 @@ export default function Home() {
       schedules: currentPlan.schedules.filter(s => s.id !== scheduleId),
     });
     toast.success(t('home.toast.scheduleDeleted'));
+  };
+
+  const handleAddAccommodation = (accommodation: Accommodation) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({ ...currentPlan, accommodations: [...(currentPlan.accommodations || []), accommodation] });
+    toast.success(t('home.toast.accommodationAdded'));
+  };
+
+  const handleUpdateAccommodation = (accommodationId: string, updated: Accommodation) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({
+      ...currentPlan,
+      accommodations: (currentPlan.accommodations || []).map(a => a.id === accommodationId ? updated : a),
+    });
+    setEditingAccommodationId(null);
+    toast.success(t('home.toast.accommodationUpdated'));
+  };
+
+  const handleDeleteAccommodation = (accommodationId: string) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({
+      ...currentPlan,
+      accommodations: (currentPlan.accommodations || []).filter(a => a.id !== accommodationId),
+    });
+    toast.success(t('home.toast.accommodationDeleted'));
   };
 
   const handleToggleScheduleComplete = (scheduleId: string) => {
@@ -1483,10 +1538,11 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
                   <TabsList
-                    className="flex sm:grid w-full sm:grid-cols-7 gap-1 overflow-x-auto sm:overflow-visible bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
+                    className="flex sm:grid w-full sm:grid-cols-8 gap-1 overflow-x-auto sm:overflow-visible bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none' }}
                   >
                     <TabsTrigger value="schedule" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
+                    <TabsTrigger value="accommodation" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.accommodation')}</TabsTrigger>
                     <TabsTrigger value="map" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.map')}</TabsTrigger>
                     <TabsTrigger value="weather" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.weather')}</TabsTrigger>
                     <TabsTrigger value="budget" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.budget')}</TabsTrigger>
@@ -1533,6 +1589,37 @@ export default function Home() {
                               getCategoryColor={getCategoryColor}
                               getCategoryLabel={getCategoryLabel}
                               existingSchedules={currentPlan?.schedules || []}
+                            />
+                          ))
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* 숙소 탭 */}
+                  <TabsContent value="accommodation" className="space-y-6">
+                    <Card className="p-6 bg-white border-border">
+                      <h3 className="text-lg font-bold text-foreground mb-5">{t('home.accommodation.addTitle')}</h3>
+                      <AccommodationForm onAdd={handleAddAccommodation} />
+                    </Card>
+
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-bold text-foreground">{t('home.accommodation.listTitle')}</h3>
+                      {(currentPlan.accommodations || []).length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-2xl border border-border">
+                          <p className="text-slate-400">{t('home.accommodation.emptyState')}</p>
+                        </div>
+                      ) : (
+                        [...(currentPlan.accommodations || [])]
+                          .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate) || (a.checkInTime || '').localeCompare(b.checkInTime || ''))
+                          .map(accommodation => (
+                            <AccommodationCard
+                              key={accommodation.id}
+                              accommodation={accommodation}
+                              isEditing={editingAccommodationId === accommodation.id}
+                              onEdit={() => setEditingAccommodationId(accommodation.id)}
+                              onUpdate={handleUpdateAccommodation}
+                              onDelete={handleDeleteAccommodation}
+                              onCancel={() => setEditingAccommodationId(null)}
                             />
                           ))
                       )}
@@ -2393,6 +2480,355 @@ export default function Home() {
 }
 
 // ===== 하위 컴포넌트 =====
+
+function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelete, onCancel }: any) {
+  const { t } = useLanguage();
+  const [editData, setEditData] = React.useState(accommodation);
+  const [showPicker, setShowPicker] = React.useState(false);
+
+  const checkOutBeforeCheckIn = !!(editData.checkInDate && editData.checkOutDate && editData.checkOutDate < editData.checkInDate);
+
+  if (isEditing) {
+    return (
+      <Card className="p-6 bg-white border-primary/30 shadow-lg">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.nameLabel')} *</label>
+            <Input
+              value={editData.name}
+              onChange={e => setEditData({ ...editData, name: e.target.value })}
+              placeholder={t('home.accommodation.form.namePlaceholder')}
+              className="h-11"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.addressLabel')}</label>
+            <div className="flex flex-wrap gap-2">
+              <Input value={editData.address || ''} onChange={e => setEditData({ ...editData, address: e.target.value })} placeholder={t('home.accommodation.form.addressPlaceholder')} className="h-11 flex-1 min-w-[140px]" />
+              <Button type="button" variant="outline" onClick={() => setShowPicker(true)} className="h-11 gap-1.5 flex-shrink-0">
+                <MapPin className="w-4 h-4" /> {t('home.schedule.form.mapButton')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => openDirections(editData.lat, editData.lng, editData.address)}
+                disabled={editData.lat === undefined && !editData.address}
+                className="h-11 gap-1.5 flex-shrink-0"
+              >
+                <Navigation className="w-4 h-4" /> {t('home.accommodation.form.directionsButton')}
+              </Button>
+            </div>
+            {editData.lat !== undefined && editData.lng !== undefined && (
+              <p className="text-xs text-primary flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: editData.lat.toFixed(5), lng: editData.lng.toFixed(5) })}
+                <button type="button" onClick={() => setEditData({ ...editData, lat: undefined, lng: undefined })} className="text-red-400 hover:text-red-600 ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </p>
+            )}
+            <LocationPickerDialog
+              open={showPicker}
+              onOpenChange={setShowPicker}
+              initialLat={editData.lat}
+              initialLng={editData.lng}
+              onConfirm={(pickedLat, pickedLng, address) =>
+                setEditData({ ...editData, lat: pickedLat, lng: pickedLng, address: address || editData.address })
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkInLabel')} *</label>
+              <Input type="date" value={editData.checkInDate} onChange={e => setEditData({ ...editData, checkInDate: e.target.value })} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkInTimeLabel')}</label>
+              <Input type="time" value={editData.checkInTime || ''} onChange={e => setEditData({ ...editData, checkInTime: e.target.value })} className="h-11" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkOutLabel')} *</label>
+              <Input type="date" value={editData.checkOutDate} onChange={e => setEditData({ ...editData, checkOutDate: e.target.value })} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkOutTimeLabel')}</label>
+              <Input type="time" value={editData.checkOutTime || ''} onChange={e => setEditData({ ...editData, checkOutTime: e.target.value })} className="h-11" />
+            </div>
+          </div>
+          {checkOutBeforeCheckIn && (
+            <p className="text-red-500 text-sm font-semibold">⚠ {t('home.accommodation.checkOutBeforeCheckIn')}</p>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.phoneLabel')}</label>
+              <Input type="tel" value={editData.phone || ''} onChange={e => setEditData({ ...editData, phone: e.target.value })} placeholder={t('home.accommodation.form.phonePlaceholder')} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.reservationNumberLabel')}</label>
+              <Input value={editData.reservationNumber || ''} onChange={e => setEditData({ ...editData, reservationNumber: e.target.value })} placeholder={t('home.accommodation.form.reservationNumberPlaceholder')} className="h-11" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.linkLabel')}</label>
+            <Input type="url" value={editData.link || ''} onChange={e => setEditData({ ...editData, link: e.target.value })} placeholder="https://..." className="h-11" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')}</label>
+            <Textarea
+              value={editData.notes || ''}
+              onChange={e => setEditData({ ...editData, notes: e.target.value })}
+              placeholder={t('home.schedule.form.notesPlaceholder')}
+              className="min-h-[100px] resize-y"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                if (!editData.name || !editData.checkInDate || !editData.checkOutDate) { toast.error(t('home.toast.requiredFields')); return; }
+                onUpdate(accommodation.id, editData);
+              }}
+              className="flex-1 bg-primary h-11"
+            >
+              {t('home.common.save')}
+            </Button>
+            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">{t('home.common.cancel')}</Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-5 bg-white border-border hover:border-primary/50 transition-colors shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 flex items-center gap-1">
+              <Hotel className="w-3 h-3" /> {t('home.category.accommodation')}
+            </span>
+          </div>
+          <h4 className="text-xl font-bold text-foreground mb-2 break-words">{accommodation.name}</h4>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600 mb-1">
+            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+              <Calendar className="w-4 h-4 text-primary" />
+              {t('home.accommodation.checkInShort')} {accommodation.checkInDate}{accommodation.checkInTime ? ` ${accommodation.checkInTime}` : ''}
+            </p>
+            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+              <Calendar className="w-4 h-4 text-primary" />
+              {t('home.accommodation.checkOutShort')} {accommodation.checkOutDate}{accommodation.checkOutTime ? ` ${accommodation.checkOutTime}` : ''}
+            </p>
+          </div>
+
+          {accommodation.address && (
+            <div className="flex items-center gap-2 text-sm text-slate-600 mt-1.5">
+              <p className="flex items-center gap-1 min-w-0">
+                <MapPin className="w-4 h-4 text-primary flex-shrink-0" /> <span className="truncate">{accommodation.address}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => openDirections(accommodation.lat, accommodation.lng, accommodation.address)}
+                className="flex items-center gap-1 text-primary font-semibold hover:underline flex-shrink-0"
+              >
+                <Navigation className="w-3.5 h-3.5" /> {t('home.accommodation.form.directionsButton')}
+              </button>
+            </div>
+          )}
+
+          {accommodation.phone && (
+            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+              <Phone className="w-4 h-4 text-primary" />
+              <a href={`tel:${accommodation.phone}`} className="hover:text-primary hover:underline">{accommodation.phone}</a>
+            </p>
+          )}
+
+          {accommodation.reservationNumber && (
+            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+              <Hash className="w-4 h-4 text-primary" /> {accommodation.reservationNumber}
+            </p>
+          )}
+
+          {accommodation.link && (
+            <p className="flex items-center gap-2 text-sm text-primary mt-2">
+              <LinkIcon className="w-4 h-4" />
+              <a href={accommodation.link} target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground break-all">{t('home.accommodation.form.linkLabel')}</a>
+            </p>
+          )}
+
+          {accommodation.notes && <p className="text-sm text-slate-500 mt-3 italic">"{accommodation.notes}"</p>}
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <button onClick={onEdit} className="p-2 text-slate-300 hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => onDelete(accommodation.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function AccommodationForm({ onAdd }: { onAdd: (accommodation: Accommodation) => void }) {
+  const { t } = useLanguage();
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [lat, setLat] = useState<number | undefined>(undefined);
+  const [lng, setLng] = useState<number | undefined>(undefined);
+  const [showPicker, setShowPicker] = useState(false);
+  const [checkInDate, setCheckInDate] = useState('');
+  const [checkInTime, setCheckInTime] = useState('');
+  const [checkOutDate, setCheckOutDate] = useState('');
+  const [checkOutTime, setCheckOutTime] = useState('');
+  const [phone, setPhone] = useState('');
+  const [reservationNumber, setReservationNumber] = useState('');
+  const [link, setLink] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const checkOutBeforeCheckIn = !!(checkInDate && checkOutDate && checkOutDate < checkInDate);
+
+  const handleSubmit = () => {
+    if (!name || !checkInDate || !checkOutDate) { toast.error(t('home.toast.requiredFields')); return; }
+    onAdd({
+      id: Date.now().toString(),
+      name,
+      address: address || undefined,
+      lat, lng,
+      checkInDate,
+      checkInTime: checkInTime || undefined,
+      checkOutDate,
+      checkOutTime: checkOutTime || undefined,
+      phone: phone || undefined,
+      reservationNumber: reservationNumber || undefined,
+      link: link || undefined,
+      notes: notes || undefined,
+    });
+    setName(''); setAddress(''); setLat(undefined); setLng(undefined);
+    setCheckInDate(''); setCheckInTime(''); setCheckOutDate(''); setCheckOutTime('');
+    setPhone(''); setReservationNumber(''); setLink(''); setNotes('');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.nameLabel')} <span className="text-red-500">*</span></label>
+        <Input
+          placeholder={t('home.accommodation.form.namePlaceholder')}
+          value={name}
+          onChange={e => setName(e.target.value)}
+          className="h-11"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.addressLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <div className="flex flex-wrap gap-2">
+          <Input
+            placeholder={t('home.accommodation.form.addressPlaceholder')}
+            value={address}
+            onChange={e => setAddress(e.target.value)}
+            className="h-11 flex-1 min-w-[140px]"
+          />
+          <Button type="button" variant="outline" onClick={() => setShowPicker(true)} className="h-11 gap-1.5 flex-shrink-0">
+            <MapPin className="w-4 h-4" /> {t('home.schedule.form.mapButton')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => openDirections(lat, lng, address)}
+            disabled={lat === undefined && !address}
+            className="h-11 gap-1.5 flex-shrink-0"
+          >
+            <Navigation className="w-4 h-4" /> {t('home.accommodation.form.directionsButton')}
+          </Button>
+        </div>
+        {lat !== undefined && lng !== undefined && (
+          <p className="text-xs text-primary flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: lat.toFixed(5), lng: lng.toFixed(5) })}
+            <button type="button" onClick={() => { setLat(undefined); setLng(undefined); }} className="text-red-400 hover:text-red-600 ml-1">
+              <X className="w-3 h-3" />
+            </button>
+          </p>
+        )}
+        <LocationPickerDialog
+          open={showPicker}
+          onOpenChange={setShowPicker}
+          initialLat={lat}
+          initialLng={lng}
+          onConfirm={(pickedLat, pickedLng, pickedAddress) => {
+            setLat(pickedLat);
+            setLng(pickedLng);
+            if (pickedAddress) setAddress(pickedAddress);
+          }}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkInLabel')} <span className="text-red-500">*</span></label>
+          <Input type="date" value={checkInDate} onChange={e => setCheckInDate(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkInTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input type="time" value={checkInTime} onChange={e => setCheckInTime(e.target.value)} className="h-11" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkOutLabel')} <span className="text-red-500">*</span></label>
+          <Input type="date" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkOutTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input type="time" value={checkOutTime} onChange={e => setCheckOutTime(e.target.value)} className="h-11" />
+        </div>
+      </div>
+      {checkOutBeforeCheckIn && (
+        <p className="text-red-500 text-sm font-semibold">⚠ {t('home.accommodation.checkOutBeforeCheckIn')}</p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.phoneLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input type="tel" placeholder={t('home.accommodation.form.phonePlaceholder')} value={phone} onChange={e => setPhone(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.reservationNumberLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input placeholder={t('home.accommodation.form.reservationNumberPlaceholder')} value={reservationNumber} onChange={e => setReservationNumber(e.target.value)} className="h-11" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.linkLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <Input
+          type="url"
+          placeholder="https://..."
+          value={link}
+          onChange={e => setLink(e.target.value)}
+          className="h-11"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <Textarea
+          placeholder={t('home.schedule.form.notesFreeformPlaceholder')}
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          className="min-h-[100px] resize-y"
+        />
+      </div>
+
+      <Button onClick={handleSubmit} className="w-full bg-primary text-white h-11 text-base font-semibold">
+        <Plus className="w-4 h-4 mr-2" /> {t('home.accommodation.form.submitButton')}
+      </Button>
+    </div>
+  );
+}
 
 function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCancel, getCategoryColor, getCategoryLabel, existingSchedules }: any) {
   const { t } = useLanguage();
