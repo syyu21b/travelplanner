@@ -2247,7 +2247,7 @@ export default function TravelDiary() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {newPhotos.map(photo => (
                     <div key={photo.id} className="relative group">
                       {photo.type === 'video' ? (
@@ -2367,7 +2367,7 @@ export default function TravelDiary() {
                 </label>
                 <span className="text-xs text-muted-foreground">{t('diary.album.maxPhotosHint')}</span>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {newAlbumPhotos.map(photo => (
                   <div key={photo.id} className="relative group">
                     {photo.type === 'video' ? (

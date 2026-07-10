@@ -1078,15 +1078,15 @@ export default function Home() {
         <>
           {/* ── 히어로 ── */}
           <div
-            className="w-full h-[360px] md:h-[420px] relative overflow-hidden"
+            className="w-full min-h-[360px] md:min-h-[420px] relative"
             style={{ backgroundImage: 'url(/hero-travel.svg)', backgroundSize: 'cover', backgroundPosition: 'center top' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
-            <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 max-w-5xl">
-              <h1 className="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-lg max-w-xl">
+            <div className="relative flex flex-col justify-center px-5 sm:px-8 md:px-16 py-16 md:py-0 min-h-[360px] md:min-h-[420px] max-w-5xl">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-lg max-w-xl">
                 {t('home.hero.titleLine1')}<br />{t('home.hero.titleLine2')}
               </h1>
-              <p className="text-white/75 text-base md:text-lg mt-4 drop-shadow max-w-lg">
+              <p className="text-white/75 text-sm sm:text-base md:text-lg mt-4 drop-shadow max-w-lg">
                 {t('home.hero.subtitle')}
               </p>
               <div className="flex flex-wrap gap-3 mt-8">
@@ -1697,20 +1697,20 @@ export default function Home() {
                           <Button onClick={handleCancelEditTotalBudget} variant="ghost" className="h-11 w-11 p-0 text-white hover:bg-white/20 hover:text-white flex-shrink-0"><X className="w-4 h-4" /></Button>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-3 gap-3 mb-4">
-                          <div className="bg-white/20 p-3 rounded-xl">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+                          <div className="bg-white/20 p-3 rounded-xl min-w-0">
                             <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.plannedLabel')}</p>
-                            <p className="text-xl font-black truncate">₩{plannedBudget.toLocaleString()}</p>
+                            <p className="text-base sm:text-xl font-black truncate">₩{plannedBudget.toLocaleString()}</p>
                             <p className="text-[11px] text-white/70 truncate mt-0.5">{formatCurrency(plannedBudget)}</p>
                           </div>
-                          <div className="bg-white/20 p-3 rounded-xl">
+                          <div className="bg-white/20 p-3 rounded-xl min-w-0">
                             <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.spentLabel')}</p>
-                            <p className="text-xl font-black truncate">₩{totalBudget.toLocaleString()}</p>
+                            <p className="text-base sm:text-xl font-black truncate">₩{totalBudget.toLocaleString()}</p>
                             <p className="text-[11px] text-white/70 truncate mt-0.5">{formatCurrency(totalBudget)}</p>
                           </div>
-                          <div className={cn("p-3 rounded-xl", plannedBudget > 0 && remainingBudget < 0 ? "bg-red-500/30" : "bg-white/20")}>
+                          <div className={cn("p-3 rounded-xl min-w-0", plannedBudget > 0 && remainingBudget < 0 ? "bg-red-500/30" : "bg-white/20")}>
                             <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider">{t('home.budget.remainingLabel')}</p>
-                            <p className="text-xl font-black truncate">₩{remainingBudget.toLocaleString()}</p>
+                            <p className="text-base sm:text-xl font-black truncate">₩{remainingBudget.toLocaleString()}</p>
                             <p className="text-[11px] text-white/70 truncate mt-0.5">{formatCurrency(remainingBudget)}</p>
                           </div>
                         </div>
@@ -2296,18 +2296,18 @@ export default function Home() {
             const previewRemaining = previewPlanned - previewSpent;
             return (
               <div className="pt-2">
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-secondary p-3 rounded-xl">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+                  <div className="bg-secondary p-3 rounded-xl min-w-0">
                     <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.plannedLabel')}</p>
-                    <p className="text-lg font-black text-foreground truncate">₩{previewPlanned.toLocaleString()}</p>
+                    <p className="text-base sm:text-lg font-black text-foreground truncate">₩{previewPlanned.toLocaleString()}</p>
                   </div>
-                  <div className="bg-secondary p-3 rounded-xl">
+                  <div className="bg-secondary p-3 rounded-xl min-w-0">
                     <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.spentLabel')}</p>
-                    <p className="text-lg font-black text-foreground truncate">₩{previewSpent.toLocaleString()}</p>
+                    <p className="text-base sm:text-lg font-black text-foreground truncate">₩{previewSpent.toLocaleString()}</p>
                   </div>
-                  <div className={cn("p-3 rounded-xl", previewPlanned > 0 && previewRemaining < 0 ? "bg-red-100" : "bg-secondary")}>
+                  <div className={cn("p-3 rounded-xl min-w-0", previewPlanned > 0 && previewRemaining < 0 ? "bg-red-100" : "bg-secondary")}>
                     <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.remainingLabel')}</p>
-                    <p className={cn("text-lg font-black truncate", previewPlanned > 0 && previewRemaining < 0 ? "text-red-600" : "text-foreground")}>
+                    <p className={cn("text-base sm:text-lg font-black truncate", previewPlanned > 0 && previewRemaining < 0 ? "text-red-600" : "text-foreground")}>
                       ₩{previewRemaining.toLocaleString()}
                     </p>
                   </div>
@@ -2436,7 +2436,7 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
               <select
                 value={editData.category}
                 onChange={e => setEditData({ ...editData, category: e.target.value })}
-                className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
+                className="w-full min-h-11 px-3 py-2.5 border border-input rounded-md text-sm leading-tight bg-background"
               >
                 <option value="accommodation">{t('home.category.accommodation')}</option>
                 <option value="transport">{t('home.category.transport')}</option>
@@ -2583,7 +2583,7 @@ function BudgetCard({ budget, isEditing, onEdit, onUpdate, onDelete, onCancel, g
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">{t('home.budget.form.categoryLabel')}</label>
-            <select value={editData.category} onChange={e => setEditData({ ...editData, category: e.target.value })} className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background">
+            <select value={editData.category} onChange={e => setEditData({ ...editData, category: e.target.value })} className="w-full min-h-11 px-3 py-2.5 border border-input rounded-md text-sm leading-tight bg-background">
               <option value="accommodation">{t('home.category.accommodation')}</option><option value="transport">{t('home.category.transport')}</option><option value="meal">{t('home.category.meal')}</option><option value="activity">{t('home.category.activity')}</option><option value="shopping">{t('home.category.shopping')}</option><option value="other">{t('home.category.other')}</option>
             </select>
           </div>
@@ -2722,7 +2722,7 @@ function ScheduleForm({ onAdd, existingSchedules }: { onAdd: (schedule: Schedule
           <select
             value={category}
             onChange={e => setCategory(e.target.value as any)}
-            className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
+            className="w-full min-h-11 px-3 py-2.5 border border-input rounded-md text-sm leading-tight bg-background"
           >
             <option value="accommodation">{t('home.category.accommodation')}</option>
             <option value="transport">{t('home.category.transport')}</option>
@@ -2856,7 +2856,7 @@ function BudgetForm({ onAdd, remainingBudget }: { onAdd: (budget: Budget) => voi
         <select
           value={category}
           onChange={e => setCategory(e.target.value as any)}
-          className="w-full h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
+          className="w-full min-h-11 px-3 py-2.5 border border-input rounded-md text-sm leading-tight bg-background"
         >
           <option value="accommodation">{t('home.category.accommodation')}</option>
           <option value="transport">{t('home.category.transport')}</option>
