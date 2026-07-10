@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  ChevronDown, Camera, Hotel, Phone, Navigation, Hash
+  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -145,6 +145,12 @@ function openDirections(lat?: number, lng?: number, address?: string) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
+// 출발지 -> 도착지 길찾기 (구글 지도)
+function openDirectionsBetween(origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) {
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 export default function Home() {
   const { t } = useLanguage();
 
@@ -252,9 +258,16 @@ export default function Home() {
   const [showAllSchedulesPreview, setShowAllSchedulesPreview] = useState(false);
   const [showTimelinePreview, setShowTimelinePreview] = useState(false);
   const [showPreparationsPreview, setShowPreparationsPreview] = useState(false);
-  const [showBudgetPreview, setShowBudgetPreview] = useState(false);
+  const [showAccommodationListPreview, setShowAccommodationListPreview] = useState(false);
+  const [previewAccommodation, setPreviewAccommodation] = useState<Accommodation | null>(null);
+  const [showAccommodationDetailPreview, setShowAccommodationDetailPreview] = useState(false);
   const [detailSchedule, setDetailSchedule] = useState<ScheduleItem | null>(null);
   const [showScheduleDetail, setShowScheduleDetail] = useState(false);
+
+  // 지도 탭 - 출발/도착 선택 상태
+  const [routeSelectMode, setRouteSelectMode] = useState<'origin' | 'destination' | null>(null);
+  const [routeOriginId, setRouteOriginId] = useState<string | null>(null);
+  const [routeDestinationId, setRouteDestinationId] = useState<string | null>(null);
 
   const pdfRef = useRef<HTMLDivElement>(null);
   const scheduleMapRef = useRef<naver.maps.Map | null>(null);
@@ -886,6 +899,37 @@ export default function Home() {
                 {getCategoryLabel(s.category)}
               </span>
               <span className="font-semibold text-foreground truncate flex-1">{s.title}</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            </button>
+          ))}
+      </div>
+    );
+  };
+
+  const renderAccommodationListContent = (plan: TravelPlan | null) => {
+    if (!plan) return null;
+    const list = plan.accommodations || [];
+    if (list.length === 0) {
+      return (
+        <div className="text-center py-12 bg-secondary rounded-2xl">
+          <p className="text-slate-400">{t('home.accommodation.emptyState')}</p>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-2">
+        {[...list]
+          .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate))
+          .map(a => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => { setPreviewAccommodation(a); setShowAccommodationListPreview(false); setShowAccommodationDetailPreview(true); }}
+              className="w-full flex items-center gap-3 p-2.5 bg-secondary rounded-lg text-sm hover:bg-secondary/70 transition-colors text-left"
+            >
+              <Hotel className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="font-semibold text-foreground truncate flex-1">{a.name}</span>
+              <span className="text-muted-foreground font-mono text-xs flex-shrink-0">{a.checkInDate}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </button>
           ))}
@@ -1663,6 +1707,20 @@ export default function Home() {
                           if (!map || s.lat === undefined || s.lng === undefined || !window.naver) return;
                           map.morph(new window.naver.maps.LatLng(s.lat, s.lng), Math.max(map.getZoom(), 15));
                         };
+                        const routeOrigin = pinned.find(s => s.id === routeOriginId);
+                        const routeDestination = pinned.find(s => s.id === routeDestinationId);
+                        const canGetDirections = !!routeOrigin && !!routeDestination && routeOrigin.id !== routeDestination.id;
+                        const handleRowClick = (s: (typeof pinned)[number]) => {
+                          if (routeSelectMode === 'origin') {
+                            setRouteOriginId(s.id);
+                            setRouteSelectMode(null);
+                          } else if (routeSelectMode === 'destination') {
+                            setRouteDestinationId(s.id);
+                            setRouteSelectMode(null);
+                          } else {
+                            panToSchedule(s);
+                          }
+                        };
                         return (
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             <div className="lg:col-span-2">
@@ -1675,19 +1733,71 @@ export default function Home() {
                                 onMarkerDelete={id => {
                                   const target = currentPlan.schedules.find(s => s.id === id);
                                   if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
+                                  if (routeOriginId === id) setRouteOriginId(null);
+                                  if (routeDestinationId === id) setRouteDestinationId(null);
                                 }}
                               />
+                              <div className="mt-4 pt-4 border-t border-border">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setRouteSelectMode(routeSelectMode === 'origin' ? null : 'origin')}
+                                    className={cn(
+                                      "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
+                                      routeSelectMode === 'origin' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                                    )}
+                                  >
+                                    {t('home.map.routeOriginLabel')}{routeOrigin ? `: ${pinned.indexOf(routeOrigin) + 1}. ${routeOrigin.title}` : ''}
+                                  </button>
+                                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                  <button
+                                    type="button"
+                                    onClick={() => setRouteSelectMode(routeSelectMode === 'destination' ? null : 'destination')}
+                                    className={cn(
+                                      "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
+                                      routeSelectMode === 'destination' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                                    )}
+                                  >
+                                    {t('home.map.routeDestinationLabel')}{routeDestination ? `: ${pinned.indexOf(routeDestination) + 1}. ${routeDestination.title}` : ''}
+                                  </button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (!routeOrigin || !routeDestination || routeOrigin.lat === undefined || routeDestination.lat === undefined) return;
+                                      openDirectionsBetween(
+                                        { lat: routeOrigin.lat, lng: routeOrigin.lng as number },
+                                        { lat: routeDestination.lat, lng: routeDestination.lng as number }
+                                      );
+                                    }}
+                                    disabled={!canGetDirections}
+                                    className="gap-1.5 h-9"
+                                  >
+                                    <Navigation className="w-4 h-4" /> {t('home.map.getDirections')}
+                                  </Button>
+                                </div>
+                                {routeSelectMode && (
+                                  <p className="text-xs text-primary font-semibold mt-2">
+                                    {routeSelectMode === 'origin' ? t('home.map.selectOriginHint') : t('home.map.selectDestinationHint')}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                               <p className="text-xs font-semibold text-muted-foreground px-1 mb-1">
-                                {t('home.map.tapToLocate')}
+                                {routeSelectMode ? (routeSelectMode === 'origin' ? t('home.map.selectOriginHint') : t('home.map.selectDestinationHint')) : t('home.map.tapToLocate')}
                               </p>
                               {pinned.map((s, i) => (
                                 <button
                                   key={s.id}
                                   type="button"
-                                  onClick={() => panToSchedule(s)}
-                                  className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                                  onClick={() => handleRowClick(s)}
+                                  className={cn(
+                                    "w-full text-left flex items-start gap-3 p-3 rounded-xl border transition-colors",
+                                    routeOriginId === s.id ? "border-emerald-400 bg-emerald-50" :
+                                    routeDestinationId === s.id ? "border-rose-400 bg-rose-50" :
+                                    "border-border hover:border-primary/40 hover:bg-primary/5"
+                                  )}
                                 >
                                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center mt-0.5">
                                     {i + 1}
@@ -1698,6 +1808,12 @@ export default function Home() {
                                       <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0", getCategoryColor(s.category))}>
                                         {getCategoryLabel(s.category)}
                                       </span>
+                                      {routeOriginId === s.id && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 bg-emerald-100 text-emerald-700">{t('home.map.routeOriginBadge')}</span>
+                                      )}
+                                      {routeDestinationId === s.id && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 bg-rose-100 text-rose-700">{t('home.map.routeDestinationBadge')}</span>
+                                      )}
                                     </div>
                                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                                       <Calendar className="w-3 h-3 flex-shrink-0" /> {s.date} {s.time}
@@ -2314,13 +2430,11 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowSummaryPreview(false); setShowBudgetPreview(true); }}
+                onClick={() => { setShowSummaryPreview(false); setShowAccommodationListPreview(true); }}
                 className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors"
               >
-                <p className="text-xs font-bold text-muted-foreground">{t('home.budget.overviewTitle')}</p>
-                <p className="text-xl font-bold text-foreground truncate">
-                  ₩{(summaryPreviewPlan.totalBudgetAmount || 0).toLocaleString()}
-                </p>
+                <p className="text-xs font-bold text-muted-foreground">{t('home.accommodation.listTitle')}</p>
+                <p className="text-xl font-bold text-foreground">{t('home.unitCount', { n: (summaryPreviewPlan.accommodations || []).length })}</p>
               </button>
             </div>
           )}
@@ -2368,52 +2482,76 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* 여행 요약 - 예산 미리보기 다이얼로그 (읽기 전용) */}
-      <Dialog open={showBudgetPreview} onOpenChange={setShowBudgetPreview}>
-        <DialogContent className="max-w-md">
+      {/* 여행 요약 - 숙소 목록 미리보기 다이얼로그 */}
+      <Dialog open={showAccommodationListPreview} onOpenChange={setShowAccommodationListPreview}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
-              <DollarSign className="w-5 h-5 text-primary" /> {t('home.budget.overviewTitle')}
+              <Hotel className="w-5 h-5 text-primary" /> {t('home.accommodation.listTitle')}
             </DialogTitle>
           </DialogHeader>
-          {summaryPreviewPlan && (() => {
-            const previewPlanned = summaryPreviewPlan.totalBudgetAmount || 0;
-            const previewSpent = summaryPreviewPlan.budgets.reduce((sum, b) => sum + b.amount, 0);
-            const previewRemaining = previewPlanned - previewSpent;
-            return (
-              <div className="pt-2">
-                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                  <div className="bg-secondary p-3 rounded-xl min-w-0">
-                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.plannedLabel')}</p>
-                    <p className="text-base sm:text-lg font-black text-foreground truncate">₩{previewPlanned.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-secondary p-3 rounded-xl min-w-0">
-                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.spentLabel')}</p>
-                    <p className="text-base sm:text-lg font-black text-foreground truncate">₩{previewSpent.toLocaleString()}</p>
-                  </div>
-                  <div className={cn("p-3 rounded-xl min-w-0", previewPlanned > 0 && previewRemaining < 0 ? "bg-red-100" : "bg-secondary")}>
-                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('home.budget.remainingLabel')}</p>
-                    <p className={cn("text-base sm:text-lg font-black truncate", previewPlanned > 0 && previewRemaining < 0 ? "text-red-600" : "text-foreground")}>
-                      ₩{previewRemaining.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                {previewPlanned > 0 && (
-                  <div>
-                    <div className="h-2.5 rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className={cn("h-full rounded-full transition-all", previewSpent > previewPlanned ? "bg-red-400" : "bg-primary")}
-                        style={{ width: `${Math.min(100, Math.round((previewSpent / previewPlanned) * 100))}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1.5 font-semibold">
-                      {t('home.budget.usagePercent', { n: Math.round((previewSpent / previewPlanned) * 100) })}
-                    </p>
-                  </div>
-                )}
+          <div className="pt-2">{renderAccommodationListContent(summaryPreviewPlan)}</div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 요약 - 숙소 상세 미리보기 다이얼로그 (읽기 전용) */}
+      <Dialog open={showAccommodationDetailPreview} onOpenChange={setShowAccommodationDetailPreview}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground break-words">
+              <Hotel className="w-5 h-5 text-primary flex-shrink-0" /> {previewAccommodation?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {previewAccommodation && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap">
+                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkInShort')} {previewAccommodation.checkInDate}{previewAccommodation.checkInTime ? ` ${previewAccommodation.checkInTime}` : ''}
+                </span>
+                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkOutShort')} {previewAccommodation.checkOutDate}{previewAccommodation.checkOutTime ? ` ${previewAccommodation.checkOutTime}` : ''}
+                </span>
               </div>
-            );
-          })()}
+              {previewAccommodation.address && (
+                <div className="flex items-center gap-2 flex-wrap text-sm text-slate-600">
+                  <p className="flex items-center gap-1 min-w-0">
+                    <MapPin className="w-4 h-4 text-primary flex-shrink-0" /> <span className="truncate">{previewAccommodation.address}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => openDirections(previewAccommodation.lat, previewAccommodation.lng, previewAccommodation.address)}
+                    className="flex items-center gap-1 text-primary font-semibold hover:underline flex-shrink-0"
+                  >
+                    <Navigation className="w-3.5 h-3.5" /> {t('home.accommodation.form.directionsButton')}
+                  </button>
+                </div>
+              )}
+              {previewAccommodation.phone && (
+                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <Phone className="w-4 h-4 text-primary flex-shrink-0" />
+                  <a href={`tel:${previewAccommodation.phone}`} className="hover:text-primary hover:underline">{previewAccommodation.phone}</a>
+                </p>
+              )}
+              {previewAccommodation.reservationNumber && (
+                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <Hash className="w-4 h-4 text-primary flex-shrink-0" /> {previewAccommodation.reservationNumber}
+                </p>
+              )}
+              {previewAccommodation.link && (
+                <a
+                  href={previewAccommodation.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline flex items-center gap-1.5 break-all"
+                >
+                  <LinkIcon className="w-4 h-4 flex-shrink-0" /> {previewAccommodation.link}
+                </a>
+              )}
+              {previewAccommodation.notes && (
+                <p className="text-sm text-muted-foreground italic bg-secondary p-3 rounded-xl">"{previewAccommodation.notes}"</p>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
