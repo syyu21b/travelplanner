@@ -1204,7 +1204,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-xl font-black text-foreground">{t('home.planList.title')}</h2>
                 <div className="flex gap-1 bg-secondary p-1 rounded-xl">
-                  {(['all', '진행 중', '예정', '완료'] as const).map(f => (
+                  {(['all', '예정', '진행 중', '완료'] as const).map(f => (
                     <button
                       key={f}
                       onClick={() => setPlanFilter(f)}
