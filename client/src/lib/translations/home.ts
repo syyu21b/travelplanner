@@ -14,6 +14,11 @@ export const home = {
       navAdmin: "관리자",
       myPage: "마이페이지",
       logout: "로그아웃",
+      searchLabel: "여행지 검색",
+      searchPlaceholder: "국가, 지역, 도시로 검색",
+      searchEmpty: "여행지, 국가, 지역을 검색해보세요",
+      searchNoResults: "일치하는 여행 기록이 없습니다",
+      searchViewAll: "'{{query}}' 검색 결과 모두 보기 ({{n}})",
     },
     hero: {
       titleLine1: "여행의 순간을 계획하고,",
@@ -296,6 +301,11 @@ export const home = {
       navAdmin: "Admin",
       myPage: "My Page",
       logout: "Log out",
+      searchLabel: "Search destinations",
+      searchPlaceholder: "Search by country, region, city",
+      searchEmpty: "Search for a destination, country, or region",
+      searchNoResults: "No matching travel records found",
+      searchViewAll: "See all results for '{{query}}' ({{n}})",
     },
     hero: {
       titleLine1: "Plan every moment of your journey,",

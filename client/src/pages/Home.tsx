@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  Search, ChevronDown, Camera
+  ChevronDown, Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -28,6 +28,7 @@ import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { useLanguage } from '@/contexts/LanguageContext';
 import NotificationBell from '@/components/NotificationBell';
+import HeaderSearch from '@/components/HeaderSearch';
 
 interface ScheduleItem {
   id: string;
@@ -1029,9 +1030,7 @@ export default function Home() {
           <div className="flex items-center gap-2 flex-shrink-0">
             {user ? (
               <>
-                <button className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border">
-                  <Search className="w-4 h-4" />
-                </button>
+                <HeaderSearch />
                 <NotificationBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

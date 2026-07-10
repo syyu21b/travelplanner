@@ -193,6 +193,17 @@ export default function Community() {
     } catch {}
   }, []);
 
+  // 헤더 검색에서 넘어온 검색어 자동 적용
+  useEffect(() => {
+    try {
+      const pendingQuery = sessionStorage.getItem('communitySearchQuery');
+      if (pendingQuery) {
+        sessionStorage.removeItem('communitySearchQuery');
+        setSearchQuery(pendingQuery);
+      }
+    } catch {}
+  }, []);
+
   // 검색어로 여행지 검색 추적 (800ms 디바운스)
   useEffect(() => {
     if (searchQuery.trim().length < 2) return;
