@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -203,7 +204,50 @@ function vitePluginStorageProxy(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusDebugCollector(), vitePluginStorageProxy()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    jsxLocPlugin(),
+    vitePluginManusDebugCollector(),
+    vitePluginStorageProxy(),
+    VitePWA({
+      registerType: "autoUpdate",
+      injectRegister: "auto",
+      includeAssets: ["favicon.png", "favicon-32.png", "favicon.svg", "apple-touch-icon.png"],
+      manifest: {
+        id: "/",
+        name: "Travel Planner - 여행 일정 플래너",
+        short_name: "여행플래너",
+        description: "나만의 여행 일정을 만들고, 기록하고, 공유해보세요.",
+        lang: "ko",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        background_color: "#F9F7F2",
+        theme_color: "#A68B77",
+        icons: [
+          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/maskable-icon-192x192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+          { src: "/maskable-icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+      workbox: {
+        navigateFallback: "/index.html",
+        // 배포 시 이전 버전의 서비스 워커/캐시가 남아 사용자가 계속 옛 버전(버그가 있던 화면)을
+        // 보게 되는 문제를 방지 — 새 버전이 감지되면 바로 활성화하고 캐시를 정리
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        // 외부 API(네이버 지도, 날씨, 폰트 CDN 등)는 서비스 워커가 가로채지 않고
+        // 항상 네트워크로 직접 요청되도록 프리캐시 대상에서 제외 (기본 동작, 명시적으로 문서화)
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}"],
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
