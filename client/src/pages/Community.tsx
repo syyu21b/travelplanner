@@ -88,6 +88,20 @@ interface RegisteredUser {
   email: string;
 }
 
+// 다른 시점/버전에서 저장된 데이터에는 photos/tags/likes 등의 필드가 없을 수 있어,
+// 읽어올 때 항상 안전한 기본값으로 채워 넣어 렌더링 중 크래시를 방지
+function normalizeDiary(d: DiaryEntry): DiaryEntry {
+  return {
+    ...d,
+    title: d.title ?? '',
+    location: d.location ?? '',
+    content: d.content ?? '',
+    photos: d.photos ?? [],
+    tags: d.tags ?? [],
+    likes: d.likes ?? [],
+  };
+}
+
 type SortType = 'latest' | 'popular' | 'comments';
 type FilterType = 'all' | 'following';
 
@@ -117,7 +131,8 @@ export default function Community() {
   const [deleteDiaryId, setDeleteDiaryId] = useState<string | null>(null);
 
   const loadDiaries = (): DiaryEntry[] => {
-    return JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[];
+    const raw = JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[];
+    return raw.map(normalizeDiary);
   };
 
   const loadComments = (): Comment[] => {
@@ -262,7 +277,12 @@ export default function Community() {
         : [...d.likes, user.id];
       return { ...d, likes };
     });
-    localStorage.setItem('travelDiaries', JSON.stringify(updated));
+    try {
+      localStorage.setItem('travelDiaries', JSON.stringify(updated));
+    } catch {
+      toast.error(t('community.admin.errors.storageFull'));
+      return;
+    }
     setDiaries(updated);
     if (selectedDiary?.id === diaryId) {
       const found = updated.find(d => d.id === diaryId);
@@ -344,7 +364,12 @@ export default function Community() {
   // ── 관리자 게시글 삭제 (커뮤니티 공개만 해제, 작성자의 여행 기록 자체는 보존)
   const handleDeleteDiary = (diaryId: string) => {
     const updated = diaries.map(d => d.id === diaryId ? { ...d, isPublic: false } : d);
-    localStorage.setItem('travelDiaries', JSON.stringify(updated));
+    try {
+      localStorage.setItem('travelDiaries', JSON.stringify(updated));
+    } catch {
+      toast.error(t('community.admin.errors.storageFull'));
+      return;
+    }
     setDiaries(updated);
     if (selectedDiary?.id === diaryId) setSelectedDiary(null);
     setDeleteDiaryId(null);
@@ -369,7 +394,12 @@ export default function Community() {
         ? { ...d, title: editDiaryTitle.trim(), content: editDiaryContent.trim(), location: editDiaryLocation.trim() || d.location, updatedAt: new Date().toISOString() }
         : d
     );
-    localStorage.setItem('travelDiaries', JSON.stringify(updated));
+    try {
+      localStorage.setItem('travelDiaries', JSON.stringify(updated));
+    } catch {
+      toast.error(t('community.admin.errors.storageFull'));
+      return;
+    }
     setDiaries(updated);
     if (selectedDiary?.id === editingDiary.id) {
       setSelectedDiary(updated.find(d => d.id === editingDiary.id) || null);

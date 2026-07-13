@@ -41,10 +41,10 @@ export default function HeaderSearch() {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return loadPublicDiaries().filter(d =>
-      d.location.toLowerCase().includes(q) ||
-      d.title.toLowerCase().includes(q) ||
-      d.tags.some(tag => tag.toLowerCase().includes(q)) ||
-      d.content.toLowerCase().includes(q)
+      (d.location ?? "").toLowerCase().includes(q) ||
+      (d.title ?? "").toLowerCase().includes(q) ||
+      (d.tags ?? []).some(tag => tag.toLowerCase().includes(q)) ||
+      (d.content ?? "").toLowerCase().includes(q)
     );
   }, [query]);
 

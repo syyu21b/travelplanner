@@ -105,6 +105,28 @@ interface Album {
   updatedAt: string;
 }
 
+// 다른 시점/버전에서 저장된 데이터에는 photos/tags/likes 등의 필드가 없을 수 있어,
+// 읽어올 때 항상 안전한 기본값으로 채워 넣어 렌더링 중 크래시를 방지
+function normalizeDiary(d: DiaryEntry): DiaryEntry {
+  return {
+    ...d,
+    title: d.title ?? '',
+    location: d.location ?? '',
+    content: d.content ?? '',
+    photos: d.photos ?? [],
+    tags: d.tags ?? [],
+    likes: d.likes ?? [],
+  };
+}
+
+function normalizeAlbum(a: Album): Album {
+  return {
+    ...a,
+    title: a.title ?? '',
+    photos: a.photos ?? [],
+  };
+}
+
 // 여행 기록/앨범 어느 쪽에서든 계획 미리보기 다이얼로그를 열 수 있도록 하는 공통 스냅샷 형태
 interface PlanPreviewSnapshot {
   userId: string;
@@ -127,12 +149,18 @@ export default function TravelDiary() {
   const mainEditFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadDiaries = (): DiaryEntry[] => {
-    return JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[];
+    const raw = JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[];
+    return raw.map(normalizeDiary);
   };
 
   const loadUserPlans = (): TravelPlan[] => {
     const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
-    return all.filter(p => p.userId === user?.id);
+    return all.filter(p => p.userId === user?.id).map(p => ({
+      ...p,
+      schedules: p.schedules ?? [],
+      budgets: p.budgets ?? [],
+      shoppingList: p.shoppingList ?? [],
+    }));
   };
 
   // 상태 복구 함수
@@ -151,20 +179,21 @@ export default function TravelDiary() {
   const loadCurrentDiary = () => {
     const saved = localStorage.getItem('currentDiaryId');
     if (saved) {
-      const diaries = JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[];
+      const diaries = (JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[]).map(normalizeDiary);
       return diaries.find(d => d.id === saved) || null;
     }
     return null;
   };
 
   const loadAlbums = (): Album[] => {
-    return JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[];
+    const raw = JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[];
+    return raw.map(normalizeAlbum);
   };
 
   const loadCurrentAlbum = () => {
     const saved = localStorage.getItem('currentAlbumId');
     if (saved) {
-      const albums = JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[];
+      const albums = (JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[]).map(normalizeAlbum);
       return albums.find(a => a.id === saved) || null;
     }
     return null;
@@ -382,7 +411,11 @@ export default function TravelDiary() {
         displayMode: newDisplayMode,
         linkedPlanId: newLinkedPlanId,
       };
-      localStorage.setItem('diaryFormDraft', JSON.stringify(draft));
+      try {
+        localStorage.setItem('diaryFormDraft', JSON.stringify(draft));
+      } catch {
+        // 저장 공간이 부족해 임시 저장에 실패해도 작성 중인 폼은 그대로 유지되므로 조용히 무시
+      }
     }
   }, [newTitle, newLocation, newStartDate, newEndDate, newContent, newBlocks, newRating, newMainPhoto, newPhotos, newTags, newIsPublic, newLinkedPlanId, showNewDialog]);
 

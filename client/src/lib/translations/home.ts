@@ -320,6 +320,7 @@ export const home = {
       enterItem: "항목을 입력해주세요",
       imageUploaded: "이미지가 업로드되었습니다!",
       imagePasted: "이미지가 붙여넣기되었습니다!",
+      storageFull: "저장 공간이 부족합니다. 사진 용량이나 개수를 줄여주세요.",
     },
   },
   en: {
@@ -643,6 +644,7 @@ export const home = {
       enterItem: "Please enter an item",
       imageUploaded: "Image uploaded!",
       imagePasted: "Image pasted!",
+      storageFull: "You're out of storage space. Try reducing the size or number of photos.",
     },
   },
 } as const;

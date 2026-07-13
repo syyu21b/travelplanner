@@ -63,6 +63,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 const ADMIN_ID = 'admin-syyu21b';
 
+const STORAGE_UNAVAILABLE_MESSAGE =
+  '이 브라우저에서는 로그인 정보를 저장할 수 없습니다. 시크릿/프라이빗 모드를 해제하거나 다른 브라우저로 시도해주세요.';
+
 function getStoredUsers(): StoredUser[] {
   try {
     return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -71,8 +74,15 @@ function getStoredUsers(): StoredUser[] {
   }
 }
 
-function saveStoredUsers(users: StoredUser[]) {
-  localStorage.setItem('registeredUsers', JSON.stringify(users));
+// 시크릿/프라이빗 모드 등 일부 브라우저 환경에서는 localStorage 쓰기가 예외를 던짐 —
+// 이 경우 앱 전체가 크래시되지 않도록 실패 여부를 반환해 호출부에서 안내 메시지를 보여줄 수 있게 함
+function saveStoredUsers(users: StoredUser[]): boolean {
+  try {
+    localStorage.setItem('registeredUsers', JSON.stringify(users));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 type PassportVault = Record<string, EncryptedPayload & { updatedAt: string }>;
@@ -85,8 +95,13 @@ function getPassportVault(): PassportVault {
   }
 }
 
-function savePassportVault(vault: PassportVault) {
-  localStorage.setItem('passportVault', JSON.stringify(vault));
+function savePassportVault(vault: PassportVault): boolean {
+  try {
+    localStorage.setItem('passportVault', JSON.stringify(vault));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function toPublicUser(stored: StoredUser): User {
@@ -113,6 +128,8 @@ function seedAdmin() {
       isAdmin: true,
       createdAt: new Date().toISOString(),
     });
+    // 저장 실패(예: 프라이빗 모드) 시에도 앱 마운트 자체가 크래시되지 않도록 무시 —
+    // 이후 로그인/회원가입 시도에서 저장 실패가 다시 감지되어 사용자에게 안내됨
     saveStoredUsers(users);
   }
 }
@@ -164,11 +181,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     users.push(newStored);
-    saveStoredUsers(users);
+    if (!saveStoredUsers(users)) {
+      return { success: false, message: STORAGE_UNAVAILABLE_MESSAGE };
+    }
 
     const publicUser = toPublicUser(newStored);
     setUser(publicUser);
-    localStorage.setItem('currentUser', JSON.stringify(publicUser));
+    try {
+      localStorage.setItem('currentUser', JSON.stringify(publicUser));
+    } catch { /* 계정은 이미 저장됨 — 로그인 세션 유지만 실패, 이후 로그인으로 복구 가능 */ }
     return { success: true, message: '회원가입이 완료되었습니다!' };
   };
 
@@ -179,7 +200,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const publicUser = toPublicUser(found);
     setUser(publicUser);
-    localStorage.setItem('currentUser', JSON.stringify(publicUser));
+    try {
+      localStorage.setItem('currentUser', JSON.stringify(publicUser));
+    } catch { /* 세션 유지만 실패 — 현재 세션 동안은 정상 이용 가능 */ }
     return { success: true, message: '로그인 되었습니다!' };
   };
 
@@ -198,7 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const idx = users.findIndex(u => u.username === username && u.email === email);
     if (idx === -1) return { success: false, message: '아이디 또는 이메일이 올바르지 않습니다.' };
     users[idx].password = newPassword;
-    saveStoredUsers(users);
+    if (!saveStoredUsers(users)) return { success: false, message: STORAGE_UNAVAILABLE_MESSAGE };
     return { success: true, message: '비밀번호가 변경되었습니다.' };
   };
 
@@ -231,10 +254,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: '이미 사용 중인 이메일입니다.' };
       users[idx].email = updates.email;
     }
-    saveStoredUsers(users);
+    if (!saveStoredUsers(users)) return { success: false, message: STORAGE_UNAVAILABLE_MESSAGE };
     const updatedUser = toPublicUser(users[idx]);
     setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    try {
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    } catch { /* 프로필은 이미 저장됨 — 세션 표시만 다음 로그인까지 지연될 수 있음 */ }
     return { success: true, message: '프로필이 업데이트되었습니다.' };
   };
 
@@ -311,9 +336,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setProfilePhoto = (photo: string | null): void => {
     if (!user) return;
-    const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
-    profiles[user.id] = { ...profiles[user.id], photo };
-    localStorage.setItem('userProfiles', JSON.stringify(profiles));
+    try {
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      profiles[user.id] = { ...profiles[user.id], photo };
+      localStorage.setItem('userProfiles', JSON.stringify(profiles));
+    } catch {
+      // 저장 공간 부족 등으로 실패해도 앱이 죽지 않도록 무시 (호출부에서 별도 안내 가능)
+    }
   };
 
   // ── 관리자 전용 ──

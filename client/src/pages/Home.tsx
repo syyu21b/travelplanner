@@ -134,6 +134,18 @@ function schedulesOverlap(aDate: string, aStart: string, aEnd: string | undefine
   return s1 < e2 && s2 < e1;
 }
 
+// 다른 시점/버전에서 저장된 데이터에는 schedules/budgets/shoppingList 등의 필드가 없을 수 있어,
+// 읽어올 때 항상 안전한 기본값으로 채워 넣어 렌더링 중 크래시를 방지
+function normalizePlan(p: TravelPlan): TravelPlan {
+  return {
+    ...p,
+    schedules: p.schedules ?? [],
+    budgets: p.budgets ?? [],
+    shoppingList: p.shoppingList ?? [],
+    accommodations: p.accommodations ?? [],
+  };
+}
+
 // 길찾기: 구글 지도의 공식 URL 스킴을 사용 (API 키 불필요, 모바일에서 지도 앱/웹으로 안정적으로 연결됨)
 function openDirections(lat?: number, lng?: number, address?: string) {
   const url = (lat !== undefined && lng !== undefined)
@@ -183,7 +195,7 @@ export default function Home() {
   // 유저별 여행 계획 로드
   const loadUserPlans = (): TravelPlan[] => {
     const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
-    return all.filter(p => p.userId === user?.id);
+    return all.filter(p => p.userId === user?.id).map(normalizePlan);
   };
 
   const [travelPlans, setTravelPlans] = useState<TravelPlan[]>(loadUserPlans);
@@ -277,7 +289,11 @@ export default function Home() {
   const savePlans = (plans: TravelPlan[]) => {
     const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
     const otherUserPlans = all.filter(p => p.userId !== user?.id);
-    localStorage.setItem('travelPlans', JSON.stringify([...otherUserPlans, ...plans]));
+    try {
+      localStorage.setItem('travelPlans', JSON.stringify([...otherUserPlans, ...plans]));
+    } catch {
+      toast.error(t('home.toast.storageFull'));
+    }
   };
 
   const updateTravelPlans = (plans: TravelPlan[]) => {

@@ -56,6 +56,9 @@ export const community = {
       deleteSuccess: "게시글이 삭제되었습니다.",
       badge: "관리",
     },
+    errors: {
+      storageFull: "저장 공간이 부족합니다. 사진 용량이나 개수를 줄여주세요.",
+    },
     detail: {
       back: "커뮤니티",
       linkedPlan: "연결된 여행 계획",
@@ -147,6 +150,9 @@ export const community = {
       deleteWarning: "It'll only disappear from the community feed — the original entry in your travel diary stays intact.",
       deleteSuccess: "Post deleted.",
       badge: "Admin",
+    },
+    errors: {
+      storageFull: "You're out of storage space. Try reducing the size or number of photos.",
     },
     detail: {
       back: "Community",
