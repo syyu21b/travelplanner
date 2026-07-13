@@ -16,6 +16,7 @@ import Community from "./pages/Community";
 import AdminPage from "./pages/AdminPage";
 import MyPage from "./pages/MyPage";
 import Footer from "./components/Footer";
+import PwaInstallBanner from "./components/PwaInstallBanner";
 import { Plane, BookOpen, Globe, User, LogOut, Shield, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -192,6 +193,7 @@ function ProtectedRouter() {
         <Route component={NotFound} />
       </Switch>
       {location !== "/admin" && location !== "/login" && <Footer />}
+      <PwaInstallBanner />
     </>
   );
 }

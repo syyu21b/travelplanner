@@ -27,6 +27,16 @@ export const common = {
       hoursAgo: "{{n}}시간 전",
       daysAgo: "{{n}}일 전",
     },
+    pwa: {
+      inAppTitle: "앱 설치는 브라우저에서만 가능해요",
+      inAppBody: "카카오톡 등 인앱 브라우저에서는 설치할 수 없어요. 오른쪽 위 메뉴(⋮ 또는 •••)에서 '다른 브라우저로 열기'를 선택해주세요.",
+      installTitle: "홈 화면에 앱 설치하기",
+      installBody: "앱처럼 빠르게 열어보세요.",
+      installButton: "설치하기",
+      iosTitle: "홈 화면에 앱 설치하기",
+      iosBody: "하단 공유 버튼을 누른 뒤 '홈 화면에 추가'를 선택해주세요.",
+      dismiss: "닫기",
+    },
   },
   en: {
     nav: {
@@ -55,6 +65,16 @@ export const common = {
       minutesAgo: "{{n}}m ago",
       hoursAgo: "{{n}}h ago",
       daysAgo: "{{n}}d ago",
+    },
+    pwa: {
+      inAppTitle: "App install only works in a browser",
+      inAppBody: "This in-app browser (e.g. KakaoTalk) doesn't support installing apps. Tap the menu (⋮ or •••) in the top right and choose 'Open in browser'.",
+      installTitle: "Install this app",
+      installBody: "Open it like a native app, right from your home screen.",
+      installButton: "Install",
+      iosTitle: "Install this app",
+      iosBody: "Tap the Share button, then 'Add to Home Screen'.",
+      dismiss: "Dismiss",
     },
   },
 } as const;

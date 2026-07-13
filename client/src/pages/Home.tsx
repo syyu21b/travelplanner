@@ -1286,7 +1286,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* 왼쪽: 달력 */}
             <div className="lg:col-span-1">
-              <Card className="p-5 bg-white border-border shadow-sm sticky top-20">
+              <Card className="p-5 bg-white border-border shadow-sm lg:sticky lg:top-20">
                 <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-primary" /> {t('home.calendarSidebar.title')}
                 </h3>
@@ -3586,7 +3586,7 @@ interface TrendingPost {
   photos: { url: string; type?: 'photo' | 'video' }[];
   likes: string[];
   commentCount: number;
-  viewCount: number;
+  saveCount: number;
   score: number;
   createdAt: string;
   userId: string;
@@ -3604,19 +3604,24 @@ function CommunityTrending() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
 
-  const allTrendingPosts = React.useMemo((): TrendingPost[] => {
+  // 매 렌더마다 새로 계산 — 좋아요/댓글/저장은 커뮤니티 페이지 등 다른 화면에서 바뀌므로
+  // useMemo로 고정해두면 홈으로 돌아왔을 때 순위가 갱신되지 않는 것처럼 보일 수 있음
+  const allTrendingPosts = ((): TrendingPost[] => {
     try {
       const diaries: any[] = JSON.parse(localStorage.getItem('travelDiaries') || '[]').filter((d: any) => d.isPublic);
       if (diaries.length === 0) return [];
       const comments: any[] = JSON.parse(localStorage.getItem('diaryComments') || '[]');
-      const views: Record<string, number> = JSON.parse(localStorage.getItem('diaryViews') || '{}');
-      const locationSearches: Record<string, number> = JSON.parse(localStorage.getItem('locationSearches') || '{}');
+      const savedByUser: Record<string, string[]> = JSON.parse(localStorage.getItem('savedDiaries') || '{}');
+      const saveCounts = new globalThis.Map<string, number>();
+      Object.values(savedByUser).forEach(ids => {
+        (ids || []).forEach(id => saveCounts.set(id, (saveCounts.get(id) || 0) + 1));
+      });
 
       return diaries
         .map(d => {
+          const likeCount = d.likes?.length || 0;
           const cmtCount = comments.filter((c: any) => c.diaryId === d.id).length;
-          const viewCount = views[d.id] || 0;
-          const locBoost = (locationSearches[d.location] || 0) * 5;
+          const saveCount = saveCounts.get(d.id) || 0;
           return {
             id: d.id,
             title: d.title,
@@ -3624,18 +3629,21 @@ function CommunityTrending() {
             photos: d.photos || [],
             likes: d.likes || [],
             commentCount: cmtCount,
-            viewCount,
-            score: (d.likes?.length || 0) * 3 + cmtCount * 2 + viewCount + locBoost,
+            saveCount,
+            // 좋아요/댓글/저장 수가 높을수록 상위 — 동점이면 아래 정렬에서 최신순으로 처리
+            score: likeCount + cmtCount + saveCount,
             createdAt: d.createdAt,
             userId: d.userId,
           };
         })
-        .sort((a, b) => b.score - a.score)
+        .sort((a, b) =>
+          b.score - a.score || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
         .slice(0, 12);
     } catch {
       return [];
     }
-  }, []);
+  })();
 
   if (allTrendingPosts.length === 0) return null;
 
