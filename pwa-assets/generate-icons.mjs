@@ -14,11 +14,15 @@ const CROP = { left: 242, top: 191, width: 546, height: 546 };
 
 const croppedSrc = sharp(SRC).extract(CROP);
 
-// 카드가 이미 불투명(베이지 배경)이므로 크롭 후 그대로 리사이즈 — 별도 패딩/마스크 처리 불필요
+const CARD_BG = { r: 235, g: 220, b: 208 }; // 카드 배경과 어울리는 베이지톤
+
+// 카드는 둥근 모서리라 정사각형으로 자르면 네 귀퉁이가 투명하게 남는데,
+// 이게 흰 배경 위에서 "흰 여백"처럼 보이므로 카드와 같은 색으로 채워 완전 불투명하게 만듦
 async function resizeTo(size, outFile) {
   await croppedSrc
     .clone()
     .resize(size, size, { fit: "cover" })
+    .flatten({ background: CARD_BG })
     .png()
     .toFile(path.join(PUBLIC, outFile));
   console.log(`✓ ${outFile} (${size}x${size})`);
@@ -37,7 +41,7 @@ async function resizeMaskable(size, outFile) {
       width: size,
       height: size,
       channels: 4,
-      background: { r: 235, g: 220, b: 208, alpha: 1 }, // 아이콘 배경과 어울리는 베이지톤
+      background: { ...CARD_BG, alpha: 1 },
     },
   })
     .composite([{ input: resized, gravity: "center" }])
