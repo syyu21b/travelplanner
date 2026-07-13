@@ -37,6 +37,9 @@ export const common = {
       iosBody: "하단 공유 버튼을 누른 뒤 '홈 화면에 추가'를 선택해주세요.",
       dismiss: "닫기",
     },
+    offline: {
+      message: "오프라인 모드 — 기기에 저장된 데이터를 보고 있어요",
+    },
   },
   en: {
     nav: {
@@ -75,6 +78,9 @@ export const common = {
       iosTitle: "Install this app",
       iosBody: "Tap the Share button, then 'Add to Home Screen'.",
       dismiss: "Dismiss",
+    },
+    offline: {
+      message: "Offline — showing data saved on this device",
     },
   },
 } as const;

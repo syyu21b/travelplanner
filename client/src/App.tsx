@@ -17,6 +17,7 @@ import AdminPage from "./pages/AdminPage";
 import MyPage from "./pages/MyPage";
 import Footer from "./components/Footer";
 import PwaInstallBanner from "./components/PwaInstallBanner";
+import OfflineIndicator from "./components/OfflineIndicator";
 import { Plane, BookOpen, Globe, User, LogOut, Shield, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -207,6 +208,7 @@ function App() {
             <Toaster />
             <AuthProvider>
               <NotificationProvider>
+                <OfflineIndicator />
                 <ProtectedRouter />
               </NotificationProvider>
             </AuthProvider>
