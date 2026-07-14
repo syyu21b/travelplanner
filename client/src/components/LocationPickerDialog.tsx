@@ -6,18 +6,20 @@ import { MapPin, X, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MapView, type MapMarker, geocodeAddress, reverseGeocodeToAddress } from "@/components/Map";
-import { LeafletMapView, geocodeAddressOSM, reverseGeocodeToAddressOSM } from "@/components/LeafletMap";
+import { OverseasMapView, geocodeAddressOSM, reverseGeocodeToAddressOSM } from "@/components/OverseasMap";
+
+type MapMode = "domestic" | "overseas";
 
 interface LocationPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialLat?: number;
   initialLng?: number;
+  /** 다이얼로그를 열 때 시작할 국내/해외 모드 (예: 이미 해외로 저장된 위치를 수정하는 경우). 기본값 "domestic" */
+  initialRegion?: MapMode;
   title?: string;
-  onConfirm: (lat: number, lng: number, address?: string) => void;
+  onConfirm: (lat: number, lng: number, address: string | undefined, region: MapMode) => void;
 }
-
-type MapMode = "domestic" | "overseas";
 
 const DOMESTIC_DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 }; // 서울시청
 const OVERSEAS_DEFAULT_CENTER = { lat: 48.8566, lng: 2.3522 }; // 파리 (해외 기본값)
@@ -34,10 +36,11 @@ export function LocationPickerDialog({
   onOpenChange,
   initialLat,
   initialLng,
+  initialRegion = "domestic",
   title = "지도에서 위치 선택",
   onConfirm,
 }: LocationPickerDialogProps) {
-  const [mapMode, setMapMode] = useState<MapMode>("domestic");
+  const [mapMode, setMapMode] = useState<MapMode>(initialRegion);
   const [picked, setPicked] = useState<{ lat: number; lng: number } | null>(
     initialLat !== undefined && initialLng !== undefined ? { lat: initialLat, lng: initialLng } : null
   );
@@ -51,13 +54,14 @@ export function LocationPickerDialog({
   // 다이얼로그를 열 때마다 초기 상태로 리셋
   useEffect(() => {
     if (open) {
-      setMapMode("domestic");
+      setMapMode(initialRegion);
       setPicked(initialLat !== undefined && initialLng !== undefined ? { lat: initialLat, lng: initialLng } : null);
       setPickedAddress(null);
       setSearchQuery("");
       setSearchResults([]);
     }
-  }, [open, initialLat, initialLng]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialLat, initialLng, initialRegion]);
 
   const switchMapMode = (mode: MapMode) => {
     if (mode === mapMode) return;
@@ -124,7 +128,7 @@ export function LocationPickerDialog({
 
   const handleConfirm = () => {
     if (!picked) return;
-    onConfirm(picked.lat, picked.lng, pickedAddress || undefined);
+    onConfirm(picked.lat, picked.lng, pickedAddress || undefined, mapMode);
     onOpenChange(false);
   };
 
@@ -227,7 +231,7 @@ export function LocationPickerDialog({
               onMarkerDelete={clearSelection}
             />
           ) : (
-            <LeafletMapView
+            <OverseasMapView
               key="overseas"
               className="h-[260px] sm:h-[400px]"
               initialCenter={picked ?? OVERSEAS_DEFAULT_CENTER}

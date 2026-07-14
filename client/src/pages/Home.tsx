@@ -24,8 +24,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
 import { MapView, type MapMarker } from '@/components/Map';
-import { LeafletMapView } from '@/components/LeafletMap';
-import type { Map as LeafletMapInstance } from 'leaflet';
+import { OverseasMapView } from '@/components/OverseasMap';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -42,6 +42,8 @@ interface ScheduleItem {
   location?: string;
   lat?: number;
   lng?: number;
+  /** 위치를 국내(네이버)/해외(OpenStreetMap) 중 어느 지도에서 선택했는지 — 지도 탭에서 국내/해외를 분리해 보여주는 데 사용 */
+  region?: 'domestic' | 'overseas';
   cost?: number;
   link?: string;
   notes?: string;
@@ -79,6 +81,8 @@ interface Accommodation {
   address?: string;
   lat?: number;
   lng?: number;
+  /** 주소를 국내(네이버)/해외(OpenStreetMap) 중 어느 지도에서 선택했는지 */
+  region?: 'domestic' | 'overseas';
   checkInDate: string;
   checkInTime?: string;
   checkOutDate: string;
@@ -145,6 +149,21 @@ function compressPlanCoverPhoto(file: File): Promise<string> {
     };
     reader.readAsDataURL(file);
   });
+}
+
+// 시간 입력값(HH:mm, 24시간제)을 "h:mm AM/PM" 형식으로 바꿔 계획을 읽을 때 가독성을 높임.
+// <input type="time"> 편집 위젯 자체는 그대로 24시간제를 사용하고, 읽기 전용 화면에서만 이 함수를 거친다.
+function formatTime12h(time?: string): string {
+  if (!time) return '';
+  const match = /^(\d{1,2}):(\d{2})/.exec(time);
+  if (!match) return time;
+  const minute = match[2];
+  let hour = parseInt(match[1], 10);
+  if (Number.isNaN(hour)) return time;
+  const period = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${minute} ${period}`;
 }
 
 function schedulesOverlap(aDate: string, aStart: string, aEnd: string | undefined, b: ScheduleItem): boolean {
@@ -301,16 +320,19 @@ export default function Home() {
   const [detailSchedule, setDetailSchedule] = useState<ScheduleItem | null>(null);
   const [showScheduleDetail, setShowScheduleDetail] = useState(false);
 
-  // 지도 탭 - 출발/도착 선택 상태
-  const [routeSelectMode, setRouteSelectMode] = useState<'origin' | 'destination' | null>(null);
-  const [routeOriginId, setRouteOriginId] = useState<string | null>(null);
-  const [routeDestinationId, setRouteDestinationId] = useState<string | null>(null);
+  // 지도 탭 - 출발/도착 선택 상태 (국내/해외가 서로 섞이지 않도록 완전히 분리해서 관리)
+  const [domesticRouteSelectMode, setDomesticRouteSelectMode] = useState<'origin' | 'destination' | null>(null);
+  const [domesticRouteOriginId, setDomesticRouteOriginId] = useState<string | null>(null);
+  const [domesticRouteDestinationId, setDomesticRouteDestinationId] = useState<string | null>(null);
+  const [overseasRouteSelectMode, setOverseasRouteSelectMode] = useState<'origin' | 'destination' | null>(null);
+  const [overseasRouteOriginId, setOverseasRouteOriginId] = useState<string | null>(null);
+  const [overseasRouteDestinationId, setOverseasRouteDestinationId] = useState<string | null>(null);
   // 지도 탭 - 국내(네이버)/해외(OpenStreetMap) 선택
   const [mapTabMode, setMapTabMode] = useState<'domestic' | 'overseas'>('domestic');
 
   const pdfRef = useRef<HTMLDivElement>(null);
   const scheduleMapRef = useRef<naver.maps.Map | null>(null);
-  const scheduleLeafletMapRef = useRef<LeafletMapInstance | null>(null);
+  const scheduleOverseasMapRef = useRef<MapLibreMap | null>(null);
   const planPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // LocalStorage에 데이터 저장 (유저별)
@@ -669,7 +691,7 @@ export default function Home() {
       .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
       .map(s => `
         <div style="padding: 10px; border-bottom: 1px solid #eee;">
-          <div style="font-weight: bold; color: #0ea5e9;">${s.date} ${s.time}</div>
+          <div style="font-weight: bold; color: #0ea5e9;">${s.date} ${formatTime12h(s.time)}</div>
           <div style="font-size: 1.1em; font-weight: bold; margin: 5px 0;">${s.title}</div>
           <div style="font-size: 0.9em; color: #666;">📍 ${s.location || '-'}</div>
           ${s.cost ? `<div style="font-size: 0.9em; color: #0ea5e9; font-weight: bold;">₩${s.cost.toLocaleString()}</div>` : ''}
@@ -753,7 +775,7 @@ export default function Home() {
 
     content += `■ ${t('home.textExport.scheduleSection')}\n`;
     currentPlan.schedules.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).forEach((s, idx) => {
-      content += `${idx + 1}. [${s.date} ${s.time}] ${getCategoryLabel(s.category)}: ${s.title}\n`;
+      content += `${idx + 1}. [${s.date} ${formatTime12h(s.time)}] ${getCategoryLabel(s.category)}: ${s.title}\n`;
       if (s.location) content += `   ${t('home.textExport.location')}: ${s.location}\n`;
       if (s.cost) content += `   ${t('home.textExport.cost')}: ₩${s.cost.toLocaleString()}\n`;
       if (s.notes) content += `   ${t('home.textExport.notes')}: ${s.notes}\n`;
@@ -891,7 +913,7 @@ export default function Home() {
                   </button>
                   <div className={cn("flex items-start justify-between gap-2 transition-opacity", s.completed && "opacity-50")}>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-primary mb-0.5">{s.time}{s.endTime ? ` ~ ${s.endTime}` : ''}</p>
+                      <p className="text-xs font-bold text-primary mb-0.5">{formatTime12h(s.time)}{s.endTime ? ` ~ ${formatTime12h(s.endTime)}` : ''}</p>
                       <p className={cn("font-bold text-foreground truncate", s.completed && "line-through")}>{s.title}</p>
                       {s.location && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
@@ -963,8 +985,8 @@ export default function Home() {
               onClick={() => { setDetailSchedule(s); setShowScheduleDetail(true); }}
               className="w-full flex items-center gap-3 p-2.5 bg-secondary rounded-lg text-sm hover:bg-secondary/70 transition-colors text-left"
             >
-              <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0">{s.date}</span>
-              <span className="text-sky-600 font-mono text-xs w-28 flex-shrink-0">{s.time}{s.endTime ? ` ~ ${s.endTime}` : ''}</span>
+              <span className="text-muted-foreground font-mono text-xs flex-shrink-0">{s.date}</span>
+              <span className="text-sky-600 font-mono text-xs flex-shrink-0 whitespace-nowrap">{formatTime12h(s.time)}{s.endTime ? ` ~ ${formatTime12h(s.endTime)}` : ''}</span>
               <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
                 {getCategoryLabel(s.category)}
               </span>
@@ -1806,208 +1828,246 @@ export default function Home() {
                   {/* 지도 탭 */}
                   <TabsContent value="map" className="space-y-4">
                     <Card className="p-6 bg-white border-border">
-                      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                          <Map className="w-5 h-5 text-primary" /> {t('home.map.title')}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setMapTabMode('domestic')}
-                            className={cn(
-                              "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-colors",
-                              mapTabMode === 'domestic' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
-                            )}
-                          >
-                            {t('home.map.domestic')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMapTabMode('overseas')}
-                            className={cn(
-                              "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-colors",
-                              mapTabMode === 'overseas' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
-                            )}
-                          >
-                            {t('home.map.overseas')}
-                          </button>
-                          <span className="text-sm text-muted-foreground">
-                            {t('home.map.pinnedCount', { n: currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined).length })}
-                          </span>
-                        </div>
-                      </div>
                       {(() => {
-                        const pinned = [...currentPlan.schedules]
-                          .filter(s => s.lat !== undefined && s.lng !== undefined)
+                        const isDomestic = mapTabMode === 'domestic';
+                        const matchesRegion = (region?: 'domestic' | 'overseas') => (isDomestic ? region !== 'overseas' : region === 'overseas');
+
+                        // 일정 + 숙소를 하나의 지도 핀 목록으로 합침 (마커 id 충돌 방지를 위해 접두어로 구분)
+                        const pinnedSchedules = currentPlan.schedules
+                          .filter(s => s.lat !== undefined && s.lng !== undefined && matchesRegion(s.region))
+                          .map(s => ({ kind: 'schedule' as const, id: `sched-${s.id}`, sourceId: s.id, lat: s.lat as number, lng: s.lng as number, date: s.date, time: s.time, schedule: s }));
+                        const pinnedAccommodations = (currentPlan.accommodations || [])
+                          .filter(a => a.lat !== undefined && a.lng !== undefined && matchesRegion(a.region))
+                          .map(a => ({ kind: 'accommodation' as const, id: `acc-${a.id}`, sourceId: a.id, lat: a.lat as number, lng: a.lng as number, date: a.checkInDate, time: a.checkInTime || '', accommodation: a }));
+                        const pinned = [...pinnedSchedules, ...pinnedAccommodations]
                           .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-                        if (pinned.length === 0) {
-                          return (
-                            <div className="text-center py-12 text-muted-foreground">
-                              <MapPin className="w-10 h-10 mx-auto mb-3 text-border" />
-                              <p className="text-sm">{t('home.map.emptyState')}</p>
-                              <p className="text-xs mt-1">{t('home.map.emptyStateHint')}</p>
-                            </div>
-                          );
-                        }
-                        const markers: MapMarker[] = pinned.map((s, i) => ({
-                          id: s.id,
-                          lat: s.lat as number,
-                          lng: s.lng as number,
-                          title: `${i + 1}. ${s.title} (${s.date} ${s.time})`,
+
+                        const routeSelectMode = isDomestic ? domesticRouteSelectMode : overseasRouteSelectMode;
+                        const setRouteSelectMode = isDomestic ? setDomesticRouteSelectMode : setOverseasRouteSelectMode;
+                        const routeOriginId = isDomestic ? domesticRouteOriginId : overseasRouteOriginId;
+                        const setRouteOriginId = isDomestic ? setDomesticRouteOriginId : setOverseasRouteOriginId;
+                        const routeDestinationId = isDomestic ? domesticRouteDestinationId : overseasRouteDestinationId;
+                        const setRouteDestinationId = isDomestic ? setDomesticRouteDestinationId : setOverseasRouteDestinationId;
+
+                        const pinLabel = (p: (typeof pinned)[number]) => p.kind === 'schedule' ? p.schedule.title : p.accommodation.name;
+                        const pinTitle = (p: (typeof pinned)[number], i: number) =>
+                          p.kind === 'schedule'
+                            ? `${i + 1}. ${p.schedule.title} (${p.date} ${formatTime12h(p.time)})`
+                            : `${i + 1}. ${p.accommodation.name} (${t('home.category.accommodation')})`;
+
+                        const markers: MapMarker[] = pinned.map((p, i) => ({
+                          id: p.id,
+                          lat: p.lat,
+                          lng: p.lng,
+                          title: pinTitle(p, i),
                           draggable: false,
                           label: String(i + 1),
                         }));
-                        const panToSchedule = (s: (typeof pinned)[number]) => {
-                          if (s.lat === undefined || s.lng === undefined) return;
-                          if (mapTabMode === 'domestic') {
+                        const panToPin = (p: (typeof pinned)[number]) => {
+                          if (isDomestic) {
                             const map = scheduleMapRef.current;
                             if (!map || !window.naver) return;
-                            map.morph(new window.naver.maps.LatLng(s.lat, s.lng), Math.max(map.getZoom(), 15));
+                            map.morph(new window.naver.maps.LatLng(p.lat, p.lng), Math.max(map.getZoom(), 15));
                           } else {
-                            const map = scheduleLeafletMapRef.current;
+                            const map = scheduleOverseasMapRef.current;
                             if (!map) return;
-                            map.flyTo([s.lat, s.lng], Math.max(map.getZoom(), 15));
+                            map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 15) });
                           }
                         };
-                        const routeOrigin = pinned.find(s => s.id === routeOriginId);
-                        const routeDestination = pinned.find(s => s.id === routeDestinationId);
+                        const routeOrigin = pinned.find(p => p.id === routeOriginId);
+                        const routeDestination = pinned.find(p => p.id === routeDestinationId);
                         const canGetDirections = !!routeOrigin && !!routeDestination && routeOrigin.id !== routeDestination.id;
-                        const handleRowClick = (s: (typeof pinned)[number]) => {
+                        const handleRowClick = (p: (typeof pinned)[number]) => {
                           if (routeSelectMode === 'origin') {
-                            setRouteOriginId(s.id);
+                            setRouteOriginId(p.id);
                             setRouteSelectMode(null);
                           } else if (routeSelectMode === 'destination') {
-                            setRouteDestinationId(s.id);
+                            setRouteDestinationId(p.id);
                             setRouteSelectMode(null);
                           } else {
-                            panToSchedule(s);
+                            panToPin(p);
                           }
                         };
+                        const handleMarkerDelete = (id: string) => {
+                          const p = pinned.find(item => item.id === id);
+                          if (p) {
+                            if (p.kind === 'schedule') {
+                              handleUpdateSchedule(p.sourceId, { ...p.schedule, lat: undefined, lng: undefined, region: undefined });
+                            } else {
+                              handleUpdateAccommodation(p.sourceId, { ...p.accommodation, lat: undefined, lng: undefined, region: undefined });
+                            }
+                          }
+                          if (routeOriginId === id) setRouteOriginId(null);
+                          if (routeDestinationId === id) setRouteDestinationId(null);
+                        };
+
                         return (
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                            <div className="lg:col-span-2">
-                              {mapTabMode === 'domestic' ? (
-                                <MapView
-                                  key="domestic"
-                                  markers={markers}
-                                  fitToMarkers
-                                  onMapReady={map => {
-                                    scheduleMapRef.current = map;
-                                  }}
-                                  onMarkerDelete={id => {
-                                    const target = currentPlan.schedules.find(s => s.id === id);
-                                    if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
-                                    if (routeOriginId === id) setRouteOriginId(null);
-                                    if (routeDestinationId === id) setRouteDestinationId(null);
-                                  }}
-                                />
-                              ) : (
-                                <LeafletMapView
-                                  key="overseas"
-                                  markers={markers}
-                                  fitToMarkers
-                                  onMapReady={map => {
-                                    scheduleLeafletMapRef.current = map;
-                                  }}
-                                  onMarkerDelete={id => {
-                                    const target = currentPlan.schedules.find(s => s.id === id);
-                                    if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
-                                    if (routeOriginId === id) setRouteOriginId(null);
-                                    if (routeDestinationId === id) setRouteDestinationId(null);
-                                  }}
-                                />
-                              )}
-                              <div className="mt-4 pt-4 border-t border-border">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setRouteSelectMode(routeSelectMode === 'origin' ? null : 'origin')}
-                                    className={cn(
-                                      "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
-                                      routeSelectMode === 'origin' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
-                                    )}
-                                  >
-                                    {t('home.map.routeOriginLabel')}{routeOrigin ? `: ${pinned.indexOf(routeOrigin) + 1}. ${routeOrigin.title}` : ''}
-                                  </button>
-                                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                  <button
-                                    type="button"
-                                    onClick={() => setRouteSelectMode(routeSelectMode === 'destination' ? null : 'destination')}
-                                    className={cn(
-                                      "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
-                                      routeSelectMode === 'destination' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
-                                    )}
-                                  >
-                                    {t('home.map.routeDestinationLabel')}{routeDestination ? `: ${pinned.indexOf(routeDestination) + 1}. ${routeDestination.title}` : ''}
-                                  </button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (!routeOrigin || !routeDestination || routeOrigin.lat === undefined || routeDestination.lat === undefined) return;
-                                      openDirectionsBetween(
-                                        { lat: routeOrigin.lat, lng: routeOrigin.lng as number },
-                                        { lat: routeDestination.lat, lng: routeDestination.lng as number }
-                                      );
-                                    }}
-                                    disabled={!canGetDirections}
-                                    className="gap-1.5 h-9"
-                                  >
-                                    <Navigation className="w-4 h-4" /> {t('home.map.getDirections')}
-                                  </Button>
-                                </div>
-                                {routeSelectMode && (
-                                  <p className="text-xs text-primary font-semibold mt-2">
-                                    {routeSelectMode === 'origin' ? t('home.map.selectOriginHint') : t('home.map.selectDestinationHint')}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                              <p className="text-xs font-semibold text-muted-foreground px-1 mb-1">
-                                {routeSelectMode ? (routeSelectMode === 'origin' ? t('home.map.selectOriginHint') : t('home.map.selectDestinationHint')) : t('home.map.tapToLocate')}
-                              </p>
-                              {pinned.map((s, i) => (
+                          <>
+                            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                <Map className="w-5 h-5 text-primary" /> {t('home.map.title')}
+                              </h3>
+                              <div className="flex items-center gap-2">
                                 <button
-                                  key={s.id}
                                   type="button"
-                                  onClick={() => handleRowClick(s)}
+                                  onClick={() => setMapTabMode('domestic')}
                                   className={cn(
-                                    "w-full text-left flex items-start gap-3 p-3 rounded-xl border transition-colors",
-                                    routeOriginId === s.id ? "border-emerald-400 bg-emerald-50" :
-                                    routeDestinationId === s.id ? "border-rose-400 bg-rose-50" :
-                                    "border-border hover:border-primary/40 hover:bg-primary/5"
+                                    "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-colors",
+                                    mapTabMode === 'domestic' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
                                   )}
                                 >
-                                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center mt-0.5">
-                                    {i + 1}
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <p className="text-sm font-bold text-foreground">{s.title}</p>
-                                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0", getCategoryColor(s.category))}>
-                                        {getCategoryLabel(s.category)}
-                                      </span>
-                                      {routeOriginId === s.id && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 bg-emerald-100 text-emerald-700">{t('home.map.routeOriginBadge')}</span>
-                                      )}
-                                      {routeDestinationId === s.id && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 bg-rose-100 text-rose-700">{t('home.map.routeDestinationBadge')}</span>
-                                      )}
+                                  {t('home.map.domestic')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setMapTabMode('overseas')}
+                                  className={cn(
+                                    "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-colors",
+                                    mapTabMode === 'overseas' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                                  )}
+                                >
+                                  {t('home.map.overseas')}
+                                </button>
+                                <span className="text-sm text-muted-foreground">
+                                  {t('home.map.pinnedCount', { n: pinned.length })}
+                                </span>
+                              </div>
+                            </div>
+
+                            {pinned.length === 0 ? (
+                              <div className="text-center py-12 text-muted-foreground">
+                                <MapPin className="w-10 h-10 mx-auto mb-3 text-border" />
+                                <p className="text-sm">{t('home.map.emptyState')}</p>
+                                <p className="text-xs mt-1">{t('home.map.emptyStateHint')}</p>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <div className="lg:col-span-2">
+                                  {isDomestic ? (
+                                    <MapView
+                                      key="domestic"
+                                      markers={markers}
+                                      fitToMarkers
+                                      onMapReady={map => {
+                                        scheduleMapRef.current = map;
+                                      }}
+                                      onMarkerDelete={handleMarkerDelete}
+                                    />
+                                  ) : (
+                                    <OverseasMapView
+                                      key="overseas"
+                                      markers={markers}
+                                      fitToMarkers
+                                      onMapReady={map => {
+                                        scheduleOverseasMapRef.current = map;
+                                      }}
+                                      onMarkerDelete={handleMarkerDelete}
+                                    />
+                                  )}
+                                  <div className="mt-4 pt-4 border-t border-border">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setRouteSelectMode(routeSelectMode === 'origin' ? null : 'origin')}
+                                        className={cn(
+                                          "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
+                                          routeSelectMode === 'origin' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                                        )}
+                                      >
+                                        {t('home.map.routeOriginLabel')}{routeOrigin ? `: ${pinned.indexOf(routeOrigin) + 1}. ${pinLabel(routeOrigin)}` : ''}
+                                      </button>
+                                      <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                      <button
+                                        type="button"
+                                        onClick={() => setRouteSelectMode(routeSelectMode === 'destination' ? null : 'destination')}
+                                        className={cn(
+                                          "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
+                                          routeSelectMode === 'destination' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                                        )}
+                                      >
+                                        {t('home.map.routeDestinationLabel')}{routeDestination ? `: ${pinned.indexOf(routeDestination) + 1}. ${pinLabel(routeDestination)}` : ''}
+                                      </button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => {
+                                          if (!routeOrigin || !routeDestination || routeOrigin.lat === undefined || routeDestination.lat === undefined) return;
+                                          openDirectionsBetween(
+                                            { lat: routeOrigin.lat, lng: routeOrigin.lng as number },
+                                            { lat: routeDestination.lat, lng: routeDestination.lng as number }
+                                          );
+                                        }}
+                                        disabled={!canGetDirections}
+                                        className="gap-1.5 h-9"
+                                      >
+                                        <Navigation className="w-4 h-4" /> {t('home.map.getDirections')}
+                                      </Button>
                                     </div>
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                      <Calendar className="w-3 h-3 flex-shrink-0" /> {s.date} {s.time}
-                                    </p>
-                                    {s.location && (
-                                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
-                                        <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                                    {routeSelectMode && (
+                                      <p className="text-xs text-primary font-semibold mt-2">
+                                        {routeSelectMode === 'origin' ? t('home.map.selectOriginHint') : t('home.map.selectDestinationHint')}
                                       </p>
                                     )}
                                   </div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                                </div>
+                                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                                  <p className="text-xs font-semibold text-muted-foreground px-1 mb-1">
+                                    {routeSelectMode ? (routeSelectMode === 'origin' ? t('home.map.selectOriginHint') : t('home.map.selectDestinationHint')) : t('home.map.tapToLocate')}
+                                  </p>
+                                  {pinned.map((p, i) => (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      onClick={() => handleRowClick(p)}
+                                      className={cn(
+                                        "w-full text-left flex items-start gap-3 p-3 rounded-xl border transition-colors",
+                                        routeOriginId === p.id ? "border-emerald-400 bg-emerald-50" :
+                                        routeDestinationId === p.id ? "border-rose-400 bg-rose-50" :
+                                        "border-border hover:border-primary/40 hover:bg-primary/5"
+                                      )}
+                                    >
+                                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                                        {i + 1}
+                                      </span>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <p className="text-sm font-bold text-foreground">{pinLabel(p)}</p>
+                                          {p.kind === 'schedule' ? (
+                                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0", getCategoryColor(p.schedule.category))}>
+                                              {getCategoryLabel(p.schedule.category)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 bg-rose-100 text-rose-700">
+                                              {t('home.category.accommodation')}
+                                            </span>
+                                          )}
+                                          {routeOriginId === p.id && (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 bg-emerald-100 text-emerald-700">{t('home.map.routeOriginBadge')}</span>
+                                          )}
+                                          {routeDestinationId === p.id && (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 bg-rose-100 text-rose-700">{t('home.map.routeDestinationBadge')}</span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                          <Calendar className="w-3 h-3 flex-shrink-0" /> {p.date}{p.time ? ` ${formatTime12h(p.time)}` : ''}
+                                        </p>
+                                        {p.kind === 'schedule' && p.schedule.location && (
+                                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                                            <MapPin className="w-3 h-3 flex-shrink-0" /> {p.schedule.location}
+                                          </p>
+                                        )}
+                                        {p.kind === 'accommodation' && p.accommodation.address && (
+                                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                                            <MapPin className="w-3 h-3 flex-shrink-0" /> {p.accommodation.address}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
                         );
                       })()}
                     </Card>
@@ -2354,7 +2414,7 @@ export default function Home() {
                       <div key={s.id} className="p-4 border border-slate-200 rounded-xl">
                         <div className="flex justify-between items-start mb-2">
                           <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold", getCategoryColor(s.category))}>{getCategoryLabel(s.category)}</span>
-                          <span className="text-sm text-slate-500 font-bold">{s.date} {s.time}</span>
+                          <span className="text-sm text-slate-500 font-bold">{s.date} {formatTime12h(s.time)}</span>
                         </div>
                         <h3 className="text-lg font-bold mb-1">{s.title}</h3>
                         {s.location && <p className="text-sm text-slate-600 flex items-center gap-1">📍 {s.location}</p>}
@@ -2501,7 +2561,7 @@ export default function Home() {
                               <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold", getCategoryColor(s.category))}>
                                 {getCategoryLabel(s.category)}
                               </span>
-                              <span className="text-xs text-slate-500 font-semibold">{s.time}</span>
+                              <span className="text-xs text-slate-500 font-semibold">{formatTime12h(s.time)}</span>
                             </div>
                             <p className="font-bold text-foreground">{s.title}</p>
                             {s.location && (
@@ -2533,7 +2593,7 @@ export default function Home() {
                       .map(s => (
                         <div key={s.id} className="flex items-center gap-3 p-2 bg-secondary rounded-lg text-sm">
                           <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0">{s.date}</span>
-                          <span className="text-sky-500 font-mono text-xs w-12 flex-shrink-0">{s.time}</span>
+                          <span className="text-sky-500 font-mono text-xs w-16 flex-shrink-0 whitespace-nowrap">{formatTime12h(s.time)}</span>
                           <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
                             {getCategoryLabel(s.category)}
                           </span>
@@ -2694,10 +2754,10 @@ export default function Home() {
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap">
                 <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkInShort')} {previewAccommodation.checkInDate}{previewAccommodation.checkInTime ? ` ${previewAccommodation.checkInTime}` : ''}
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkInShort')} {previewAccommodation.checkInDate}{previewAccommodation.checkInTime ? ` ${formatTime12h(previewAccommodation.checkInTime)}` : ''}
                 </span>
                 <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkOutShort')} {previewAccommodation.checkOutDate}{previewAccommodation.checkOutTime ? ` ${previewAccommodation.checkOutTime}` : ''}
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkOutShort')} {previewAccommodation.checkOutDate}{previewAccommodation.checkOutTime ? ` ${formatTime12h(previewAccommodation.checkOutTime)}` : ''}
                 </span>
               </div>
               {previewAccommodation.address && (
@@ -2772,15 +2832,15 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap">
                 <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.departureShort')} {previewFlight.departureDate}{previewFlight.departureTime ? ` ${previewFlight.departureTime}` : ''}
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.departureShort')} {previewFlight.departureDate}{previewFlight.departureTime ? ` ${formatTime12h(previewFlight.departureTime)}` : ''}
                 </span>
                 <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.arrivalShort')} {previewFlight.arrivalDate}{previewFlight.arrivalTime ? ` ${previewFlight.arrivalTime}` : ''}
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.arrivalShort')} {previewFlight.arrivalDate}{previewFlight.arrivalTime ? ` ${formatTime12h(previewFlight.arrivalTime)}` : ''}
                 </span>
               </div>
               {previewFlight.boardingTime && (
                 <p className="flex items-center gap-1.5 text-sm text-slate-600">
-                  <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {previewFlight.boardingTime}
+                  <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {formatTime12h(previewFlight.boardingTime)}
                 </p>
               )}
               {(previewFlight.terminal || previewFlight.gate || previewFlight.seat) && (
@@ -2824,7 +2884,7 @@ export default function Home() {
                   <Calendar className="w-3.5 h-3.5" /> {detailSchedule.date}
                 </span>
                 <span className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> {detailSchedule.time}{detailSchedule.endTime ? ` ~ ${detailSchedule.endTime}` : ''}
+                  <Clock className="w-3.5 h-3.5" /> {formatTime12h(detailSchedule.time)}{detailSchedule.endTime ? ` ~ ${formatTime12h(detailSchedule.endTime)}` : ''}
                 </span>
               </div>
               {detailSchedule.location && (
@@ -2911,7 +2971,10 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
             {editData.lat !== undefined && editData.lng !== undefined && (
               <p className="text-xs text-primary flex items-center gap-1">
                 <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: editData.lat.toFixed(5), lng: editData.lng.toFixed(5) })}
-                <button type="button" onClick={() => setEditData({ ...editData, lat: undefined, lng: undefined })} className="text-red-400 hover:text-red-600 ml-1">
+                {editData.region === 'overseas' && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-secondary text-[10px] font-bold">{t('home.map.overseas')}</span>
+                )}
+                <button type="button" onClick={() => setEditData({ ...editData, lat: undefined, lng: undefined, region: undefined })} className="text-red-400 hover:text-red-600 ml-1">
                   <X className="w-3 h-3" />
                 </button>
               </p>
@@ -2921,8 +2984,9 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
               onOpenChange={setShowPicker}
               initialLat={editData.lat}
               initialLng={editData.lng}
-              onConfirm={(pickedLat, pickedLng, address) =>
-                setEditData({ ...editData, lat: pickedLat, lng: pickedLng, address: address || editData.address })
+              initialRegion={editData.region || 'domestic'}
+              onConfirm={(pickedLat, pickedLng, address, region) =>
+                setEditData({ ...editData, lat: pickedLat, lng: pickedLng, address: address || editData.address, region })
               }
             />
           </div>
@@ -3008,11 +3072,11 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600 mb-1">
             <p className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Calendar className="w-4 h-4 text-primary" />
-              {t('home.accommodation.checkInShort')} {accommodation.checkInDate}{accommodation.checkInTime ? ` ${accommodation.checkInTime}` : ''}
+              {t('home.accommodation.checkInShort')} {accommodation.checkInDate}{accommodation.checkInTime ? ` ${formatTime12h(accommodation.checkInTime)}` : ''}
             </p>
             <p className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Calendar className="w-4 h-4 text-primary" />
-              {t('home.accommodation.checkOutShort')} {accommodation.checkOutDate}{accommodation.checkOutTime ? ` ${accommodation.checkOutTime}` : ''}
+              {t('home.accommodation.checkOutShort')} {accommodation.checkOutDate}{accommodation.checkOutTime ? ` ${formatTime12h(accommodation.checkOutTime)}` : ''}
             </p>
           </div>
 
@@ -3068,6 +3132,7 @@ function AccommodationForm({ onAdd }: { onAdd: (accommodation: Accommodation) =>
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState<number | undefined>(undefined);
   const [lng, setLng] = useState<number | undefined>(undefined);
+  const [region, setRegion] = useState<'domestic' | 'overseas' | undefined>(undefined);
   const [showPicker, setShowPicker] = useState(false);
   const [checkInDate, setCheckInDate] = useState('');
   const [checkInTime, setCheckInTime] = useState('');
@@ -3086,7 +3151,7 @@ function AccommodationForm({ onAdd }: { onAdd: (accommodation: Accommodation) =>
       id: Date.now().toString(),
       name,
       address: address || undefined,
-      lat, lng,
+      lat, lng, region,
       checkInDate,
       checkInTime: checkInTime || undefined,
       checkOutDate,
@@ -3096,7 +3161,7 @@ function AccommodationForm({ onAdd }: { onAdd: (accommodation: Accommodation) =>
       link: link || undefined,
       notes: notes || undefined,
     });
-    setName(''); setAddress(''); setLat(undefined); setLng(undefined);
+    setName(''); setAddress(''); setLat(undefined); setLng(undefined); setRegion(undefined);
     setCheckInDate(''); setCheckInTime(''); setCheckOutDate(''); setCheckOutTime('');
     setPhone(''); setReservationNumber(''); setLink(''); setNotes('');
   };
@@ -3138,7 +3203,10 @@ function AccommodationForm({ onAdd }: { onAdd: (accommodation: Accommodation) =>
         {lat !== undefined && lng !== undefined && (
           <p className="text-xs text-primary flex items-center gap-1">
             <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: lat.toFixed(5), lng: lng.toFixed(5) })}
-            <button type="button" onClick={() => { setLat(undefined); setLng(undefined); }} className="text-red-400 hover:text-red-600 ml-1">
+            {region === 'overseas' && (
+              <span className="px-1.5 py-0.5 rounded-full bg-secondary text-[10px] font-bold">{t('home.map.overseas')}</span>
+            )}
+            <button type="button" onClick={() => { setLat(undefined); setLng(undefined); setRegion(undefined); }} className="text-red-400 hover:text-red-600 ml-1">
               <X className="w-3 h-3" />
             </button>
           </p>
@@ -3148,9 +3216,11 @@ function AccommodationForm({ onAdd }: { onAdd: (accommodation: Accommodation) =>
           onOpenChange={setShowPicker}
           initialLat={lat}
           initialLng={lng}
-          onConfirm={(pickedLat, pickedLng, pickedAddress) => {
+          initialRegion={region || 'domestic'}
+          onConfirm={(pickedLat, pickedLng, pickedAddress, pickedRegion) => {
             setLat(pickedLat);
             setLng(pickedLng);
+            setRegion(pickedRegion);
             if (pickedAddress) setAddress(pickedAddress);
           }}
         />
@@ -3332,17 +3402,17 @@ function FlightCard({ flight, isEditing, onEdit, onUpdate, onDelete, onCancel }:
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600 mb-1">
             <p className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Calendar className="w-4 h-4 text-primary" />
-              {t('home.flight.departureShort')} {flight.departureDate}{flight.departureTime ? ` ${flight.departureTime}` : ''}
+              {t('home.flight.departureShort')} {flight.departureDate}{flight.departureTime ? ` ${formatTime12h(flight.departureTime)}` : ''}
             </p>
             <p className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Calendar className="w-4 h-4 text-primary" />
-              {t('home.flight.arrivalShort')} {flight.arrivalDate}{flight.arrivalTime ? ` ${flight.arrivalTime}` : ''}
+              {t('home.flight.arrivalShort')} {flight.arrivalDate}{flight.arrivalTime ? ` ${formatTime12h(flight.arrivalTime)}` : ''}
             </p>
           </div>
 
           {flight.boardingTime && (
             <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
-              <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {flight.boardingTime}
+              <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {formatTime12h(flight.boardingTime)}
             </p>
           )}
 
@@ -3568,7 +3638,10 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
             {editData.lat !== undefined && editData.lng !== undefined && (
               <p className="text-xs text-primary flex items-center gap-1">
                 <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: editData.lat.toFixed(5), lng: editData.lng.toFixed(5) })}
-                <button type="button" onClick={() => setEditData({ ...editData, lat: undefined, lng: undefined })} className="text-red-400 hover:text-red-600 ml-1">
+                {editData.region === 'overseas' && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-secondary text-[10px] font-bold">{t('home.map.overseas')}</span>
+                )}
+                <button type="button" onClick={() => setEditData({ ...editData, lat: undefined, lng: undefined, region: undefined })} className="text-red-400 hover:text-red-600 ml-1">
                   <X className="w-3 h-3" />
                 </button>
               </p>
@@ -3578,8 +3651,9 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
               onOpenChange={setShowPicker}
               initialLat={editData.lat}
               initialLng={editData.lng}
-              onConfirm={(pickedLat, pickedLng, address) =>
-                setEditData({ ...editData, lat: pickedLat, lng: pickedLng, location: address || editData.location })
+              initialRegion={editData.region || 'domestic'}
+              onConfirm={(pickedLat, pickedLng, address, region) =>
+                setEditData({ ...editData, lat: pickedLat, lng: pickedLng, location: address || editData.location, region })
               }
             />
           </div>
@@ -3636,7 +3710,7 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
             </span>
             <span className="text-sm font-bold text-slate-700">{schedule.date}</span>
             <span className="text-sm font-bold text-sky-600 ml-1.5">
-              {schedule.time}{schedule.endTime ? ` - ${schedule.endTime}` : ''}
+              {formatTime12h(schedule.time)}{schedule.endTime ? ` - ${formatTime12h(schedule.endTime)}` : ''}
             </span>
           </div>
           <h4 className="text-xl font-bold text-foreground mb-2">{schedule.title}</h4>
@@ -3776,6 +3850,7 @@ function ScheduleForm({ onAdd, existingSchedules }: { onAdd: (schedule: Schedule
   const [location, setLocation] = useState('');
   const [lat, setLat] = useState<number | undefined>(undefined);
   const [lng, setLng] = useState<number | undefined>(undefined);
+  const [region, setRegion] = useState<'domestic' | 'overseas' | undefined>(undefined);
   const [showPicker, setShowPicker] = useState(false);
   const [cost, setCost] = useState('');
   const [link, setLink] = useState('');
@@ -3790,13 +3865,13 @@ function ScheduleForm({ onAdd, existingSchedules }: { onAdd: (schedule: Schedule
       id: Date.now().toString(),
       title, date, time, endTime: endTime || undefined, category,
       location: location || undefined,
-      lat, lng,
+      lat, lng, region,
       cost: cost ? parseInt(cost) : undefined,
       link: link || undefined,
       notes: notes || undefined,
       preparations: preps ? preps.split(',').map(p => p.trim()).filter(Boolean) : []
     });
-    setTitle(''); setDate(''); setTime(''); setEndTime(''); setLocation(''); setLat(undefined); setLng(undefined); setCost(''); setLink(''); setNotes(''); setPreps('');
+    setTitle(''); setDate(''); setTime(''); setEndTime(''); setLocation(''); setLat(undefined); setLng(undefined); setRegion(undefined); setCost(''); setLink(''); setNotes(''); setPreps('');
   };
 
   return (
@@ -3861,7 +3936,10 @@ function ScheduleForm({ onAdd, existingSchedules }: { onAdd: (schedule: Schedule
         {lat !== undefined && lng !== undefined && (
           <p className="text-xs text-primary flex items-center gap-1">
             <MapPin className="w-3 h-3" /> {t('home.schedule.form.coordinatesSelected', { lat: lat.toFixed(5), lng: lng.toFixed(5) })}
-            <button type="button" onClick={() => { setLat(undefined); setLng(undefined); }} className="text-red-400 hover:text-red-600 ml-1">
+            {region === 'overseas' && (
+              <span className="px-1.5 py-0.5 rounded-full bg-secondary text-[10px] font-bold">{t('home.map.overseas')}</span>
+            )}
+            <button type="button" onClick={() => { setLat(undefined); setLng(undefined); setRegion(undefined); }} className="text-red-400 hover:text-red-600 ml-1">
               <X className="w-3 h-3" />
             </button>
           </p>
@@ -3871,9 +3949,11 @@ function ScheduleForm({ onAdd, existingSchedules }: { onAdd: (schedule: Schedule
           onOpenChange={setShowPicker}
           initialLat={lat}
           initialLng={lng}
-          onConfirm={(pickedLat, pickedLng, address) => {
+          initialRegion={region || 'domestic'}
+          onConfirm={(pickedLat, pickedLng, address, pickedRegion) => {
             setLat(pickedLat);
             setLng(pickedLng);
+            setRegion(pickedRegion);
             if (address) setLocation(address);
           }}
         />
