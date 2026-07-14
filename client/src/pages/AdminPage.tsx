@@ -3,14 +3,16 @@ import { useAuth, type PublicUser } from '@/contexts/AuthContext';
 import { useLocation } from 'wouter';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Users, Search, Edit2, Trash2, Shield, ChevronLeft, Crown,
-  Eye, EyeOff, X, CheckCircle,
+  Eye, EyeOff, X, CheckCircle, MessageCircle, Mail,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NaverMapsUsagePanel } from '@/components/NaverMapsUsagePanel';
+import { getInquiries, answerInquiry, type Inquiry } from '@/lib/inquiries';
 
 export default function AdminPage() {
   const { user, getAllUsers, adminUpdateUser, adminDeleteUser } = useAuth();
@@ -26,6 +28,11 @@ export default function AdminPage() {
 
   // 삭제 확인 모달
   const [deleteTarget, setDeleteTarget] = useState<PublicUser | null>(null);
+
+  // 문의 내역
+  const [inquiries, setInquiries] = useState<Inquiry[]>(() => getInquiries());
+  const [inquiryTarget, setInquiryTarget] = useState<Inquiry | null>(null);
+  const [answerText, setAnswerText] = useState('');
 
   if (!user?.isAdmin) {
     return (
@@ -96,6 +103,26 @@ export default function AdminPage() {
     return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
   }
 
+  const pendingInquiries = inquiries.filter(i => i.status === 'pending').length;
+
+  function openInquiry(inquiry: Inquiry) {
+    setInquiryTarget(inquiry);
+    setAnswerText(inquiry.answer || '');
+  }
+
+  function handleSendAnswer() {
+    if (!inquiryTarget) return;
+    if (!answerText.trim()) { toast.error('답변 내용을 입력해주세요.'); return; }
+    const success = answerInquiry(inquiryTarget.id, answerText.trim());
+    if (!success) {
+      toast.error('이 브라우저에서는 답변을 저장할 수 없습니다. 저장 공간을 확인해주세요.');
+      return;
+    }
+    setInquiries(getInquiries());
+    toast.success('답변이 등록되었습니다.');
+    setInquiryTarget(null);
+  }
+
   return (
     <div className="min-h-screen bg-[#F9F7F2]">
       {/* 헤더 */}
@@ -123,7 +150,7 @@ export default function AdminPage() {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* 통계 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="p-5 bg-white border-[#DED6CC]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#E8E2D9] rounded-xl flex items-center justify-center">
@@ -157,9 +184,88 @@ export default function AdminPage() {
               </div>
             </div>
           </Card>
+          <Card className="p-5 bg-white border-[#DED6CC]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-rose-500" />
+              </div>
+              <div>
+                <p className="text-xs text-[#A68B77] font-medium">답변 대기 문의</p>
+                <p className="text-2xl font-bold text-[#7D6B5D]">{pendingInquiries}</p>
+              </div>
+            </div>
+          </Card>
         </div>
 
         <NaverMapsUsagePanel />
+
+        {/* 문의 내역 */}
+        <Card className="bg-white border-[#DED6CC] mb-8">
+          <div className="p-5 border-b border-[#E8E2D9] flex items-center justify-between gap-4">
+            <h2 className="text-base font-bold text-[#7D6B5D] flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-[#A68B77]" /> 문의 내역
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#F9F7F2] border-b border-[#E8E2D9]">
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">제목</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">작성자</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide hidden md:table-cell">이메일</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide hidden lg:table-cell">작성일</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">상태</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inquiries.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-[#A68B77]">
+                      접수된 문의가 없습니다.
+                    </td>
+                  </tr>
+                ) : inquiries.map((inq, i) => (
+                  <tr key={inq.id} className={`border-b border-[#F9F7F2] hover:bg-[#FDFCFA] transition-colors ${i % 2 === 0 ? '' : 'bg-[#FDFCFA]'}`}>
+                    <td className="px-4 py-3 font-semibold text-[#7D6B5D] max-w-[200px] truncate">{inq.title}</td>
+                    <td className="px-4 py-3 text-[#7D6B5D] text-xs">{inq.name}</td>
+                    <td className="px-4 py-3 text-[#A68B77] hidden md:table-cell text-xs">{inq.email}</td>
+                    <td className="px-4 py-3 text-[#A68B77] hidden lg:table-cell text-xs">{formatDate(inq.createdAt)}</td>
+                    <td className="px-4 py-3">
+                      {inq.status === 'answered' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+                          답변완료
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                          대기중
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => openInquiry(inq)}
+                          className="p-1.5 rounded-lg hover:bg-[#E8E2D9] text-[#A68B77] hover:text-[#7D6B5D] transition-colors"
+                          title="보기"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {inquiries.length > 0 && (
+            <div className="px-4 py-3 border-t border-[#E8E2D9] text-xs text-[#A68B77]">
+              총 {inquiries.length}건 (답변 대기 {pendingInquiries}건)
+            </div>
+          )}
+        </Card>
 
         {/* 회원 목록 */}
         <Card className="bg-white border-[#DED6CC]">
@@ -356,6 +462,64 @@ export default function AdminPage() {
                   className="flex-1 bg-red-500 hover:bg-red-600 text-white"
                 >
                   <Trash2 className="w-4 h-4 mr-1" />삭제
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 문의 상세 / 답변 모달 */}
+      <Dialog open={!!inquiryTarget} onOpenChange={(o) => { if (!o) setInquiryTarget(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#7D6B5D] flex items-center gap-2 break-words">
+              <MessageCircle className="w-5 h-5 text-[#A68B77] flex-shrink-0" />
+              {inquiryTarget?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {inquiryTarget && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs text-[#A68B77]">
+                <span className="font-semibold text-[#7D6B5D]">{inquiryTarget.name}</span>
+                <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {inquiryTarget.email}</span>
+                <span>{formatDate(inquiryTarget.createdAt)}</span>
+              </div>
+
+              <div className="bg-[#F9F7F2] rounded-lg p-3 text-sm text-[#7D6B5D] whitespace-pre-wrap break-words">
+                {inquiryTarget.content}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-1.5">
+                  답변 {inquiryTarget.status === 'answered' && (
+                    <span className="text-xs font-normal text-[#A68B77]">
+                      ({formatDate(inquiryTarget.answeredAt || inquiryTarget.createdAt)} 답변됨)
+                    </span>
+                  )}
+                </label>
+                <Textarea
+                  value={answerText}
+                  onChange={(e) => setAnswerText(e.target.value)}
+                  placeholder="답변 내용을 입력해주세요."
+                  className="min-h-[140px] resize-y border-[#DED6CC]"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setInquiryTarget(null)}
+                  className="flex-1 border-[#DED6CC] text-[#7D6B5D]"
+                >
+                  닫기
+                </Button>
+                <Button
+                  onClick={handleSendAnswer}
+                  className="flex-1 bg-[#A68B77] hover:bg-[#8B7355] text-white"
+                >
+                  <CheckCircle className="w-4 h-4 mr-1.5" />
+                  {inquiryTarget.status === 'answered' ? '답변 수정' : '답변 등록'}
                 </Button>
               </div>
             </div>
