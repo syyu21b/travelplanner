@@ -980,30 +980,35 @@ export default function Home() {
     );
   };
 
-  // 준비물 체크 상태 키 — 같은 이름의 준비물이 서로 다른 일정에 각각 적혀 있어도 (예: "여권"이
-  // 1일차와 3일차에 모두 있는 경우) 서로 영향을 주지 않고 완전히 독립적으로 체크되도록
-  // "일정ID + 준비물명"을 합친 키를 사용
-  function preparationCheckKey(scheduleId: string, item: string): string {
-    return `${scheduleId}__${item}`;
+  // 준비물 체크 상태 키 — 같은 이름의 준비물이 서로 다른 일정에 중복으로 적혀 있어도
+  // (예: "여권"이 1일차와 3일차에 모두 있는 경우) 하나로 합쳐서 한 번만 체크하면 되도록
+  // "준비물명" 자체를 키로 사용 (일정과 무관)
+  function preparationCheckKey(item: string): string {
+    return item;
   }
 
   // 전체 준비물 체크리스트 — 계획 내 준비물 탭과 여행 요약 미리보기 양쪽에서 동일하게(국내/해외 구분 없이)
-  // 일정별로 묶어서 보여주되, 한 일정에 서로 다른 준비물이 여러 개 있어도 각각 독립적으로 체크 가능
+  // 모든 일정의 준비물을 모아 이름 기준으로 중복을 제거한 뒤, 겹치는 준비물 없이 하나씩만 체크 가능하도록 표시
   const renderAllPreparationsChecklistContent = (plan: TravelPlan | null, onToggle?: (key: string) => void) => {
     if (!plan) return null;
     const interactive = !!onToggle;
     const withPreps = plan.schedules.filter(s => s.preparations && s.preparations.length > 0);
 
-    let totalCount = 0;
-    let checkedCount = 0;
-    withPreps.forEach(s => {
-      (s.preparations || []).forEach(p => {
-        const label = p.trim();
-        if (!label) return;
-        totalCount++;
-        if (plan.preparationChecks?.[preparationCheckKey(s.id, label)]) checkedCount++;
+    const uniqueLabels: string[] = [];
+    const seen = new Set<string>();
+    [...withPreps]
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+      .forEach(s => {
+        (s.preparations || []).forEach(p => {
+          const label = p.trim();
+          if (!label || seen.has(label)) return;
+          seen.add(label);
+          uniqueLabels.push(label);
+        });
       });
-    });
+
+    const totalCount = uniqueLabels.length;
+    const checkedCount = uniqueLabels.filter(label => plan.preparationChecks?.[preparationCheckKey(label)]).length;
     const percent = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
 
     return (
@@ -1028,39 +1033,30 @@ export default function Home() {
             <p className="text-slate-400">{t('home.summary.allEmptyState')}</p>
           </div>
         ) : (
-          <div className="space-y-5">
-            {withPreps.map(s => (
-              <div key={s.id}>
-                <p className="text-xs font-bold text-muted-foreground mb-2 truncate">{s.title} ({s.date})</p>
-                <div className="relative pl-6 border-l-2 border-border space-y-3">
-                  {(s.preparations || []).map((p, idx) => {
-                    const label = p.trim();
-                    if (!label) return null;
-                    const key = preparationCheckKey(s.id, label);
-                    const checked = !!plan.preparationChecks?.[key];
-                    return (
-                      <div key={idx} className="relative">
-                        <button
-                          type="button"
-                          onClick={onToggle ? () => onToggle(key) : undefined}
-                          disabled={!interactive}
-                          aria-label={checked ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
-                          className={cn(
-                            "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
-                            checked ? "bg-primary border-primary" : "bg-white border-border",
-                            interactive && !checked && "hover:border-primary",
-                            !interactive && "cursor-default"
-                          )}
-                        >
-                          {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-                        </button>
-                        <p className={cn("font-semibold text-foreground text-sm transition-opacity", checked && "line-through opacity-50")}>{label}</p>
-                      </div>
-                    );
-                  })}
+          <div className="relative pl-6 border-l-2 border-border space-y-3">
+            {uniqueLabels.map(label => {
+              const key = preparationCheckKey(label);
+              const checked = !!plan.preparationChecks?.[key];
+              return (
+                <div key={key} className="relative">
+                  <button
+                    type="button"
+                    onClick={onToggle ? () => onToggle(key) : undefined}
+                    disabled={!interactive}
+                    aria-label={checked ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
+                    className={cn(
+                      "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
+                      checked ? "bg-primary border-primary" : "bg-white border-border",
+                      interactive && !checked && "hover:border-primary",
+                      !interactive && "cursor-default"
+                    )}
+                  >
+                    {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                  </button>
+                  <p className={cn("font-semibold text-foreground text-sm transition-opacity", checked && "line-through opacity-50")}>{label}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </>
