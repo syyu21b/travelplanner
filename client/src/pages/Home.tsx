@@ -980,69 +980,87 @@ export default function Home() {
     );
   };
 
+  // 준비물 체크 상태 키 — 같은 이름의 준비물이 서로 다른 일정에 각각 적혀 있어도 (예: "여권"이
+  // 1일차와 3일차에 모두 있는 경우) 서로 영향을 주지 않고 완전히 독립적으로 체크되도록
+  // "일정ID + 준비물명"을 합친 키를 사용
+  function preparationCheckKey(scheduleId: string, item: string): string {
+    return `${scheduleId}__${item}`;
+  }
+
   // 전체 준비물 체크리스트 — 계획 내 준비물 탭과 여행 요약 미리보기 양쪽에서 동일하게(국내/해외 구분 없이)
-  // 하나씩 체크할 수 있도록 공용으로 재사용
-  const renderAllPreparationsChecklistContent = (plan: TravelPlan | null, onToggle?: (item: string) => void) => {
+  // 일정별로 묶어서 보여주되, 한 일정에 서로 다른 준비물이 여러 개 있어도 각각 독립적으로 체크 가능
+  const renderAllPreparationsChecklistContent = (plan: TravelPlan | null, onToggle?: (key: string) => void) => {
     if (!plan) return null;
     const interactive = !!onToggle;
-    const allItems: string[] = [];
-    const seen = new Set<string>();
-    plan.schedules.forEach(s => {
-      s.preparations?.forEach(p => {
-        const key = p.trim();
-        if (key && !seen.has(key)) {
-          seen.add(key);
-          allItems.push(key);
-        }
+    const withPreps = plan.schedules.filter(s => s.preparations && s.preparations.length > 0);
+
+    let totalCount = 0;
+    let checkedCount = 0;
+    withPreps.forEach(s => {
+      (s.preparations || []).forEach(p => {
+        const label = p.trim();
+        if (!label) return;
+        totalCount++;
+        if (plan.preparationChecks?.[preparationCheckKey(s.id, label)]) checkedCount++;
       });
     });
-    const checkedCount = allItems.filter(item => plan.preparationChecks?.[item]).length;
-    const percent = allItems.length > 0 ? Math.round((checkedCount / allItems.length) * 100) : 0;
+    const percent = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+
     return (
       <>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
             {t('home.summary.allTitle')}
-            {allItems.length > 0 && (
+            {totalCount > 0 && (
               <span className="text-sm font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
                 {t('home.summary.percentComplete', { n: percent })}
               </span>
             )}
           </h3>
-          {allItems.length > 0 && (
+          {totalCount > 0 && (
             <span className="text-xs text-muted-foreground">
-              {t('home.summary.completedCount', { done: checkedCount, total: allItems.length })}
+              {t('home.summary.completedCount', { done: checkedCount, total: totalCount })}
             </span>
           )}
         </div>
-        {allItems.length === 0 ? (
+        {totalCount === 0 ? (
           <div className="text-center py-12 bg-secondary rounded-2xl">
             <p className="text-slate-400">{t('home.summary.allEmptyState')}</p>
           </div>
         ) : (
-          <div className="relative pl-6 border-l-2 border-border space-y-4">
-            {allItems.map(item => {
-              const checked = !!plan.preparationChecks?.[item];
-              return (
-                <div key={item} className="relative">
-                  <button
-                    type="button"
-                    onClick={onToggle ? () => onToggle(item) : undefined}
-                    disabled={!interactive}
-                    aria-label={checked ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
-                    className={cn(
-                      "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
-                      checked ? "bg-primary border-primary" : "bg-white border-border",
-                      interactive && !checked && "hover:border-primary",
-                      !interactive && "cursor-default"
-                    )}
-                  >
-                    {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-                  </button>
-                  <p className={cn("font-bold text-foreground transition-opacity", checked && "line-through opacity-50")}>{item}</p>
+          <div className="space-y-5">
+            {withPreps.map(s => (
+              <div key={s.id}>
+                <p className="text-xs font-bold text-muted-foreground mb-2 truncate">{s.title} ({s.date})</p>
+                <div className="relative pl-6 border-l-2 border-border space-y-3">
+                  {(s.preparations || []).map((p, idx) => {
+                    const label = p.trim();
+                    if (!label) return null;
+                    const key = preparationCheckKey(s.id, label);
+                    const checked = !!plan.preparationChecks?.[key];
+                    return (
+                      <div key={idx} className="relative">
+                        <button
+                          type="button"
+                          onClick={onToggle ? () => onToggle(key) : undefined}
+                          disabled={!interactive}
+                          aria-label={checked ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
+                          className={cn(
+                            "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
+                            checked ? "bg-primary border-primary" : "bg-white border-border",
+                            interactive && !checked && "hover:border-primary",
+                            !interactive && "cursor-default"
+                          )}
+                        >
+                          {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                        </button>
+                        <p className={cn("font-semibold text-foreground text-sm transition-opacity", checked && "line-through opacity-50")}>{label}</p>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </>

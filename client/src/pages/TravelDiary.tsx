@@ -1796,7 +1796,10 @@ export default function TravelDiary() {
               draggable: false,
               label: String(i + 1),
             }));
-            const isOverseas = album.linkedPlanRegion === 'overseas';
+            // 앨범에 저장된 스냅샷(linkedPlanRegion)은 이 기능이 추가되기 전에 연결된 앨범에는 없을 수 있으므로,
+            // 연결된 계획이 아직 존재하면 그 계획의 현재 region을 실시간으로 우선 확인
+            const currentLinkedPlan = userPlans.find(p => p.id === album.linkedPlanId);
+            const isOverseas = currentLinkedPlan ? currentLinkedPlan.region === 'overseas' : album.linkedPlanRegion === 'overseas';
             const panToPhoto = (p: AlbumPhoto) => {
               if (p.lat === undefined || p.lng === undefined) return;
               if (isOverseas) {
