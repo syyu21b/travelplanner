@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
 import { MapView, type MapMarker } from '@/components/Map';
+import { LeafletMapView } from '@/components/LeafletMap';
+import type { Map as LeafletMapInstance } from 'leaflet';
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -303,9 +305,12 @@ export default function Home() {
   const [routeSelectMode, setRouteSelectMode] = useState<'origin' | 'destination' | null>(null);
   const [routeOriginId, setRouteOriginId] = useState<string | null>(null);
   const [routeDestinationId, setRouteDestinationId] = useState<string | null>(null);
+  // 지도 탭 - 국내(네이버)/해외(OpenStreetMap) 선택
+  const [mapTabMode, setMapTabMode] = useState<'domestic' | 'overseas'>('domestic');
 
   const pdfRef = useRef<HTMLDivElement>(null);
   const scheduleMapRef = useRef<naver.maps.Map | null>(null);
+  const scheduleLeafletMapRef = useRef<LeafletMapInstance | null>(null);
   const planPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // LocalStorage에 데이터 저장 (유저별)
@@ -1801,13 +1806,35 @@ export default function Home() {
                   {/* 지도 탭 */}
                   <TabsContent value="map" className="space-y-4">
                     <Card className="p-6 bg-white border-border">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                         <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                           <Map className="w-5 h-5 text-primary" /> {t('home.map.title')}
                         </h3>
-                        <span className="text-sm text-muted-foreground">
-                          {t('home.map.pinnedCount', { n: currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined).length })}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMapTabMode('domestic')}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-colors",
+                              mapTabMode === 'domestic' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                            )}
+                          >
+                            {t('home.map.domestic')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMapTabMode('overseas')}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-colors",
+                              mapTabMode === 'overseas' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                            )}
+                          >
+                            {t('home.map.overseas')}
+                          </button>
+                          <span className="text-sm text-muted-foreground">
+                            {t('home.map.pinnedCount', { n: currentPlan.schedules.filter(s => s.lat !== undefined && s.lng !== undefined).length })}
+                          </span>
+                        </div>
                       </div>
                       {(() => {
                         const pinned = [...currentPlan.schedules]
@@ -1831,9 +1858,16 @@ export default function Home() {
                           label: String(i + 1),
                         }));
                         const panToSchedule = (s: (typeof pinned)[number]) => {
-                          const map = scheduleMapRef.current;
-                          if (!map || s.lat === undefined || s.lng === undefined || !window.naver) return;
-                          map.morph(new window.naver.maps.LatLng(s.lat, s.lng), Math.max(map.getZoom(), 15));
+                          if (s.lat === undefined || s.lng === undefined) return;
+                          if (mapTabMode === 'domestic') {
+                            const map = scheduleMapRef.current;
+                            if (!map || !window.naver) return;
+                            map.morph(new window.naver.maps.LatLng(s.lat, s.lng), Math.max(map.getZoom(), 15));
+                          } else {
+                            const map = scheduleLeafletMapRef.current;
+                            if (!map) return;
+                            map.flyTo([s.lat, s.lng], Math.max(map.getZoom(), 15));
+                          }
                         };
                         const routeOrigin = pinned.find(s => s.id === routeOriginId);
                         const routeDestination = pinned.find(s => s.id === routeDestinationId);
@@ -1852,19 +1886,37 @@ export default function Home() {
                         return (
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             <div className="lg:col-span-2">
-                              <MapView
-                                markers={markers}
-                                fitToMarkers
-                                onMapReady={map => {
-                                  scheduleMapRef.current = map;
-                                }}
-                                onMarkerDelete={id => {
-                                  const target = currentPlan.schedules.find(s => s.id === id);
-                                  if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
-                                  if (routeOriginId === id) setRouteOriginId(null);
-                                  if (routeDestinationId === id) setRouteDestinationId(null);
-                                }}
-                              />
+                              {mapTabMode === 'domestic' ? (
+                                <MapView
+                                  key="domestic"
+                                  markers={markers}
+                                  fitToMarkers
+                                  onMapReady={map => {
+                                    scheduleMapRef.current = map;
+                                  }}
+                                  onMarkerDelete={id => {
+                                    const target = currentPlan.schedules.find(s => s.id === id);
+                                    if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
+                                    if (routeOriginId === id) setRouteOriginId(null);
+                                    if (routeDestinationId === id) setRouteDestinationId(null);
+                                  }}
+                                />
+                              ) : (
+                                <LeafletMapView
+                                  key="overseas"
+                                  markers={markers}
+                                  fitToMarkers
+                                  onMapReady={map => {
+                                    scheduleLeafletMapRef.current = map;
+                                  }}
+                                  onMarkerDelete={id => {
+                                    const target = currentPlan.schedules.find(s => s.id === id);
+                                    if (target) handleUpdateSchedule(id, { ...target, lat: undefined, lng: undefined });
+                                    if (routeOriginId === id) setRouteOriginId(null);
+                                    if (routeDestinationId === id) setRouteDestinationId(null);
+                                  }}
+                                />
+                              )}
                               <div className="mt-4 pt-4 border-t border-border">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <button

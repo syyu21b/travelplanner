@@ -185,6 +185,8 @@ export const home = {
     },
     map: {
       title: "일정 지도",
+      domestic: "국내",
+      overseas: "해외",
       pinnedCount: "위치 등록됨 {{n}}개",
       emptyState: "아직 지도에 등록된 일정이 없습니다.",
       emptyStateHint: "일정 추가/수정 시 \"지도\" 버튼으로 위치를 선택해보세요.",
@@ -545,6 +547,8 @@ export const home = {
     },
     map: {
       title: "Schedule Map",
+      domestic: "Domestic",
+      overseas: "Overseas",
       pinnedCount: "{{n}} locations pinned",
       emptyState: "No schedules pinned on the map yet.",
       emptyStateHint: "When adding or editing a schedule, use the \"Map\" button to pick a location.",
