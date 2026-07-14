@@ -51,6 +51,11 @@ export const mypage = {
       commentsTitle: '내가 쓴 댓글',
       commentsCount: '({{count}}개)',
       noComments: '아직 작성한 댓글이 없습니다.',
+      inquiriesTitle: '내 문의 내역',
+      noInquiries: '아직 문의한 내역이 없습니다.',
+      inquiryAnswered: '답변완료',
+      inquiryPending: '답변대기',
+      inquiryAnswerLabel: '관리자 답변',
     },
     security: {
       changePwTitle: '비밀번호 변경',
@@ -138,6 +143,8 @@ export const mypage = {
       sharesDesc: '내 게시물이 공유되면 알려드려요',
       popularPostLabel: '인기글 선정 알림',
       popularPostDesc: '내 게시물이 인기글로 선정되면 알려드려요',
+      inquiryAnswerLabel: '문의 답변 알림',
+      inquiryAnswerDesc: '문의하신 내용에 답변이 등록되면 알려드려요',
     },
     toast: {
       photoTooLarge: '10MB 이하 이미지만 업로드 가능합니다.',
@@ -209,6 +216,11 @@ export const mypage = {
       commentsTitle: 'My Comments',
       commentsCount: '({{count}})',
       noComments: 'No comments written yet.',
+      inquiriesTitle: 'My Inquiries',
+      noInquiries: 'You haven\'t submitted any inquiries yet.',
+      inquiryAnswered: 'Answered',
+      inquiryPending: 'Pending',
+      inquiryAnswerLabel: 'Admin Reply',
     },
     security: {
       changePwTitle: 'Change Password',
@@ -296,6 +308,8 @@ export const mypage = {
       sharesDesc: 'Get notified when someone shares your post',
       popularPostLabel: 'Popular post notifications',
       popularPostDesc: 'Get notified when your post is selected as popular',
+      inquiryAnswerLabel: 'Inquiry answer notifications',
+      inquiryAnswerDesc: 'Get notified when your inquiry is answered',
     },
     toast: {
       photoTooLarge: 'Only images under 10MB can be uploaded.',

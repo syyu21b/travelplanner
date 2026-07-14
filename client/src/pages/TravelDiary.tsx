@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Trash2, Edit2, Check, X, Image as ImageIcon,
   BookOpen, Camera, MapPin, Star, Calendar, ChevronLeft,
-  Heart, Share2, Globe, Lock, ChevronRight, Plane, Clock
+  Heart, Share2, Globe, Lock, ChevronRight, Plane, Clock, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { StarRatingInput, StarRatingDisplay } from '@/components/StarRating';
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { MapView, type MapMarker, reverseGeocodeToAddress } from '@/components/Map';
+import type { Map as MapLibreMap } from 'maplibre-gl';
+
+// 해외 지도(MapLibre GL)는 용량이 커서, 실제로 해외 계획과 연결된 앨범을 볼 때만 불러오도록 지연 로딩
+const OverseasMapView = lazy(() =>
+  import('@/components/OverseasMap').then(m => ({ default: m.OverseasMapView }))
+);
 
 interface DiaryPhoto {
   id: string;
@@ -78,6 +84,7 @@ interface TravelPlan {
   title: string;
   startDate: string;
   endDate: string;
+  region?: 'domestic' | 'overseas';
   schedules: ScheduleItem[];
   budgets: any[];
   shoppingList: any[];
@@ -101,6 +108,8 @@ interface Album {
   linkedPlanId?: string;
   linkedPlanTitle?: string;
   linkedPlanSchedules?: ScheduleItem[];
+  /** 연결된 계획이 국내/해외 중 어느 쪽이었는지 스냅샷 — 앨범 지도보기에서 어떤 지도를 쓸지 결정 */
+  linkedPlanRegion?: 'domestic' | 'overseas';
   createdAt: string;
   updatedAt: string;
 }
@@ -250,6 +259,7 @@ export default function TravelDiary() {
   const albumFileInputRef = useRef<HTMLInputElement>(null);
   const editAlbumFileInputRef = useRef<HTMLInputElement>(null);
   const albumMapRef = useRef<naver.maps.Map | null>(null);
+  const albumOverseasMapRef = useRef<MapLibreMap | null>(null);
   const requestedPhotoAddressesRef = useRef<Set<string>>(new Set());
 
   // Edit state
@@ -854,6 +864,7 @@ export default function TravelDiary() {
       linkedPlanId: newAlbumLinkedPlanId || undefined,
       linkedPlanTitle: linkedPlan?.title,
       linkedPlanSchedules: linkedPlan?.schedules,
+      linkedPlanRegion: linkedPlan?.region,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -926,6 +937,13 @@ export default function TravelDiary() {
     }
   };
 
+  // 사진 위치 지정 시 사용할 지도 — 연결된 계획이 해외면 OpenStreetMap, 그 외(연결 안 함 포함)에는 네이버 지도
+  const getLocationPickerRegion = (): 'domestic' | 'overseas' => {
+    const planId = locationPickerContext === 'edit' ? editAlbumData?.linkedPlanId : newAlbumLinkedPlanId;
+    const plan = userPlans.find(p => p.id === planId);
+    return plan?.region === 'overseas' ? 'overseas' : 'domestic';
+  };
+
   // 새 앨범/앨범 수정 화면 어디서든 사진 위치를 지정할 수 있도록 공용으로 재사용하는 다이얼로그
   const locationPickerDialog = (
     <LocationPickerDialog
@@ -933,6 +951,7 @@ export default function TravelDiary() {
       onOpenChange={setShowLocationPicker}
       initialLat={getLocationPickerTarget()?.lat}
       initialLng={getLocationPickerTarget()?.lng}
+      region={getLocationPickerRegion()}
       title={t('diary.album.locationPickerTitle')}
       onConfirm={handleLocationConfirm}
     />
@@ -1564,6 +1583,7 @@ export default function TravelDiary() {
                           linkedPlanId: e.target.value || undefined,
                           linkedPlanTitle: plan?.title,
                           linkedPlanSchedules: plan?.schedules,
+                          linkedPlanRegion: plan?.region,
                         });
                       }}
                       className="flex-1 h-11 px-3 py-2 border border-input rounded-md text-sm bg-background"
@@ -1776,21 +1796,39 @@ export default function TravelDiary() {
               draggable: false,
               label: String(i + 1),
             }));
+            const isOverseas = album.linkedPlanRegion === 'overseas';
             const panToPhoto = (p: AlbumPhoto) => {
-              const map = albumMapRef.current;
-              if (!map || p.lat === undefined || p.lng === undefined || !window.naver) return;
-              map.morph(new window.naver.maps.LatLng(p.lat, p.lng), Math.max(map.getZoom(), 15));
+              if (p.lat === undefined || p.lng === undefined) return;
+              if (isOverseas) {
+                const map = albumOverseasMapRef.current;
+                if (!map) return;
+                map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 15) });
+              } else {
+                const map = albumMapRef.current;
+                if (!map || !window.naver) return;
+                map.morph(new window.naver.maps.LatLng(p.lat, p.lng), Math.max(map.getZoom(), 15));
+              }
             };
             return (
               <div>
                 <p className="text-sm text-muted-foreground mb-3">{t('diary.album.detail.geotaggedCount', { count: geotagged.length })}</p>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <div className="lg:col-span-2">
-                    <MapView
-                      markers={markers}
-                      fitToMarkers
-                      onMapReady={map => { albumMapRef.current = map; }}
-                    />
+                    {isOverseas ? (
+                      <Suspense fallback={<div className="relative w-full h-[500px] rounded-xl overflow-hidden bg-secondary flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+                        <OverseasMapView
+                          markers={markers}
+                          fitToMarkers
+                          onMapReady={map => { albumOverseasMapRef.current = map; }}
+                        />
+                      </Suspense>
+                    ) : (
+                      <MapView
+                        markers={markers}
+                        fitToMarkers
+                        onMapReady={map => { albumMapRef.current = map; }}
+                      />
+                    )}
                   </div>
                   <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                     {geotagged.map((p, i) => (

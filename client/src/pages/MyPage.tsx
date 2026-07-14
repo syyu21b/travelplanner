@@ -17,6 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useLocation } from 'wouter';
 import type { PassportInfo } from '@/lib/passportCrypto';
+import { getInquiries } from '@/lib/inquiries';
 
 const EMPTY_PASSPORT: PassportInfo = {
   passportNumber: '', fullNameEnglish: '', nationality: '',
@@ -60,6 +61,14 @@ export default function MyPage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const dateLocale = language === 'ko' ? 'ko-KR' : 'en-US';
+
+  // 알림에서 "문의 답변 도착" 클릭 시 내 활동 탭으로 바로 이동
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'activity') {
+      setActiveTab('activity');
+    }
+  }, []);
 
   // 여권 정보
   const [passportExists, setPassportExists] = useState(() => hasPassportInfo());
@@ -126,6 +135,11 @@ export default function MyPage() {
     try {
       return (JSON.parse(localStorage.getItem('diaryComments') || '[]') as any[])
         .filter(c => c.userId === user?.id);
+    } catch { return []; }
+  })();
+  const myInquiries = (() => {
+    try {
+      return getInquiries().filter(i => i.userId === user?.id);
     } catch { return []; }
   })();
   const totalLikesReceived = myPublicDiaries.reduce((sum: number, d: any) =>
@@ -623,6 +637,53 @@ export default function MyPage() {
                   </div>
                 )}
               </Card>
+
+              {/* 내 문의 내역 */}
+              <Card className="p-6 bg-white">
+                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-primary" /> {t('mypage.activity.inquiriesTitle')}
+                  <span className="text-sm text-muted-foreground font-normal">{t('mypage.activity.commentsCount', { count: myInquiries.length })}</span>
+                </h3>
+                {myInquiries.length === 0 ? (
+                  <p className="text-center py-6 text-sm text-muted-foreground">{t('mypage.activity.noInquiries')}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {[...myInquiries]
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map(inq => (
+                        <div key={inq.id} className="p-4 bg-secondary rounded-lg border border-border">
+                          <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
+                            <p className="font-bold text-foreground text-sm">{inq.title}</p>
+                            {inq.status === 'answered' ? (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex-shrink-0">
+                                {t('mypage.activity.inquiryAnswered')}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex-shrink-0">
+                                {t('mypage.activity.inquiryPending')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">{inq.content}</p>
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            {new Date(inq.createdAt).toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          {inq.status === 'answered' && inq.answer && (
+                            <div className="mt-3 pt-3 border-t border-border">
+                              <p className="text-xs font-bold text-primary mb-1">{t('mypage.activity.inquiryAnswerLabel')}</p>
+                              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">{inq.answer}</p>
+                              {inq.answeredAt && (
+                                <p className="text-xs text-muted-foreground mt-1.5">
+                                  {new Date(inq.answeredAt).toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </Card>
             </div>
           )}
 
@@ -977,6 +1038,7 @@ export default function MyPage() {
                     { key: 'comments' as const, label: t('mypage.settings.commentsLabel'), desc: t('mypage.settings.commentsDesc') },
                     { key: 'shares' as const, label: t('mypage.settings.sharesLabel'), desc: t('mypage.settings.sharesDesc') },
                     { key: 'popularPost' as const, label: t('mypage.settings.popularPostLabel'), desc: t('mypage.settings.popularPostDesc') },
+                    { key: 'inquiryAnswer' as const, label: t('mypage.settings.inquiryAnswerLabel'), desc: t('mypage.settings.inquiryAnswerDesc') },
                   ].map(item => (
                     <div key={item.key} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
                       <div className="min-w-0">

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuth, type PublicUser } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { useLocation } from 'wouter';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { getInquiries, answerInquiry, type Inquiry } from '@/lib/inquiries';
 
 export default function AdminPage() {
   const { user, getAllUsers, adminUpdateUser, adminDeleteUser } = useAuth();
+  const { notify } = useNotifications();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState('');
 
@@ -117,6 +119,10 @@ export default function AdminPage() {
     if (!success) {
       toast.error('이 브라우저에서는 답변을 저장할 수 없습니다. 저장 공간을 확인해주세요.');
       return;
+    }
+    // 문의를 남긴 사람이 가입 회원이면(비회원 문의는 앱 내 알림을 받을 계정이 없음) 답변 도착 알림을 보냄
+    if (inquiryTarget.userId) {
+      notify({ recipientId: inquiryTarget.userId, type: 'inquiry-answer', inquiryId: inquiryTarget.id });
     }
     setInquiries(getInquiries());
     toast.success('답변이 등록되었습니다.');

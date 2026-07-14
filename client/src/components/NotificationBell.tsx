@@ -1,8 +1,9 @@
-import { Bell, Heart, MessageCircle, Share2, TrendingUp, Plane } from "lucide-react";
+import { Bell, Heart, MessageCircle, Share2, TrendingUp, Plane, Mail } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications, type AppNotification, type NotificationType } from "@/contexts/NotificationContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NotificationType, typeof Heart> = {
@@ -12,6 +13,7 @@ const ICONS: Record<NotificationType, typeof Heart> = {
   popular: TrendingUp,
   "trip-d3": Plane,
   "trip-dday": Plane,
+  "inquiry-answer": Mail,
 };
 
 function messageFor(n: AppNotification, t: (key: string, params?: Record<string, string | number>) => string): string {
@@ -28,6 +30,8 @@ function messageFor(n: AppNotification, t: (key: string, params?: Record<string,
       return t("notifications.tripD3", { title: n.planTitle || "" });
     case "trip-dday":
       return t("notifications.tripDDay", { title: n.planTitle || "" });
+    case "inquiry-answer":
+      return t("notifications.inquiryAnswer");
     default:
       return "";
   }
@@ -47,6 +51,14 @@ function relativeTime(iso: string, t: (key: string, params?: Record<string, stri
 export default function NotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
+
+  const handleNotificationClick = (n: AppNotification) => {
+    markAsRead(n.id);
+    if (n.type === "inquiry-answer") {
+      setLocation("/mypage?tab=activity");
+    }
+  };
 
   return (
     <Popover>
@@ -87,7 +99,7 @@ export default function NotificationBell() {
                 return (
                   <button
                     key={n.id}
-                    onClick={() => markAsRead(n.id)}
+                    onClick={() => handleNotificationClick(n)}
                     className={cn(
                       "w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-secondary transition-colors",
                       !n.isRead && "bg-primary/5"

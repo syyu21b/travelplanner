@@ -7,7 +7,8 @@ export type NotificationType =
   | "share"
   | "popular"
   | "trip-d3"
-  | "trip-dday";
+  | "trip-dday"
+  | "inquiry-answer";
 
 export interface AppNotification {
   id: string;
@@ -18,6 +19,7 @@ export interface AppNotification {
   diaryTitle?: string;
   planId?: string;
   planTitle?: string;
+  inquiryId?: string;
   isRead: boolean;
   createdAt: string;
 }
@@ -29,6 +31,7 @@ export interface NotificationSettings {
   comments: boolean;
   shares: boolean;
   popularPost: boolean;
+  inquiryAnswer: boolean;
 }
 
 const DEFAULT_SETTINGS: NotificationSettings = {
@@ -38,6 +41,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   comments: true,
   shares: true,
   popularPost: true,
+  inquiryAnswer: true,
 };
 
 type NotifyPayload = Omit<AppNotification, "id" | "isRead" | "createdAt">;
@@ -117,6 +121,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       popular: "popularPost",
       "trip-d3": "tripD3",
       "trip-dday": "tripDDay",
+      "inquiry-answer": "inquiryAnswer",
     };
     if (!recipientSettings[settingKeyMap[payload.type]]) return;
 
