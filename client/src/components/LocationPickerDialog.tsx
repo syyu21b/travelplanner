@@ -4,25 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, X, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { MapView, type MapMarker, geocodeAddress, reverseGeocodeToAddress } from "@/components/Map";
 
-// 해외 지도(MapLibre GL)는 용량이 커서, 실제로 "해외" 모드를 선택했을 때만 불러오도록 지연 로딩
+// 해외 지도(MapLibre GL)는 용량이 커서, 실제로 해외 계획을 다룰 때만 불러오도록 지연 로딩
 const OverseasMapView = lazy(() =>
   import("@/components/OverseasMap").then(m => ({ default: m.OverseasMapView }))
 );
 
-type MapMode = "domestic" | "overseas";
+type Region = "domestic" | "overseas";
 
 interface LocationPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialLat?: number;
   initialLng?: number;
-  /** 다이얼로그를 열 때 시작할 국내/해외 모드 (예: 이미 해외로 저장된 위치를 수정하는 경우). 기본값 "domestic" */
-  initialRegion?: MapMode;
+  /** 이 위치를 고르는 여행 계획이 국내인지 해외인지 — 계획 생성 시 정해지며, 어떤 지도를 쓸지 결정함 */
+  region: Region;
   title?: string;
-  onConfirm: (lat: number, lng: number, address: string | undefined, region: MapMode) => void;
+  onConfirm: (lat: number, lng: number, address?: string) => void;
 }
 
 const DOMESTIC_DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 }; // 서울시청
@@ -40,11 +39,11 @@ export function LocationPickerDialog({
   onOpenChange,
   initialLat,
   initialLng,
-  initialRegion = "domestic",
+  region,
   title = "지도에서 위치 선택",
   onConfirm,
 }: LocationPickerDialogProps) {
-  const [mapMode, setMapMode] = useState<MapMode>(initialRegion);
+  const isDomestic = region === "domestic";
   const [picked, setPicked] = useState<{ lat: number; lng: number } | null>(
     initialLat !== undefined && initialLng !== undefined ? { lat: initialLat, lng: initialLng } : null
   );
@@ -58,21 +57,13 @@ export function LocationPickerDialog({
   // 다이얼로그를 열 때마다 초기 상태로 리셋
   useEffect(() => {
     if (open) {
-      setMapMode(initialRegion);
       setPicked(initialLat !== undefined && initialLng !== undefined ? { lat: initialLat, lng: initialLng } : null);
       setPickedAddress(null);
       setSearchQuery("");
       setSearchResults([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialLat, initialLng, initialRegion]);
-
-  const switchMapMode = (mode: MapMode) => {
-    if (mode === mapMode) return;
-    setMapMode(mode);
-    setSearchQuery("");
-    setSearchResults([]);
-  };
+  }, [open, initialLat, initialLng]);
 
   const selectLocation = (lat: number, lng: number, address?: string | null) => {
     setPicked({ lat, lng });
@@ -84,7 +75,7 @@ export function LocationPickerDialog({
     // 지도를 직접 클릭/드래그한 경우 -> 좌표를 사람이 읽을 수 있는 주소로 역변환
     setPickedAddress(null);
     setResolvingAddress(true);
-    const reverseLookup = mapMode === "domestic"
+    const reverseLookup = isDomestic
       ? reverseGeocodeToAddress(lat, lng)
       : import("@/components/OverseasMap").then(m => m.reverseGeocodeToAddressOSM(lat, lng));
     reverseLookup
@@ -98,7 +89,7 @@ export function LocationPickerDialog({
     setSearching(true);
     setSearchResults([]);
     try {
-      if (mapMode === "domestic") {
+      if (isDomestic) {
         const results = await geocodeAddress(query);
         const mapped: SimpleSearchResult[] = results.map(r => ({
           lat: r.lat,
@@ -135,7 +126,7 @@ export function LocationPickerDialog({
 
   const handleConfirm = () => {
     if (!picked) return;
-    onConfirm(picked.lat, picked.lng, pickedAddress || undefined, mapMode);
+    onConfirm(picked.lat, picked.lng, pickedAddress || undefined);
     onOpenChange(false);
   };
 
@@ -150,38 +141,12 @@ export function LocationPickerDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary" /> {title}
+            <span className="text-xs font-normal text-muted-foreground">({isDomestic ? "네이버 지도" : "OpenStreetMap"})</span>
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          {/* 국내/해외 선택 */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => switchMapMode("domestic")}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-sm font-bold border transition-colors",
-                mapMode === "domestic" ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
-              )}
-            >
-              국내
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMapMode("overseas")}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-sm font-bold border transition-colors",
-                mapMode === "overseas" ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
-              )}
-            >
-              해외
-            </button>
-            <span className="text-xs text-muted-foreground">
-              {mapMode === "domestic" ? "네이버 지도" : "OpenStreetMap"}
-            </span>
-          </div>
-
           <p className="text-xs text-muted-foreground">
-            {mapMode === "domestic"
+            {isDomestic
               ? "도로명 주소 또는 지번 주소로 검색하거나(건물명·상호명 검색은 아직 지원되지 않습니다), 지도를 클릭해 위치를 지정하세요. 마커를 드래그해 조정하거나 클릭해 삭제할 수 있습니다."
               : "영문 지명이나 주소로 검색하거나, 지도를 클릭해 위치를 지정하세요. 마커를 드래그해 조정하거나 클릭해 삭제할 수 있습니다."}
           </p>
@@ -198,7 +163,7 @@ export function LocationPickerDialog({
                     handleSearch();
                   }
                 }}
-                placeholder={mapMode === "domestic" ? "예: 서울특별시 중구 세종대로 110" : "예: Eiffel Tower, Paris"}
+                placeholder={isDomestic ? "예: 서울특별시 중구 세종대로 110" : "예: Eiffel Tower, Paris"}
                 className="h-11"
               />
               <Button type="button" onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="h-11 gap-1.5 flex-shrink-0">
@@ -225,7 +190,7 @@ export function LocationPickerDialog({
             )}
           </div>
 
-          {mapMode === "domestic" ? (
+          {isDomestic ? (
             <MapView
               key="domestic"
               className="h-[260px] sm:h-[400px]"
