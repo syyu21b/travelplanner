@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight
+  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -24,8 +24,12 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
 import { MapView, type MapMarker } from '@/components/Map';
-import { OverseasMapView } from '@/components/OverseasMap';
 import type { Map as MapLibreMap } from 'maplibre-gl';
+
+// 해외 지도(MapLibre GL)는 용량이 커서, 실제로 "해외" 모드를 선택했을 때만 불러오도록 지연 로딩
+const OverseasMapView = lazy(() =>
+  import('@/components/OverseasMap').then(m => ({ default: m.OverseasMapView }))
+);
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -1954,15 +1958,17 @@ export default function Home() {
                                       onMarkerDelete={handleMarkerDelete}
                                     />
                                   ) : (
-                                    <OverseasMapView
-                                      key="overseas"
-                                      markers={markers}
-                                      fitToMarkers
-                                      onMapReady={map => {
-                                        scheduleOverseasMapRef.current = map;
-                                      }}
-                                      onMarkerDelete={handleMarkerDelete}
-                                    />
+                                    <Suspense fallback={<div className="relative w-full h-[500px] rounded-xl overflow-hidden bg-secondary flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+                                      <OverseasMapView
+                                        key="overseas"
+                                        markers={markers}
+                                        fitToMarkers
+                                        onMapReady={map => {
+                                          scheduleOverseasMapRef.current = map;
+                                        }}
+                                        onMarkerDelete={handleMarkerDelete}
+                                      />
+                                    </Suspense>
                                   )}
                                   <div className="mt-4 pt-4 border-t border-border">
                                     <div className="flex flex-wrap items-center gap-2">

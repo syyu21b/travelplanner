@@ -242,6 +242,8 @@ export default defineConfig({
         // 외부 API(네이버 지도, 날씨, 폰트 CDN 등)는 서비스 워커가 가로채지 않고
         // 항상 네트워크로 직접 요청되도록 프리캐시 대상에서 제외 (기본 동작, 명시적으로 문서화)
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}"],
+        // 지도 라이브러리(maplibre-gl 등) 포함 시 메인 번들이 기본 2MiB 한도를 넘을 수 있어 여유를 둠
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
       devOptions: {
         enabled: false,

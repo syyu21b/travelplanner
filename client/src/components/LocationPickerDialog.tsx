@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,11 @@ import { MapPin, X, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MapView, type MapMarker, geocodeAddress, reverseGeocodeToAddress } from "@/components/Map";
-import { OverseasMapView, geocodeAddressOSM, reverseGeocodeToAddressOSM } from "@/components/OverseasMap";
+
+// 해외 지도(MapLibre GL)는 용량이 커서, 실제로 "해외" 모드를 선택했을 때만 불러오도록 지연 로딩
+const OverseasMapView = lazy(() =>
+  import("@/components/OverseasMap").then(m => ({ default: m.OverseasMapView }))
+);
 
 type MapMode = "domestic" | "overseas";
 
@@ -80,7 +84,9 @@ export function LocationPickerDialog({
     // 지도를 직접 클릭/드래그한 경우 -> 좌표를 사람이 읽을 수 있는 주소로 역변환
     setPickedAddress(null);
     setResolvingAddress(true);
-    const reverseLookup = mapMode === "domestic" ? reverseGeocodeToAddress(lat, lng) : reverseGeocodeToAddressOSM(lat, lng);
+    const reverseLookup = mapMode === "domestic"
+      ? reverseGeocodeToAddress(lat, lng)
+      : import("@/components/OverseasMap").then(m => m.reverseGeocodeToAddressOSM(lat, lng));
     reverseLookup
       .then(addr => setPickedAddress(addr))
       .finally(() => setResolvingAddress(false));
@@ -106,6 +112,7 @@ export function LocationPickerDialog({
           setSearchResults(mapped.slice(0, 5));
         }
       } else {
+        const { geocodeAddressOSM } = await import("@/components/OverseasMap");
         const results = await geocodeAddressOSM(query);
         const mapped: SimpleSearchResult[] = results.map(r => ({ lat: r.lat, lng: r.lng, primary: r.displayName }));
         if (mapped.length === 1) {
@@ -231,17 +238,19 @@ export function LocationPickerDialog({
               onMarkerDelete={clearSelection}
             />
           ) : (
-            <OverseasMapView
-              key="overseas"
-              className="h-[260px] sm:h-[400px]"
-              initialCenter={picked ?? OVERSEAS_DEFAULT_CENTER}
-              initialZoom={picked ? 16 : 5}
-              markers={markers}
-              fitToMarkers
-              onMapClick={(lat, lng) => selectLocation(lat, lng)}
-              onMarkerDragEnd={(_id, lat, lng) => selectLocation(lat, lng)}
-              onMarkerDelete={clearSelection}
-            />
+            <Suspense fallback={<div className="h-[260px] sm:h-[400px] rounded-xl bg-secondary flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+              <OverseasMapView
+                key="overseas"
+                className="h-[260px] sm:h-[400px]"
+                initialCenter={picked ?? OVERSEAS_DEFAULT_CENTER}
+                initialZoom={picked ? 16 : 5}
+                markers={markers}
+                fitToMarkers
+                onMapClick={(lat, lng) => selectLocation(lat, lng)}
+                onMarkerDragEnd={(_id, lat, lng) => selectLocation(lat, lng)}
+                onMarkerDelete={clearSelection}
+              />
+            </Suspense>
           )}
 
           <div className="flex items-start justify-between gap-3 min-h-[20px]">
