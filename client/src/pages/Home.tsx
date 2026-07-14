@@ -87,6 +87,23 @@ interface Accommodation {
   notes?: string;
 }
 
+interface Flight {
+  id: string;
+  airline: string;
+  flightNumber: string;
+  reservationNumber?: string;
+  departureAirport: string;
+  arrivalAirport: string;
+  departureDate: string;
+  departureTime?: string;
+  arrivalDate: string;
+  arrivalTime?: string;
+  terminal?: string;
+  gate?: string;
+  seat?: string;
+  boardingTime?: string;
+}
+
 interface TravelPlan {
   id: string;
   userId: string;
@@ -98,6 +115,7 @@ interface TravelPlan {
   budgets: Budget[];
   shoppingList: ShoppingItem[];
   accommodations?: Accommodation[];
+  flights?: Flight[];
   preparationChecks?: Record<string, boolean>;
   totalBudgetAmount?: number;
 }
@@ -143,6 +161,7 @@ function normalizePlan(p: TravelPlan): TravelPlan {
     budgets: p.budgets ?? [],
     shoppingList: p.shoppingList ?? [],
     accommodations: p.accommodations ?? [],
+    flights: p.flights ?? [],
   };
 }
 
@@ -245,6 +264,7 @@ export default function Home() {
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editingShoppingId, setEditingShoppingId] = useState<string | null>(null);
   const [editingAccommodationId, setEditingAccommodationId] = useState<string | null>(null);
+  const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
   const [editingTotalBudget, setEditingTotalBudget] = useState(false);
   const [totalBudgetInput, setTotalBudgetInput] = useState('');
   const [calcDisplay, setCalcDisplay] = useState('0');
@@ -273,6 +293,9 @@ export default function Home() {
   const [showAccommodationListPreview, setShowAccommodationListPreview] = useState(false);
   const [previewAccommodation, setPreviewAccommodation] = useState<Accommodation | null>(null);
   const [showAccommodationDetailPreview, setShowAccommodationDetailPreview] = useState(false);
+  const [showFlightListPreview, setShowFlightListPreview] = useState(false);
+  const [previewFlight, setPreviewFlight] = useState<Flight | null>(null);
+  const [showFlightDetailPreview, setShowFlightDetailPreview] = useState(false);
   const [detailSchedule, setDetailSchedule] = useState<ScheduleItem | null>(null);
   const [showScheduleDetail, setShowScheduleDetail] = useState(false);
 
@@ -337,6 +360,7 @@ export default function Home() {
       budgets: [],
       shoppingList: [],
       accommodations: [],
+      flights: [],
     };
     const updated = [...travelPlans, newPlan];
     updateTravelPlans(updated);
@@ -488,6 +512,31 @@ export default function Home() {
       accommodations: (currentPlan.accommodations || []).filter(a => a.id !== accommodationId),
     });
     toast.success(t('home.toast.accommodationDeleted'));
+  };
+
+  const handleAddFlight = (flight: Flight) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({ ...currentPlan, flights: [...(currentPlan.flights || []), flight] });
+    toast.success(t('home.toast.flightAdded'));
+  };
+
+  const handleUpdateFlight = (flightId: string, updated: Flight) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({
+      ...currentPlan,
+      flights: (currentPlan.flights || []).map(f => f.id === flightId ? updated : f),
+    });
+    setEditingFlightId(null);
+    toast.success(t('home.toast.flightUpdated'));
+  };
+
+  const handleDeleteFlight = (flightId: string) => {
+    if (!currentPlan) return;
+    updateCurrentPlan({
+      ...currentPlan,
+      flights: (currentPlan.flights || []).filter(f => f.id !== flightId),
+    });
+    toast.success(t('home.toast.flightDeleted'));
   };
 
   const handleToggleScheduleComplete = (scheduleId: string) => {
@@ -946,6 +995,37 @@ export default function Home() {
               <Hotel className="w-4 h-4 text-primary flex-shrink-0" />
               <span className="font-semibold text-foreground truncate flex-1">{a.name}</span>
               <span className="text-muted-foreground font-mono text-xs flex-shrink-0">{a.checkInDate}</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            </button>
+          ))}
+      </div>
+    );
+  };
+
+  const renderFlightListContent = (plan: TravelPlan | null) => {
+    if (!plan) return null;
+    const list = plan.flights || [];
+    if (list.length === 0) {
+      return (
+        <div className="text-center py-12 bg-secondary rounded-2xl">
+          <p className="text-slate-400">{t('home.flight.emptyState')}</p>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-2">
+        {[...list]
+          .sort((a, b) => a.departureDate.localeCompare(b.departureDate) || (a.departureTime || '').localeCompare(b.departureTime || ''))
+          .map(f => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => { setPreviewFlight(f); setShowFlightListPreview(false); setShowFlightDetailPreview(true); }}
+              className="w-full flex items-center gap-3 p-2.5 bg-secondary rounded-lg text-sm hover:bg-secondary/70 transition-colors text-left"
+            >
+              <Plane className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="font-semibold text-foreground truncate flex-1">{f.airline} {f.flightNumber}</span>
+              {f.seat && <span className="text-muted-foreground font-mono text-xs flex-shrink-0">{f.seat}</span>}
               <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </button>
           ))}
@@ -1598,11 +1678,12 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
                   <TabsList
-                    className="flex sm:grid w-full sm:grid-cols-8 gap-1 overflow-x-auto sm:overflow-visible bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
+                    className="flex sm:grid w-full sm:grid-cols-9 gap-1 overflow-x-auto sm:overflow-visible bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none' }}
                   >
                     <TabsTrigger value="schedule" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
                     <TabsTrigger value="accommodation" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.accommodation')}</TabsTrigger>
+                    <TabsTrigger value="flight" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.flight')}</TabsTrigger>
                     <TabsTrigger value="map" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.map')}</TabsTrigger>
                     <TabsTrigger value="weather" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.weather')}</TabsTrigger>
                     <TabsTrigger value="budget" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.budget')}</TabsTrigger>
@@ -1680,6 +1761,37 @@ export default function Home() {
                               onUpdate={handleUpdateAccommodation}
                               onDelete={handleDeleteAccommodation}
                               onCancel={() => setEditingAccommodationId(null)}
+                            />
+                          ))
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* 항공권 탭 */}
+                  <TabsContent value="flight" className="space-y-6">
+                    <Card className="p-6 bg-white border-border">
+                      <h3 className="text-lg font-bold text-foreground mb-5">{t('home.flight.addTitle')}</h3>
+                      <FlightForm onAdd={handleAddFlight} />
+                    </Card>
+
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-bold text-foreground">{t('home.flight.listTitle')}</h3>
+                      {(currentPlan.flights || []).length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-2xl border border-border">
+                          <p className="text-slate-400">{t('home.flight.emptyState')}</p>
+                        </div>
+                      ) : (
+                        [...(currentPlan.flights || [])]
+                          .sort((a, b) => a.departureDate.localeCompare(b.departureDate) || (a.departureTime || '').localeCompare(b.departureTime || ''))
+                          .map(flight => (
+                            <FlightCard
+                              key={flight.id}
+                              flight={flight}
+                              isEditing={editingFlightId === flight.id}
+                              onEdit={() => setEditingFlightId(flight.id)}
+                              onUpdate={handleUpdateFlight}
+                              onDelete={handleDeleteFlight}
+                              onCancel={() => setEditingFlightId(null)}
                             />
                           ))
                       )}
@@ -2452,6 +2564,14 @@ export default function Home() {
                 <p className="text-xs font-bold text-muted-foreground">{t('home.accommodation.listTitle')}</p>
                 <p className="text-xl font-bold text-foreground">{t('home.unitCount', { n: (summaryPreviewPlan.accommodations || []).length })}</p>
               </button>
+              <button
+                type="button"
+                onClick={() => { setShowSummaryPreview(false); setShowFlightListPreview(true); }}
+                className="bg-secondary hover:bg-secondary/70 p-4 rounded-xl text-left transition-colors"
+              >
+                <p className="text-xs font-bold text-muted-foreground">{t('home.flight.listTitle')}</p>
+                <p className="text-xl font-bold text-foreground">{t('home.unitCount', { n: (summaryPreviewPlan.flights || []).length })}</p>
+              </button>
             </div>
           )}
         </DialogContent>
@@ -2565,6 +2685,69 @@ export default function Home() {
               )}
               {previewAccommodation.notes && (
                 <p className="text-sm text-muted-foreground italic bg-secondary p-3 rounded-xl">"{previewAccommodation.notes}"</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 요약 - 항공권 목록 미리보기 다이얼로그 */}
+      <Dialog open={showFlightListPreview} onOpenChange={setShowFlightListPreview}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Plane className="w-5 h-5 text-primary" /> {t('home.flight.listTitle')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">{renderFlightListContent(summaryPreviewPlan)}</div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 요약 - 항공권 상세 미리보기 다이얼로그 (읽기 전용) */}
+      <Dialog open={showFlightDetailPreview} onOpenChange={setShowFlightDetailPreview}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground break-words">
+              <Plane className="w-5 h-5 text-primary flex-shrink-0" /> {previewFlight?.airline} {previewFlight?.flightNumber}
+            </DialogTitle>
+          </DialogHeader>
+          {previewFlight && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 flex-wrap text-sm font-semibold text-slate-700">
+                <span>{previewFlight.departureAirport}</span>
+                <ArrowRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                <span>{previewFlight.arrivalAirport}</span>
+              </div>
+              <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap">
+                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.departureShort')} {previewFlight.departureDate}{previewFlight.departureTime ? ` ${previewFlight.departureTime}` : ''}
+                </span>
+                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.arrivalShort')} {previewFlight.arrivalDate}{previewFlight.arrivalTime ? ` ${previewFlight.arrivalTime}` : ''}
+                </span>
+              </div>
+              {previewFlight.boardingTime && (
+                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {previewFlight.boardingTime}
+                </p>
+              )}
+              {(previewFlight.terminal || previewFlight.gate || previewFlight.seat) && (
+                <div className="flex flex-wrap gap-2">
+                  {previewFlight.terminal && (
+                    <span className="bg-secondary px-3 py-1 rounded-full text-sm text-muted-foreground border border-border">{t('home.flight.form.terminalLabel')} {previewFlight.terminal}</span>
+                  )}
+                  {previewFlight.gate && (
+                    <span className="bg-secondary px-3 py-1 rounded-full text-sm text-muted-foreground border border-border">{t('home.flight.form.gateLabel')} {previewFlight.gate}</span>
+                  )}
+                  {previewFlight.seat && (
+                    <span className="bg-secondary px-3 py-1 rounded-full text-sm text-muted-foreground border border-border">{t('home.flight.form.seatLabel')} {previewFlight.seat}</span>
+                  )}
+                </div>
+              )}
+              {previewFlight.reservationNumber && (
+                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <Hash className="w-4 h-4 text-primary flex-shrink-0" /> {previewFlight.reservationNumber}
+                </p>
               )}
             </div>
           )}
@@ -2979,6 +3162,276 @@ function AccommodationForm({ onAdd }: { onAdd: (accommodation: Accommodation) =>
 
       <Button onClick={handleSubmit} className="w-full bg-primary text-white h-11 text-base font-semibold">
         <Plus className="w-4 h-4 mr-2" /> {t('home.accommodation.form.submitButton')}
+      </Button>
+    </div>
+  );
+}
+
+function FlightCard({ flight, isEditing, onEdit, onUpdate, onDelete, onCancel }: any) {
+  const { t } = useLanguage();
+  const [editData, setEditData] = React.useState(flight);
+
+  if (isEditing) {
+    return (
+      <Card className="p-6 bg-white border-primary/30 shadow-lg">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.airlineLabel')} *</label>
+              <Input value={editData.airline} onChange={e => setEditData({ ...editData, airline: e.target.value })} placeholder={t('home.flight.form.airlinePlaceholder')} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.flightNumberLabel')} *</label>
+              <Input value={editData.flightNumber} onChange={e => setEditData({ ...editData, flightNumber: e.target.value })} placeholder={t('home.flight.form.flightNumberPlaceholder')} className="h-11" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground">{t('home.flight.form.reservationNumberLabel')}</label>
+            <Input value={editData.reservationNumber || ''} onChange={e => setEditData({ ...editData, reservationNumber: e.target.value })} placeholder={t('home.flight.form.reservationNumberPlaceholder')} className="h-11" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureAirportLabel')} *</label>
+              <Input value={editData.departureAirport} onChange={e => setEditData({ ...editData, departureAirport: e.target.value })} placeholder={t('home.flight.form.departureAirportPlaceholder')} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalAirportLabel')} *</label>
+              <Input value={editData.arrivalAirport} onChange={e => setEditData({ ...editData, arrivalAirport: e.target.value })} placeholder={t('home.flight.form.arrivalAirportPlaceholder')} className="h-11" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureDateLabel')} *</label>
+              <Input type="date" value={editData.departureDate} onChange={e => setEditData({ ...editData, departureDate: e.target.value })} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureTimeLabel')}</label>
+              <Input type="time" value={editData.departureTime || ''} onChange={e => setEditData({ ...editData, departureTime: e.target.value })} className="h-11" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalDateLabel')} *</label>
+              <Input type="date" value={editData.arrivalDate} onChange={e => setEditData({ ...editData, arrivalDate: e.target.value })} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalTimeLabel')}</label>
+              <Input type="time" value={editData.arrivalTime || ''} onChange={e => setEditData({ ...editData, arrivalTime: e.target.value })} className="h-11" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.terminalLabel')}</label>
+              <Input value={editData.terminal || ''} onChange={e => setEditData({ ...editData, terminal: e.target.value })} placeholder={t('home.flight.form.terminalPlaceholder')} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.gateLabel')}</label>
+              <Input value={editData.gate || ''} onChange={e => setEditData({ ...editData, gate: e.target.value })} placeholder={t('home.flight.form.gatePlaceholder')} className="h-11" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">{t('home.flight.form.seatLabel')}</label>
+              <Input value={editData.seat || ''} onChange={e => setEditData({ ...editData, seat: e.target.value })} placeholder={t('home.flight.form.seatPlaceholder')} className="h-11" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground">{t('home.flight.form.boardingTimeLabel')}</label>
+            <Input type="time" value={editData.boardingTime || ''} onChange={e => setEditData({ ...editData, boardingTime: e.target.value })} className="h-11" />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                if (!editData.airline || !editData.flightNumber || !editData.departureAirport || !editData.arrivalAirport || !editData.departureDate || !editData.arrivalDate) { toast.error(t('home.toast.requiredFields')); return; }
+                onUpdate(flight.id, editData);
+              }}
+              className="flex-1 bg-primary h-11"
+            >
+              {t('home.common.save')}
+            </Button>
+            <Button onClick={onCancel} variant="outline" className="flex-1 h-11">{t('home.common.cancel')}</Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-5 bg-white border-border hover:border-primary/50 transition-colors shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-700 flex items-center gap-1">
+              <Plane className="w-3 h-3" /> {t('home.flight.badgeLabel')}
+            </span>
+          </div>
+          <h4 className="text-xl font-bold text-foreground mb-2 break-words">{flight.airline} {flight.flightNumber}</h4>
+
+          <div className="flex items-center gap-2 flex-wrap text-sm font-semibold text-slate-700 mb-1.5">
+            <span>{flight.departureAirport}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+            <span>{flight.arrivalAirport}</span>
+          </div>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600 mb-1">
+            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+              <Calendar className="w-4 h-4 text-primary" />
+              {t('home.flight.departureShort')} {flight.departureDate}{flight.departureTime ? ` ${flight.departureTime}` : ''}
+            </p>
+            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+              <Calendar className="w-4 h-4 text-primary" />
+              {t('home.flight.arrivalShort')} {flight.arrivalDate}{flight.arrivalTime ? ` ${flight.arrivalTime}` : ''}
+            </p>
+          </div>
+
+          {flight.boardingTime && (
+            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+              <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {flight.boardingTime}
+            </p>
+          )}
+
+          {(flight.terminal || flight.gate || flight.seat) && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {flight.terminal && <span className="bg-secondary px-3 py-1 rounded-full text-xs text-muted-foreground border border-border">{t('home.flight.form.terminalLabel')} {flight.terminal}</span>}
+              {flight.gate && <span className="bg-secondary px-3 py-1 rounded-full text-xs text-muted-foreground border border-border">{t('home.flight.form.gateLabel')} {flight.gate}</span>}
+              {flight.seat && <span className="bg-secondary px-3 py-1 rounded-full text-xs text-muted-foreground border border-border">{t('home.flight.form.seatLabel')} {flight.seat}</span>}
+            </div>
+          )}
+
+          {flight.reservationNumber && (
+            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+              <Hash className="w-4 h-4 text-primary" /> {flight.reservationNumber}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <button onClick={onEdit} className="p-2 text-slate-300 hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => onDelete(flight.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function FlightForm({ onAdd }: { onAdd: (flight: Flight) => void }) {
+  const { t } = useLanguage();
+  const [airline, setAirline] = useState('');
+  const [flightNumber, setFlightNumber] = useState('');
+  const [reservationNumber, setReservationNumber] = useState('');
+  const [departureAirport, setDepartureAirport] = useState('');
+  const [arrivalAirport, setArrivalAirport] = useState('');
+  const [departureDate, setDepartureDate] = useState('');
+  const [departureTime, setDepartureTime] = useState('');
+  const [arrivalDate, setArrivalDate] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [terminal, setTerminal] = useState('');
+  const [gate, setGate] = useState('');
+  const [seat, setSeat] = useState('');
+  const [boardingTime, setBoardingTime] = useState('');
+
+  const handleSubmit = () => {
+    if (!airline || !flightNumber || !departureAirport || !arrivalAirport || !departureDate || !arrivalDate) {
+      toast.error(t('home.toast.requiredFields'));
+      return;
+    }
+    onAdd({
+      id: Date.now().toString(),
+      airline,
+      flightNumber,
+      reservationNumber: reservationNumber || undefined,
+      departureAirport,
+      arrivalAirport,
+      departureDate,
+      departureTime: departureTime || undefined,
+      arrivalDate,
+      arrivalTime: arrivalTime || undefined,
+      terminal: terminal || undefined,
+      gate: gate || undefined,
+      seat: seat || undefined,
+      boardingTime: boardingTime || undefined,
+    });
+    setAirline(''); setFlightNumber(''); setReservationNumber('');
+    setDepartureAirport(''); setArrivalAirport('');
+    setDepartureDate(''); setDepartureTime(''); setArrivalDate(''); setArrivalTime('');
+    setTerminal(''); setGate(''); setSeat(''); setBoardingTime('');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.airlineLabel')} <span className="text-red-500">*</span></label>
+          <Input placeholder={t('home.flight.form.airlinePlaceholder')} value={airline} onChange={e => setAirline(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.flightNumberLabel')} <span className="text-red-500">*</span></label>
+          <Input placeholder={t('home.flight.form.flightNumberPlaceholder')} value={flightNumber} onChange={e => setFlightNumber(e.target.value)} className="h-11" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-foreground">{t('home.flight.form.reservationNumberLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <Input placeholder={t('home.flight.form.reservationNumberPlaceholder')} value={reservationNumber} onChange={e => setReservationNumber(e.target.value)} className="h-11" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureAirportLabel')} <span className="text-red-500">*</span></label>
+          <Input placeholder={t('home.flight.form.departureAirportPlaceholder')} value={departureAirport} onChange={e => setDepartureAirport(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalAirportLabel')} <span className="text-red-500">*</span></label>
+          <Input placeholder={t('home.flight.form.arrivalAirportPlaceholder')} value={arrivalAirport} onChange={e => setArrivalAirport(e.target.value)} className="h-11" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureDateLabel')} <span className="text-red-500">*</span></label>
+          <Input type="date" value={departureDate} onChange={e => setDepartureDate(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input type="time" value={departureTime} onChange={e => setDepartureTime(e.target.value)} className="h-11" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalDateLabel')} <span className="text-red-500">*</span></label>
+          <Input type="date" value={arrivalDate} onChange={e => setArrivalDate(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input type="time" value={arrivalTime} onChange={e => setArrivalTime(e.target.value)} className="h-11" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.terminalLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input placeholder={t('home.flight.form.terminalPlaceholder')} value={terminal} onChange={e => setTerminal(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.gateLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input placeholder={t('home.flight.form.gatePlaceholder')} value={gate} onChange={e => setGate(e.target.value)} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.seatLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <Input placeholder={t('home.flight.form.seatPlaceholder')} value={seat} onChange={e => setSeat(e.target.value)} className="h-11" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-foreground">{t('home.flight.form.boardingTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <Input type="time" value={boardingTime} onChange={e => setBoardingTime(e.target.value)} className="h-11" />
+      </div>
+
+      <Button onClick={handleSubmit} className="w-full bg-primary text-white h-11 text-base font-semibold">
+        <Plus className="w-4 h-4 mr-2" /> {t('home.flight.form.submitButton')}
       </Button>
     </div>
   );
