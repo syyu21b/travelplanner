@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2
+  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -433,6 +433,13 @@ export default function Home() {
       localStorage.removeItem('currentPlanId');
     }
   }, [currentPlan]);
+
+  // 로그인/로그아웃(계정 전환 포함) 시 메모리에 남아있는 이전 사용자의 여행 계획이 화면에
+  // 계속 노출되지 않도록, 로그인 사용자가 바뀔 때마다 항상 최신 사용자 기준으로 다시 불러옴
+  useEffect(() => {
+    setTravelPlans(loadUserPlans());
+    setCurrentPlan(loadCurrentPlan());
+  }, [user?.id]);
 
   // 작성 중인 계획 자동 저장
   useEffect(() => {
@@ -1606,6 +1613,23 @@ export default function Home() {
             </div>
           </div>
 
+          {/* 로그아웃 상태에서는 이전 사용자의 여행 계획/기록이 화면에 노출되지 않도록
+              스탯/달력/계획 목록 전체를 숨기고 로그인 유도 카드만 보여줌 */}
+          {!user ? (
+            <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10 pb-12">
+              <Card className="p-10 flex flex-col items-center justify-center text-center bg-white border-border shadow-xl rounded-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                  <Lock className="w-7 h-7 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold text-foreground mb-2">{t('home.loggedOut.title')}</h2>
+                <p className="text-muted-foreground mb-6 max-w-sm">{t('home.loggedOut.subtitle')}</p>
+                <Link href="/login">
+                  <Button className="bg-primary text-white px-6 h-11 rounded-full">{t('nav.login')}</Button>
+                </Link>
+              </Card>
+            </div>
+          ) : (
+          <>
           {/* ── 스탯 바 ── */}
           {(() => {
             const myDiaries = (() => { try { return JSON.parse(localStorage.getItem('travelDiaries') || '[]').filter((d: any) => d.userId === user?.id); } catch { return []; } })();
@@ -1798,6 +1822,8 @@ export default function Home() {
               })()}
             </div>
           </div>
+          </>
+          )}
 
           {/* ── 커뮤니티 인기 여행 ── */}
           <div className="max-w-6xl mx-auto px-4 pb-12">

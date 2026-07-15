@@ -28,6 +28,10 @@ export const home = {
       exploreButton: "여행 둘러보기",
       newPlanButton: "새 여행 계획",
     },
+    loggedOut: {
+      title: "로그인하고 나만의 여행 계획을 만들어보세요",
+      subtitle: "여행 계획과 여행 기록은 로그인한 회원만 확인할 수 있어요. 로그인 후 일정, 숙소, 예산까지 한 번에 관리해보세요.",
+    },
     stats: {
       plansLabel: "여행 계획",
       plansSub: "진행 중 {{n}}개",
@@ -413,6 +417,10 @@ export const home = {
       startButton: "Start a New Trip",
       exploreButton: "Explore Trips",
       newPlanButton: "New Trip Plan",
+    },
+    loggedOut: {
+      title: "Log in to build your own trip plan",
+      subtitle: "Trip plans and travel records are only visible to logged-in members. Log in to manage your schedule, lodging, and budget all in one place.",
     },
     stats: {
       plansLabel: "Trip Plans",
