@@ -29,7 +29,13 @@ import { cn } from "@/lib/utils";
 import type { MapMarker } from "@/components/Map";
 
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
-const OVERPASS_BASE = "https://overpass-api.de/api/interpreter";
+// 공용 Overpass 서버 하나만 쓰면 그 서버가 느리거나 요청 제한에 걸렸을 때 바로 실패로 이어지므로,
+// 여러 미러 서버를 순서대로 시도해 "주변 정보 요청 실패"가 최대한 뜨지 않도록 함
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.openstreetmap.ru/api/interpreter",
+];
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export interface OsmGeocodeResult {
@@ -99,11 +105,26 @@ export interface OsmPoi {
   distanceMeters: number;
 }
 
-const POI_CATEGORY_QUERIES: Record<PoiCategory, string> = {
-  attraction: '["tourism"~"^(attraction|museum|viewpoint|gallery|zoo|theme_park|artwork)$"]',
-  food: '["amenity"~"^(restaurant|cafe|fast_food|bar)$"]',
-  hotel: '["tourism"~"^(hotel|guest_house|hostel)$"]',
+// 태그 범위를 넉넉하게 잡아, 관광 인프라가 상대적으로 적게 태깅된 지역에서도
+// 카테고리가 비지 않도록 함 (예: historic/leisure=park를 관광지에, pub/food_court를 맛집에 포함)
+const POI_CATEGORY_QUERIES: Record<PoiCategory, string[]> = {
+  attraction: [
+    '["tourism"~"^(attraction|museum|viewpoint|gallery|zoo|theme_park|artwork|aquarium)$"]',
+    '["historic"]',
+    '["leisure"~"^(park|garden)$"]',
+  ],
+  food: [
+    '["amenity"~"^(restaurant|cafe|fast_food|bar|pub|food_court)$"]',
+  ],
+  hotel: [
+    '["tourism"~"^(hotel|guest_house|hostel|motel|apartment|chalet)$"]',
+  ],
 };
+
+// 반경을 1.2km부터 점점 넓혀가며, 세 카테고리가 모두 채워지거나 최대 반경에
+// 도달할 때까지 재시도 — 관광 인프라가 드문 지역에서도 최대한 추천을 채움
+const POI_RADIUS_STEPS_METERS = [1200, 3000, 7000, 15000];
+const OVERPASS_TIMEOUT_MS = 9000;
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -117,46 +138,53 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 }
 
 function categorizePoiTags(tags: Record<string, string>): { category: PoiCategory; kind: string } | null {
-  if (tags.tourism && /^(attraction|museum|viewpoint|gallery|zoo|theme_park|artwork)$/.test(tags.tourism)) {
+  if (tags.tourism && /^(attraction|museum|viewpoint|gallery|zoo|theme_park|artwork|aquarium)$/.test(tags.tourism)) {
     return { category: "attraction", kind: tags.tourism };
   }
-  if (tags.amenity && /^(restaurant|cafe|fast_food|bar)$/.test(tags.amenity)) {
+  if (tags.historic) {
+    return { category: "attraction", kind: tags.historic };
+  }
+  if (tags.leisure && /^(park|garden)$/.test(tags.leisure)) {
+    return { category: "attraction", kind: tags.leisure };
+  }
+  if (tags.amenity && /^(restaurant|cafe|fast_food|bar|pub|food_court)$/.test(tags.amenity)) {
     return { category: "food", kind: tags.amenity };
   }
-  if (tags.tourism && /^(hotel|guest_house|hostel)$/.test(tags.tourism)) {
+  if (tags.tourism && /^(hotel|guest_house|hostel|motel|apartment|chalet)$/.test(tags.tourism)) {
     return { category: "hotel", kind: tags.tourism };
   }
   return null;
 }
 
-/**
- * 좌표 주변의 관광지/맛집·카페/숙소를 Overpass API로 조회 (반경 기본 1.2km).
- * 카테고리별로 가까운 순 최대 8개까지만 반환.
- */
-export async function fetchNearbyPOIs(lat: number, lng: number, radiusMeters = 1200): Promise<OsmPoi[]> {
-  const around = `(around:${radiusMeters},${lat},${lng})`;
-  const query = `[out:json][timeout:15];(node${POI_CATEGORY_QUERIES.attraction}${around};node${POI_CATEGORY_QUERIES.food}${around};node${POI_CATEGORY_QUERIES.hotel}${around};);out body 100;`;
+/** 여러 Overpass 미러 서버를 순서대로 시도 — 하나가 느리거나(9초 타임아웃) 막혀도 다음 서버로 자동 전환 */
+async function postOverpassQuery(query: string): Promise<any> {
+  let lastErr: unknown = null;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: query,
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        lastErr = new Error(`주변 정보 요청이 실패했습니다 (status: ${res.status}).`);
+        continue;
+      }
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      continue;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("주변 정보를 불러오지 못했습니다. 네트워크 연결을 확인해주세요.");
+}
 
-  let res: Response;
-  try {
-    res = await fetch(OVERPASS_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: query,
-    });
-  } catch {
-    throw new Error("주변 정보를 불러오지 못했습니다. 네트워크 연결을 확인해주세요.");
-  }
-  if (!res.ok) {
-    throw new Error(`주변 정보 요청이 실패했습니다 (status: ${res.status}). 잠시 후 다시 시도해주세요.`);
-  }
-  let data: any;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error("주변 정보 응답을 처리하지 못했습니다.");
-  }
-
+function parsePoiElements(data: any, originLat: number, originLng: number): OsmPoi[] {
   const elements: any[] = Array.isArray(data?.elements) ? data.elements : [];
   const byCategory: Record<PoiCategory, OsmPoi[]> = { attraction: [], food: [], hotel: [] };
 
@@ -174,16 +202,60 @@ export async function fetchNearbyPOIs(lat: number, lng: number, radiusMeters = 1
         name,
         category: categorized.category,
         kind: categorized.kind,
-        distanceMeters: haversineMeters(lat, lng, el.lat, el.lon),
+        distanceMeters: haversineMeters(originLat, originLng, el.lat, el.lon),
       };
     })
     .filter((p): p is OsmPoi => p !== null)
     .sort((a, b) => a.distanceMeters - b.distanceMeters)
     .forEach(p => {
-      if (byCategory[p.category].length < 8) byCategory[p.category].push(p);
+      if (byCategory[p.category].length < 10) byCategory[p.category].push(p);
     });
 
   return [...byCategory.attraction, ...byCategory.food, ...byCategory.hotel];
+}
+
+// 카테고리마다 별도의 Overpass 집합(set)으로 나눠 각각 out으로 개수를 제한 — 도심처럼 "historic"
+// 태그가 붙은 지점이 매우 많은 지역에서 관광지 결과가 맛집/숙소 결과를 밀어내 카테고리가
+// 통째로 비어버리는 일이 없도록, 하나의 요청 안에서 카테고리별로 결과를 확실히 확보함
+async function fetchPOIsAtRadius(lat: number, lng: number, radiusMeters: number): Promise<OsmPoi[]> {
+  const around = `(around:${radiusMeters},${lat},${lng})`;
+  const categoryBlocks = (Object.keys(POI_CATEGORY_QUERIES) as PoiCategory[])
+    .map(cat => {
+      const clauses = POI_CATEGORY_QUERIES[cat].map(tagFilter => `node${tagFilter}${around};`).join("");
+      return `(${clauses})->.${cat};.${cat} out body 25;`;
+    })
+    .join("");
+  const query = `[out:json][timeout:20];${categoryBlocks}`;
+  const data = await postOverpassQuery(query);
+  return parsePoiElements(data, lat, lng);
+}
+
+const ALL_POI_CATEGORIES: PoiCategory[] = ["attraction", "food", "hotel"];
+
+/**
+ * 좌표 주변의 관광지/맛집·카페/숙소를 Overpass API로 조회.
+ * 1.2km부터 시작해 세 카테고리가 모두 채워지거나 15km에 도달할 때까지 반경을 넓혀가며 재시도하고,
+ * 카테고리별로 가까운 순 최대 10개까지 반환. 서버 요청 자체가 실패한 경우에도 그 시점까지
+ * 모은 결과가 있으면 에러를 던지지 않고 그대로 반환한다.
+ */
+export async function fetchNearbyPOIs(lat: number, lng: number): Promise<OsmPoi[]> {
+  let result: OsmPoi[] = [];
+  let lastErr: unknown = null;
+
+  for (const radius of POI_RADIUS_STEPS_METERS) {
+    try {
+      result = await fetchPOIsAtRadius(lat, lng, radius);
+      lastErr = null;
+    } catch (err) {
+      lastErr = err;
+      break; // 서버 자체가 응답하지 않는 상황이면 반경을 더 넓혀도 의미가 없으므로 중단
+    }
+    const allFilled = ALL_POI_CATEGORIES.every(cat => result.some(p => p.category === cat));
+    if (allFilled || result.length >= 8) break;
+  }
+
+  if (lastErr && result.length === 0) throw lastErr;
+  return result;
 }
 
 // 도시/국가/지역/도로/장소명 라벨을 "한국어 이름 -> 영어 이름 -> 현지 이름" 순으로 표시.

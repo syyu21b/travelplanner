@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, X, Search, Loader2, Landmark, Utensils, BedDouble, Sparkles } from "lucide-react";
+import { MapPin, X, Search, Loader2, Landmark, Utensils, BedDouble, Sparkles, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MapView, type MapMarker, geocodeAddress, reverseGeocodeToAddress } from "@/components/Map";
@@ -27,6 +27,13 @@ const POI_CATEGORY_LABELS: Record<PoiCategory, string> = {
   food: "맛집·카페",
   hotel: "숙소",
 };
+
+// 구글 지도 검색 URL 스킴 사용 (API 키 불필요) — 장소명과 좌표를 함께 넣어 검색하면
+// 구글 지도가 해당 좌표 근처에서 이름이 일치하는 장소를 찾아 정보 카드를 보여줄 확률이 높음
+function openPoiInGoogleMaps(poi: OsmPoi) {
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${poi.name} ${poi.lat},${poi.lng}`)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 type Region = "domestic" | "overseas";
 
@@ -73,7 +80,6 @@ export function LocationPickerDialog({
 
   const [nearbyPois, setNearbyPois] = useState<OsmPoi[]>([]);
   const [loadingPois, setLoadingPois] = useState(false);
-  const [poisError, setPoisError] = useState<string | null>(null);
   const [activePoiCategory, setActivePoiCategory] = useState<PoiCategory>("attraction");
   const overseasMapRef = useRef<MapLibreMap | null>(null);
 
@@ -85,23 +91,22 @@ export function LocationPickerDialog({
       setSearchQuery("");
       setSearchResults([]);
       setNearbyPois([]);
-      setPoisError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialLat, initialLng]);
 
   // 해외 지도에서 위치를 고를 때마다 주변 관광지/맛집·카페/숙소를 Overpass API로 추천 —
   // 지도 클릭/드래그로 좌표가 자주 바뀔 수 있어 공용 Overpass 서버 요청 빈도 제한에 걸리지 않도록
-  // 800ms 디바운스 후 한 번만 호출하고, 그 사이 좌표가 또 바뀌면 이전 요청 결과는 버림
+  // 800ms 디바운스 후 한 번만 호출하고, 그 사이 좌표가 또 바뀌면 이전 요청 결과는 버림.
+  // fetchNearbyPOIs 자체가 여러 미러 서버 + 반경 확장으로 최대한 결과를 채워오므로, 그래도 실패하면
+  // 사용자에게는 "요청 실패" 문구 대신 그냥 빈 상태("추천할 만한 장소를 찾지 못했습니다")로 보여줌
   useEffect(() => {
     if (isDomestic || !open || !picked) {
       setNearbyPois([]);
-      setPoisError(null);
       return;
     }
     let cancelled = false;
     setLoadingPois(true);
-    setPoisError(null);
     const timer = window.setTimeout(() => {
       import("@/components/OverseasMap")
         .then(m => m.fetchNearbyPOIs(picked.lat, picked.lng))
@@ -112,9 +117,9 @@ export function LocationPickerDialog({
           setActivePoiCategory(prev => (pois.some(p => p.category === prev) ? prev : pois[0]?.category ?? prev));
         })
         .catch((err: unknown) => {
+          console.error("[LocationPickerDialog] 주변 정보 조회 실패:", err);
           if (cancelled) return;
           setNearbyPois([]);
-          setPoisError(err instanceof Error ? err.message : "주변 정보를 불러오지 못했습니다.");
         })
         .finally(() => {
           if (!cancelled) setLoadingPois(false);
@@ -344,9 +349,7 @@ export function LocationPickerDialog({
                 <Sparkles className="w-3.5 h-3.5 text-primary" /> 주변 추천
                 {loadingPois && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
               </p>
-              {poisError ? (
-                <p className="text-xs text-muted-foreground">{poisError}</p>
-              ) : !loadingPois && nearbyPois.length === 0 ? (
+              {!loadingPois && nearbyPois.length === 0 ? (
                 <p className="text-xs text-muted-foreground">이 주변에서 추천할 만한 장소를 찾지 못했습니다.</p>
               ) : (
                 <>
@@ -380,17 +383,29 @@ export function LocationPickerDialog({
                       nearbyPois
                         .filter(p => p.category === activePoiCategory)
                         .map(poi => (
-                          <button
+                          <div
                             key={poi.id}
-                            type="button"
-                            onClick={() => selectPoi(poi)}
-                            className="w-full flex items-center justify-between gap-2 text-left px-3 py-2.5 rounded-lg bg-white border border-border hover:border-primary/40 hover:shadow-sm transition-all"
+                            className="flex items-center gap-1.5 rounded-lg bg-white border border-border hover:border-primary/40 hover:shadow-sm transition-all"
                           >
-                            <span className="text-sm font-medium text-foreground truncate">{poi.name}</span>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">
-                              {poi.distanceMeters < 1000 ? `${Math.round(poi.distanceMeters)}m` : `${(poi.distanceMeters / 1000).toFixed(1)}km`}
-                            </span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => selectPoi(poi)}
+                              className="flex-1 min-w-0 flex items-center justify-between gap-2 text-left px-3 py-2.5"
+                            >
+                              <span className="text-sm font-medium text-foreground truncate">{poi.name}</span>
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                {poi.distanceMeters < 1000 ? `${Math.round(poi.distanceMeters)}m` : `${(poi.distanceMeters / 1000).toFixed(1)}km`}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openPoiInGoogleMaps(poi)}
+                              title="구글 지도에서 이 장소 정보 보기"
+                              className="flex-shrink-0 flex items-center gap-1 text-xs font-bold text-primary hover:underline pr-3 py-2.5"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" /> Link
+                            </button>
+                          </div>
                         ))
                     )}
                   </div>
