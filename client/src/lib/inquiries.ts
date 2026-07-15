@@ -32,16 +32,19 @@ function saveInquiries(list: Inquiry[]): boolean {
   }
 }
 
+// 저장에 성공하면 새로 생성된 문의의 id를, 실패(예: 프라이빗 모드)하면 null을 반환 —
+// 호출부에서 이 id로 관리자에게 새 문의 알림을 보낼 수 있음
 export function addInquiry(input: {
   userId: string | null;
   name: string;
   email: string;
   title: string;
   content: string;
-}): boolean {
+}): string | null {
   const list = getInquiries();
+  const id = Date.now().toString();
   list.unshift({
-    id: Date.now().toString(),
+    id,
     userId: input.userId,
     name: input.name,
     email: input.email,
@@ -50,7 +53,7 @@ export function addInquiry(input: {
     createdAt: new Date().toISOString(),
     status: 'pending',
   });
-  return saveInquiries(list);
+  return saveInquiries(list) ? id : null;
 }
 
 export function answerInquiry(id: string, answer: string): boolean {

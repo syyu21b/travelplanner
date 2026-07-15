@@ -1039,6 +1039,7 @@ export default function MyPage() {
                     { key: 'shares' as const, label: t('mypage.settings.sharesLabel'), desc: t('mypage.settings.sharesDesc') },
                     { key: 'popularPost' as const, label: t('mypage.settings.popularPostLabel'), desc: t('mypage.settings.popularPostDesc') },
                     { key: 'inquiryAnswer' as const, label: t('mypage.settings.inquiryAnswerLabel'), desc: t('mypage.settings.inquiryAnswerDesc') },
+                    ...(user?.isAdmin ? [{ key: 'inquiryNew' as const, label: t('mypage.settings.inquiryNewLabel'), desc: t('mypage.settings.inquiryNewDesc') }] : []),
                   ].map(item => (
                     <div key={item.key} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
                       <div className="min-w-0">

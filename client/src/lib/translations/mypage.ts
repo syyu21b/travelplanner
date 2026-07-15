@@ -145,6 +145,8 @@ export const mypage = {
       popularPostDesc: '내 게시물이 인기글로 선정되면 알려드려요',
       inquiryAnswerLabel: '문의 답변 알림',
       inquiryAnswerDesc: '문의하신 내용에 답변이 등록되면 알려드려요',
+      inquiryNewLabel: '새 문의 접수 알림',
+      inquiryNewDesc: '사용자가 새 문의를 접수하면 알려드려요',
     },
     toast: {
       photoTooLarge: '10MB 이하 이미지만 업로드 가능합니다.',
@@ -310,6 +312,8 @@ export const mypage = {
       popularPostDesc: 'Get notified when your post is selected as popular',
       inquiryAnswerLabel: 'Inquiry answer notifications',
       inquiryAnswerDesc: 'Get notified when your inquiry is answered',
+      inquiryNewLabel: 'New inquiry notifications',
+      inquiryNewDesc: 'Get notified when a user submits a new inquiry',
     },
     toast: {
       photoTooLarge: 'Only images under 10MB can be uploaded.',

@@ -6,10 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { addInquiry } from '@/lib/inquiries';
 
 export default function Footer() {
-  const { user } = useAuth();
+  const { user, getAllUsers } = useAuth();
+  const { notify } = useNotifications();
   const [showInquiry, setShowInquiry] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,17 +35,20 @@ export default function Footer() {
       toast.error('올바른 이메일을 입력해주세요.');
       return;
     }
-    const saved = addInquiry({
+    const inquiryId = addInquiry({
       userId: user?.id || null,
       name: name.trim(),
       email: email.trim(),
       title: title.trim(),
       content: content.trim(),
     });
-    if (!saved) {
+    if (!inquiryId) {
       toast.error('이 브라우저에서는 문의를 저장할 수 없습니다. 다른 브라우저나 시크릿 모드 해제 후 다시 시도해주세요.');
       return;
     }
+    getAllUsers().filter(u => u.isAdmin).forEach(admin => {
+      notify({ recipientId: admin.id, type: 'inquiry-new', actorName: name.trim(), inquiryId, inquiryTitle: title.trim() });
+    });
     toast.success('문의가 접수되었습니다. 답변까지 조금만 기다려주세요!');
     setShowInquiry(false);
   };

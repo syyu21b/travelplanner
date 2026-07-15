@@ -181,6 +181,23 @@ function splitPreparationItems(preparations?: string[]): string[] {
   return (preparations || []).flatMap(p => p.split(',').map(x => x.trim()).filter(Boolean));
 }
 
+// 계획에 속한 모든 일정의 준비물을 모아 이름 기준으로 중복 제거한 목록 — 전체 준비물 체크리스트,
+// PDF/텍스트 내보내기가 모두 이 목록을 공유해 어디서나 동일하게 하나씩만 체크되도록 함
+function getUniquePreparationLabels(plan: TravelPlan): string[] {
+  const seen = new Set<string>();
+  const labels: string[] = [];
+  [...plan.schedules]
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+    .forEach(s => {
+      splitPreparationItems(s.preparations).forEach(label => {
+        if (seen.has(label)) return;
+        seen.add(label);
+        labels.push(label);
+      });
+    });
+  return labels;
+}
+
 // 다른 시점/버전에서 저장된 데이터에는 schedules/budgets/shoppingList 등의 필드가 없을 수 있어,
 // 읽어올 때 항상 안전한 기본값으로 채워 넣어 렌더링 중 크래시를 방지
 function normalizePlan(p: TravelPlan): TravelPlan {
@@ -800,9 +817,42 @@ export default function Home() {
       if (s.location) content += `   ${t('home.textExport.location')}: ${s.location}\n`;
       if (s.cost) content += `   ${t('home.textExport.cost')}: ₩${s.cost.toLocaleString()}\n`;
       if (s.notes) content += `   ${t('home.textExport.notes')}: ${s.notes}\n`;
-      if (s.preparations && s.preparations.length > 0) content += `   ${t('home.textExport.preparations')}: ${s.preparations.join(', ')}\n`;
+      if (s.preparations && s.preparations.length > 0) content += `   ${t('home.textExport.preparations')}: ${splitPreparationItems(s.preparations).join(', ')}\n`;
       content += `\n`;
     });
+
+    content += `■ ${t('home.textExport.accommodationSection')}\n`;
+    const accommodations = [...(currentPlan.accommodations || [])]
+      .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate) || (a.checkInTime || '').localeCompare(b.checkInTime || ''));
+    if (accommodations.length === 0) {
+      content += `${t('home.textExport.noAccommodations')}\n`;
+    } else {
+      accommodations.forEach((a, idx) => {
+        content += `${idx + 1}. ${a.name}\n`;
+        if (a.address) content += `   ${t('home.textExport.location')}: ${a.address}\n`;
+        content += `   ${t('home.textExport.checkIn')}: ${a.checkInDate} ${formatTime12h(a.checkInTime)} → ${t('home.textExport.checkOut')}: ${a.checkOutDate} ${formatTime12h(a.checkOutTime)}\n`;
+        if (a.phone) content += `   ${t('home.textExport.phone')}: ${a.phone}\n`;
+        if (a.reservationNumber) content += `   ${t('home.textExport.reservationNumber')}: ${a.reservationNumber}\n`;
+        if (a.notes) content += `   ${t('home.textExport.notes')}: ${a.notes}\n`;
+      });
+    }
+    content += `\n`;
+
+    content += `■ ${t('home.textExport.flightSection')}\n`;
+    const flights = [...(currentPlan.flights || [])]
+      .sort((a, b) => a.departureDate.localeCompare(b.departureDate) || (a.departureTime || '').localeCompare(b.departureTime || ''));
+    if (flights.length === 0) {
+      content += `${t('home.textExport.noFlights')}\n`;
+    } else {
+      flights.forEach((f, idx) => {
+        content += `${idx + 1}. ${f.airline} ${f.flightNumber}\n`;
+        content += `   ${t('home.textExport.departure')}: ${f.departureAirport} ${f.departureDate} ${formatTime12h(f.departureTime)}\n`;
+        content += `   ${t('home.textExport.arrival')}: ${f.arrivalAirport} ${f.arrivalDate} ${formatTime12h(f.arrivalTime)}\n`;
+        if (f.seat) content += `   ${t('home.textExport.seat')}: ${f.seat}\n`;
+        if (f.reservationNumber) content += `   ${t('home.textExport.reservationNumber')}: ${f.reservationNumber}\n`;
+      });
+    }
+    content += `\n`;
 
     content += `■ ${t('home.textExport.budgetSection')}\n`;
     const total = currentPlan.budgets.reduce((sum, b) => sum + b.amount, 0);
@@ -816,6 +866,37 @@ export default function Home() {
       const status = item.checked ? '[V]' : '[ ]';
       content += `${status} ${idx + 1}. ${item.item}\n`;
     });
+    content += `\n`;
+
+    content += `■ ${t('home.textExport.preparationsSection')}\n`;
+    const uniquePreps = getUniquePreparationLabels(currentPlan);
+    if (uniquePreps.length === 0) {
+      content += `${t('home.textExport.noPreparations')}\n`;
+    } else {
+      uniquePreps.forEach((label, idx) => {
+        const status = currentPlan.preparationChecks?.[label] ? '[V]' : '[ ]';
+        content += `${status} ${idx + 1}. ${label}\n`;
+      });
+    }
+    content += `\n`;
+
+    content += `■ ${t('home.textExport.timelineSection')}\n`;
+    if (currentPlan.schedules.length === 0) {
+      content += `${t('home.textExport.noTimeline')}\n`;
+    } else {
+      const sortedByDate = [...currentPlan.schedules].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+      const groupedByDate = sortedByDate.reduce<Record<string, ScheduleItem[]>>((acc, s) => {
+        (acc[s.date] ??= []).push(s);
+        return acc;
+      }, {});
+      Object.keys(groupedByDate).sort().forEach((date, dayIdx) => {
+        content += `[Day ${dayIdx + 1}] ${date}\n`;
+        groupedByDate[date].forEach(s => {
+          const status = s.completed ? '[V]' : '[ ]';
+          content += `  ${status} ${formatTime12h(s.time)} ${s.title}\n`;
+        });
+      });
+    }
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -998,19 +1079,7 @@ export default function Home() {
   const renderAllPreparationsChecklistContent = (plan: TravelPlan | null, onToggle?: (key: string) => void) => {
     if (!plan) return null;
     const interactive = !!onToggle;
-    const withPreps = plan.schedules.filter(s => s.preparations && s.preparations.length > 0);
-
-    const uniqueLabels: string[] = [];
-    const seen = new Set<string>();
-    [...withPreps]
-      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-      .forEach(s => {
-        splitPreparationItems(s.preparations).forEach(label => {
-          if (seen.has(label)) return;
-          seen.add(label);
-          uniqueLabels.push(label);
-        });
-      });
+    const uniqueLabels = getUniquePreparationLabels(plan);
 
     const totalCount = uniqueLabels.length;
     const checkedCount = uniqueLabels.filter(label => plan.preparationChecks?.[preparationCheckKey(label)]).length;
@@ -2450,6 +2519,59 @@ export default function Home() {
                   </div>
                 </div>
 
+                <div className="mb-10">
+                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">🏨 {t('home.pdf.accommodationSection')}</h2>
+                  <div className="space-y-4">
+                    {(currentPlan.accommodations || []).length === 0 ? (
+                      <p className="text-sm text-slate-400">{t('home.pdf.noAccommodations')}</p>
+                    ) : (
+                      [...(currentPlan.accommodations || [])]
+                        .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate) || (a.checkInTime || '').localeCompare(b.checkInTime || ''))
+                        .map(a => (
+                          <div key={a.id} className="p-4 border border-slate-200 rounded-xl">
+                            <h3 className="text-lg font-bold mb-1">{a.name}</h3>
+                            {a.address && <p className="text-sm text-slate-600 flex items-center gap-1">📍 {a.address}</p>}
+                            <p className="text-sm text-slate-600 mt-1">
+                              {t('home.accommodation.checkInShort')} {a.checkInDate} {formatTime12h(a.checkInTime)} → {t('home.accommodation.checkOutShort')} {a.checkOutDate} {formatTime12h(a.checkOutTime)}
+                            </p>
+                            {a.phone && <p className="text-sm text-slate-600">☎ {a.phone}</p>}
+                            {a.reservationNumber && <p className="text-sm text-slate-600">{t('home.accommodation.form.reservationNumberLabel')}: {a.reservationNumber}</p>}
+                            {a.notes && <p className="text-sm text-slate-500 italic mt-2 p-2 bg-slate-50 rounded">"{a.notes}"</p>}
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="mb-10">
+                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">✈️ {t('home.pdf.flightSection')}</h2>
+                  <div className="space-y-4">
+                    {(currentPlan.flights || []).length === 0 ? (
+                      <p className="text-sm text-slate-400">{t('home.pdf.noFlights')}</p>
+                    ) : (
+                      [...(currentPlan.flights || [])]
+                        .sort((a, b) => a.departureDate.localeCompare(b.departureDate) || (a.departureTime || '').localeCompare(b.departureTime || ''))
+                        .map(f => (
+                          <div key={f.id} className="p-4 border border-slate-200 rounded-xl">
+                            <h3 className="text-lg font-bold mb-1">{f.airline} {f.flightNumber}</h3>
+                            <p className="text-sm text-slate-600">{t('home.flight.departureShort')}: {f.departureAirport} · {f.departureDate} {formatTime12h(f.departureTime)}</p>
+                            <p className="text-sm text-slate-600">{t('home.flight.arrivalShort')}: {f.arrivalAirport} · {f.arrivalDate} {formatTime12h(f.arrivalTime)}</p>
+                            {(f.terminal || f.gate || f.seat) && (
+                              <p className="text-sm text-slate-600">
+                                {[
+                                  f.terminal && `${t('home.flight.form.terminalLabel')}: ${f.terminal}`,
+                                  f.gate && `${t('home.flight.form.gateLabel')}: ${f.gate}`,
+                                  f.seat && `${t('home.flight.form.seatLabel')}: ${f.seat}`,
+                                ].filter(Boolean).join('  ·  ')}
+                              </p>
+                            )}
+                            {f.reservationNumber && <p className="text-sm text-slate-600">{t('home.flight.form.reservationNumberLabel')}: {f.reservationNumber}</p>}
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-8 mb-10">
                   <div>
                     <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">💰 {t('home.pdf.budgetSection')}</h2>
@@ -2477,6 +2599,15 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
+                </div>
+
+                <div className="mb-10">
+                  {renderAllPreparationsChecklistContent(currentPlan)}
+                </div>
+
+                <div className="mb-10">
+                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">🕐 {t('home.pdf.timelineSection')}</h2>
+                  {renderTimelineContent(currentPlan)}
                 </div>
               </div>
             </div>

@@ -14,6 +14,7 @@ const ICONS: Record<NotificationType, typeof Heart> = {
   "trip-d3": Plane,
   "trip-dday": Plane,
   "inquiry-answer": Mail,
+  "inquiry-new": Mail,
 };
 
 function messageFor(n: AppNotification, t: (key: string, params?: Record<string, string | number>) => string): string {
@@ -32,6 +33,8 @@ function messageFor(n: AppNotification, t: (key: string, params?: Record<string,
       return t("notifications.tripDDay", { title: n.planTitle || "" });
     case "inquiry-answer":
       return t("notifications.inquiryAnswer");
+    case "inquiry-new":
+      return t("notifications.inquiryNew", { actor: n.actorName || "", title: n.inquiryTitle || "" });
     default:
       return "";
   }
@@ -57,6 +60,8 @@ export default function NotificationBell() {
     markAsRead(n.id);
     if (n.type === "inquiry-answer") {
       setLocation("/mypage?tab=activity");
+    } else if (n.type === "inquiry-new") {
+      setLocation("/admin");
     }
   };
 
