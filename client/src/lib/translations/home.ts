@@ -282,6 +282,8 @@ export const home = {
       grandTotal: "총 합계",
       shoppingSection: "쇼핑 목록",
       noShoppingItems: "등록된 쇼핑 목록이 없습니다.",
+      preparationsSection: "전체 준비물 체크리스트",
+      noPreparations: "등록된 준비물이 없습니다.",
       timelineSection: "타임라인",
     },
     textExport: {
@@ -666,6 +668,8 @@ export const home = {
       grandTotal: "Grand Total",
       shoppingSection: "Shopping List",
       noShoppingItems: "No shopping items added yet.",
+      preparationsSection: "All Items Checklist",
+      noPreparations: "No checklist items added yet.",
       timelineSection: "Timeline",
     },
     textExport: {

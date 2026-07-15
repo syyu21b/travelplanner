@@ -18,8 +18,6 @@ import {
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import * as QRCodeLib from 'qrcode.react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
@@ -353,7 +351,6 @@ export default function Home() {
   const [routeOriginId, setRouteOriginId] = useState<string | null>(null);
   const [routeDestinationId, setRouteDestinationId] = useState<string | null>(null);
 
-  const pdfRef = useRef<HTMLDivElement>(null);
   const scheduleMapRef = useRef<naver.maps.Map | null>(null);
   const scheduleOverseasMapRef = useRef<MapLibreMap | null>(null);
   const planPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -734,8 +731,41 @@ export default function Home() {
           <div style="font-size: 0.9em; color: #666;">📍 ${s.location || '-'}</div>
           ${s.cost ? `<div style="font-size: 0.9em; color: #0ea5e9; font-weight: bold;">₩${s.cost.toLocaleString()}</div>` : ''}
           ${s.notes ? `<div style="font-size: 0.85em; color: #888; font-style: italic;">"${s.notes}"</div>` : ''}
+          ${s.preparations && s.preparations.length > 0 ? `<div style="font-size: 0.85em; color: #888; margin-top: 4px;">${splitPreparationItems(s.preparations).map(p => `# ${p}`).join('  ')}</div>` : ''}
         </div>
       `).join('');
+
+    const accommodationsHtml = [...(currentPlan.accommodations || [])]
+      .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate) || (a.checkInTime || '').localeCompare(b.checkInTime || ''))
+      .map(a => `
+        <div style="padding: 10px; border-bottom: 1px solid #eee;">
+          <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px;">${a.name}</div>
+          ${a.address ? `<div style="font-size: 0.9em; color: #666;">📍 ${a.address}</div>` : ''}
+          <div style="font-size: 0.9em; color: #666;">${t('home.accommodation.checkInShort')} ${a.checkInDate} ${formatTime12h(a.checkInTime)} → ${t('home.accommodation.checkOutShort')} ${a.checkOutDate} ${formatTime12h(a.checkOutTime)}</div>
+          ${a.phone ? `<div style="font-size: 0.9em; color: #666;">☎ ${a.phone}</div>` : ''}
+          ${a.reservationNumber ? `<div style="font-size: 0.9em; color: #666;">${t('home.accommodation.form.reservationNumberLabel')}: ${a.reservationNumber}</div>` : ''}
+          ${a.notes ? `<div style="font-size: 0.85em; color: #888; font-style: italic;">"${a.notes}"</div>` : ''}
+        </div>
+      `).join('');
+
+    const flightsHtml = [...(currentPlan.flights || [])]
+      .sort((a, b) => a.departureDate.localeCompare(b.departureDate) || (a.departureTime || '').localeCompare(b.departureTime || ''))
+      .map(f => {
+        const details = [
+          f.terminal && `${t('home.flight.form.terminalLabel')}: ${f.terminal}`,
+          f.gate && `${t('home.flight.form.gateLabel')}: ${f.gate}`,
+          f.seat && `${t('home.flight.form.seatLabel')}: ${f.seat}`,
+        ].filter(Boolean).join('  ·  ');
+        return `
+          <div style="padding: 10px; border-bottom: 1px solid #eee;">
+            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px;">${f.airline} ${f.flightNumber}</div>
+            <div style="font-size: 0.9em; color: #666;">${t('home.flight.departureShort')}: ${f.departureAirport} ${f.departureDate} ${formatTime12h(f.departureTime)}</div>
+            <div style="font-size: 0.9em; color: #666;">${t('home.flight.arrivalShort')}: ${f.arrivalAirport} ${f.arrivalDate} ${formatTime12h(f.arrivalTime)}</div>
+            ${details ? `<div style="font-size: 0.9em; color: #666;">${details}</div>` : ''}
+            ${f.reservationNumber ? `<div style="font-size: 0.9em; color: #666;">${t('home.flight.form.reservationNumberLabel')}: ${f.reservationNumber}</div>` : ''}
+          </div>
+        `;
+      }).join('');
 
     const budgetsHtml = currentPlan.budgets
       .map(b => `
@@ -751,6 +781,27 @@ export default function Home() {
           ${i.checked ? '☑' : '☐'} ${i.item}
         </div>
       `).join('');
+
+    const preparationsHtml = getUniquePreparationLabels(currentPlan)
+      .map(label => {
+        const checked = !!currentPlan.preparationChecks?.[label];
+        return `<div style="padding: 5px 0; border-bottom: 1px solid #f5f5f5; ${checked ? 'color: #aaa; text-decoration: line-through;' : ''}">${checked ? '☑' : '☐'} ${label}</div>`;
+      }).join('');
+
+    const timelineGroups = [...currentPlan.schedules]
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+      .reduce<Record<string, ScheduleItem[]>>((acc, s) => {
+        (acc[s.date] ??= []).push(s);
+        return acc;
+      }, {});
+    const timelineHtml = Object.keys(timelineGroups).sort().map((date, dayIdx) => `
+      <div style="margin-bottom: 14px;">
+        <div style="font-weight: bold; color: #0369a1; margin-bottom: 6px;">Day ${dayIdx + 1} · ${date}</div>
+        ${timelineGroups[date].map(s => `
+          <div style="padding: 4px 0 4px 12px; font-size: 0.9em; ${s.completed ? 'color: #aaa; text-decoration: line-through;' : ''}">${s.completed ? '☑' : '☐'} ${formatTime12h(s.time)} ${s.title}</div>
+        `).join('')}
+      </div>
+    `).join('');
 
     const totalBudget = currentPlan.budgets.reduce((sum, b) => sum + b.amount, 0);
 
@@ -781,6 +832,16 @@ export default function Home() {
           </div>
 
           <div class="section">
+            <h2>🏨 ${t('home.pdf.accommodationSection')}</h2>
+            ${accommodationsHtml || `<p>${t('home.pdf.noAccommodations')}</p>`}
+          </div>
+
+          <div class="section">
+            <h2>✈️ ${t('home.pdf.flightSection')}</h2>
+            ${flightsHtml || `<p>${t('home.pdf.noFlights')}</p>`}
+          </div>
+
+          <div class="section">
             <h2>💰 ${t('home.pdf.budgetSection')}</h2>
             ${budgetsHtml || `<p>${t('home.pdf.noBudgets')}</p>`}
             <div class="total">${t('home.pdf.grandTotal')}: ₩${totalBudget.toLocaleString()}</div>
@@ -789,6 +850,16 @@ export default function Home() {
           <div class="section">
             <h2>🛍 ${t('home.pdf.shoppingSection')}</h2>
             ${shoppingHtml || `<p>${t('home.pdf.noShoppingItems')}</p>`}
+          </div>
+
+          <div class="section">
+            <h2>✅ ${t('home.pdf.preparationsSection')}</h2>
+            ${preparationsHtml || `<p>${t('home.pdf.noPreparations')}</p>`}
+          </div>
+
+          <div class="section">
+            <h2>🕐 ${t('home.pdf.timelineSection')}</h2>
+            ${timelineHtml || `<p>${t('home.pdf.noSchedules')}</p>`}
           </div>
 
           <script>
@@ -906,18 +977,6 @@ export default function Home() {
     a.click();
     URL.revokeObjectURL(url);
     toast.success(t('home.toast.textFileSaved'));
-  };
-
-  const handleDownloadPDF = () => {
-    if (!currentPlan || !pdfRef.current) return;
-    const element = pdfRef.current;
-    const printWindow = window.open('', '', 'height=800,width=1000');
-    if (!printWindow) { toast.error(t('home.toast.pdfDownloadFailed')); return; }
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
-    printWindow.document.write(`<html><head><title>${currentPlan.title}</title>${styles}<style>@media print { .no-print { display: none; } body { background: white !important; } }</style></head><body><div>${element.innerHTML}</div></body></html>`);
-    printWindow.document.close();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-    toast.success(t('home.toast.pdfPreparing'));
   };
 
   const handleDeletePlan = (planId: string) => {
@@ -2486,131 +2545,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* PDF 전용 레이아웃 (캡처용) */}
-            <div ref={pdfRef} id="pdf-content" className="fixed -left-[9999px] top-0 bg-white" style={{ display: 'none', fontFamily: "'Pretendard', sans-serif" }}>
-              <div className="p-10 bg-white text-slate-900 w-[800px]">
-                <div className="border-b-4 border-primary pb-6 mb-8">
-                  <h1 className="text-4xl font-black text-foreground mb-2">{currentPlan.title}</h1>
-                  <p className="text-xl text-muted-foreground font-bold">{currentPlan.startDate} ~ {currentPlan.endDate}</p>
-                </div>
-                
-                <div className="mb-10">
-                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">📅 {t('home.pdf.scheduleSection')}</h2>
-                  <div className="space-y-4">
-                    {currentPlan.schedules.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).map(s => (
-                      <div key={s.id} className="p-4 border border-slate-200 rounded-xl">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold", getCategoryColor(s.category))}>{getCategoryLabel(s.category)}</span>
-                          <span className="text-sm text-slate-500 font-bold">{s.date} {formatTime12h(s.time)}</span>
-                        </div>
-                        <h3 className="text-lg font-bold mb-1">{s.title}</h3>
-                        {s.location && <p className="text-sm text-slate-600 flex items-center gap-1">📍 {s.location}</p>}
-                        {s.cost && <p className="text-sm text-primary font-bold mt-1">₩{s.cost.toLocaleString()}</p>}
-                        {s.notes && <p className="text-sm text-slate-500 italic mt-2 p-2 bg-slate-50 rounded">"{s.notes}"</p>}
-                        {s.preparations && s.preparations.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {splitPreparationItems(s.preparations).map((p: string, i: number) => (
-                              <span key={i} className="text-[10px] bg-slate-100 px-2 py-0.5 rounded"># {p}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-10">
-                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">🏨 {t('home.pdf.accommodationSection')}</h2>
-                  <div className="space-y-4">
-                    {(currentPlan.accommodations || []).length === 0 ? (
-                      <p className="text-sm text-slate-400">{t('home.pdf.noAccommodations')}</p>
-                    ) : (
-                      [...(currentPlan.accommodations || [])]
-                        .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate) || (a.checkInTime || '').localeCompare(b.checkInTime || ''))
-                        .map(a => (
-                          <div key={a.id} className="p-4 border border-slate-200 rounded-xl">
-                            <h3 className="text-lg font-bold mb-1">{a.name}</h3>
-                            {a.address && <p className="text-sm text-slate-600 flex items-center gap-1">📍 {a.address}</p>}
-                            <p className="text-sm text-slate-600 mt-1">
-                              {t('home.accommodation.checkInShort')} {a.checkInDate} {formatTime12h(a.checkInTime)} → {t('home.accommodation.checkOutShort')} {a.checkOutDate} {formatTime12h(a.checkOutTime)}
-                            </p>
-                            {a.phone && <p className="text-sm text-slate-600">☎ {a.phone}</p>}
-                            {a.reservationNumber && <p className="text-sm text-slate-600">{t('home.accommodation.form.reservationNumberLabel')}: {a.reservationNumber}</p>}
-                            {a.notes && <p className="text-sm text-slate-500 italic mt-2 p-2 bg-slate-50 rounded">"{a.notes}"</p>}
-                          </div>
-                        ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="mb-10">
-                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">✈️ {t('home.pdf.flightSection')}</h2>
-                  <div className="space-y-4">
-                    {(currentPlan.flights || []).length === 0 ? (
-                      <p className="text-sm text-slate-400">{t('home.pdf.noFlights')}</p>
-                    ) : (
-                      [...(currentPlan.flights || [])]
-                        .sort((a, b) => a.departureDate.localeCompare(b.departureDate) || (a.departureTime || '').localeCompare(b.departureTime || ''))
-                        .map(f => (
-                          <div key={f.id} className="p-4 border border-slate-200 rounded-xl">
-                            <h3 className="text-lg font-bold mb-1">{f.airline} {f.flightNumber}</h3>
-                            <p className="text-sm text-slate-600">{t('home.flight.departureShort')}: {f.departureAirport} · {f.departureDate} {formatTime12h(f.departureTime)}</p>
-                            <p className="text-sm text-slate-600">{t('home.flight.arrivalShort')}: {f.arrivalAirport} · {f.arrivalDate} {formatTime12h(f.arrivalTime)}</p>
-                            {(f.terminal || f.gate || f.seat) && (
-                              <p className="text-sm text-slate-600">
-                                {[
-                                  f.terminal && `${t('home.flight.form.terminalLabel')}: ${f.terminal}`,
-                                  f.gate && `${t('home.flight.form.gateLabel')}: ${f.gate}`,
-                                  f.seat && `${t('home.flight.form.seatLabel')}: ${f.seat}`,
-                                ].filter(Boolean).join('  ·  ')}
-                              </p>
-                            )}
-                            {f.reservationNumber && <p className="text-sm text-slate-600">{t('home.flight.form.reservationNumberLabel')}: {f.reservationNumber}</p>}
-                          </div>
-                        ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-8 mb-10">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">💰 {t('home.pdf.budgetSection')}</h2>
-                    <div className="space-y-2">
-                      {currentPlan.budgets.map(b => (
-                        <div key={b.id} className="flex justify-between items-center p-2 border-b border-slate-100">
-                          <span className="text-sm">{b.description}</span>
-                          <span className="text-sm font-bold">₩{b.amount.toLocaleString()}</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between items-center p-2 bg-primary/10 rounded mt-2">
-                        <span className="font-bold">{t('home.pdf.grandTotal')}</span>
-                        <span className="font-bold text-primary">₩{totalBudget.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">🛍️ {t('home.pdf.shoppingSection')}</h2>
-                    <div className="space-y-2">
-                      {currentPlan.shoppingList.map(item => (
-                        <div key={item.id} className="flex items-center gap-2 p-2 border-b border-slate-100">
-                          <span>{item.checked ? '☑' : '☐'}</span>
-                          <span className={cn("text-sm", item.checked && "line-through text-slate-400")}>{item.item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-10">
-                  {renderAllPreparationsChecklistContent(currentPlan)}
-                </div>
-
-                <div className="mb-10">
-                  <h2 className="text-2xl font-bold text-foreground mb-6 border-b pb-2">🕐 {t('home.pdf.timelineSection')}</h2>
-                  {renderTimelineContent(currentPlan)}
-                </div>
-              </div>
-            </div>
           </div>
             </>
           )}
