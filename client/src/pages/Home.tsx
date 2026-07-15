@@ -175,6 +175,12 @@ function schedulesOverlap(aDate: string, aStart: string, aEnd: string | undefine
   return s1 < e2 && s2 < e1;
 }
 
+// 준비물 항목 하나에 쉼표로 여러 개가 함께 적혀 있는 경우(예: 편집 화면에서 "여행 가방, 여권, 선글라스"를
+// 한 번에 입력한 경우)에도 항상 개별 항목으로 쪼개서 각각 따로 체크/표시할 수 있도록 정규화
+function splitPreparationItems(preparations?: string[]): string[] {
+  return (preparations || []).flatMap(p => p.split(',').map(x => x.trim()).filter(Boolean));
+}
+
 // 다른 시점/버전에서 저장된 데이터에는 schedules/budgets/shoppingList 등의 필드가 없을 수 있어,
 // 읽어올 때 항상 안전한 기본값으로 채워 넣어 렌더링 중 크래시를 방지
 function normalizePlan(p: TravelPlan): TravelPlan {
@@ -970,7 +976,7 @@ export default function Home() {
               <Check className="w-4 h-4 text-primary" /> {s.title} ({s.date})
             </h4>
             <div className="flex flex-wrap gap-2">
-              {s.preparations?.map((p, idx) => (
+              {splitPreparationItems(s.preparations).map((p, idx) => (
                 <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm text-muted-foreground border border-border shadow-sm">{p}</span>
               ))}
             </div>
@@ -999,9 +1005,8 @@ export default function Home() {
     [...withPreps]
       .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
       .forEach(s => {
-        (s.preparations || []).forEach(p => {
-          const label = p.trim();
-          if (!label || seen.has(label)) return;
+        splitPreparationItems(s.preparations).forEach(label => {
+          if (seen.has(label)) return;
           seen.add(label);
           uniqueLabels.push(label);
         });
@@ -2435,7 +2440,7 @@ export default function Home() {
                         {s.notes && <p className="text-sm text-slate-500 italic mt-2 p-2 bg-slate-50 rounded">"{s.notes}"</p>}
                         {s.preparations && s.preparations.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {s.preparations.map((p: string, i: number) => (
+                            {splitPreparationItems(s.preparations).map((p: string, i: number) => (
                               <span key={i} className="text-[10px] bg-slate-100 px-2 py-0.5 rounded"># {p}</span>
                             ))}
                           </div>
@@ -2936,7 +2941,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs font-bold text-muted-foreground mb-1.5">{t('home.schedule.form.preparationsLabel')}</p>
                   <div className="flex flex-wrap gap-2">
-                    {detailSchedule.preparations.map((p, idx) => (
+                    {splitPreparationItems(detailSchedule.preparations).map((p, idx) => (
                       <span key={idx} className="bg-secondary px-3 py-1 rounded-full text-sm text-muted-foreground border border-border">{p}</span>
                     ))}
                   </div>
@@ -3584,8 +3589,9 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
   );
 
   const addPrep = () => {
-    if (!newPrep.trim()) return;
-    const preps = [...(editData.preparations || []), newPrep.trim()];
+    const items = newPrep.split(',').map(p => p.trim()).filter(Boolean);
+    if (items.length === 0) return;
+    const preps = [...(editData.preparations || []), ...items];
     setEditData({ ...editData, preparations: preps });
     setNewPrep('');
   };
@@ -3737,7 +3743,7 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
           )}
           {schedule.preparations && schedule.preparations.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {schedule.preparations.map((p: string, i: number) => (
+              {splitPreparationItems(schedule.preparations).map((p: string, i: number) => (
                 <span key={i} className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded border border-border"># {p}</span>
               ))}
             </div>
