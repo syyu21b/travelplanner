@@ -1,11 +1,13 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, X, Search, Loader2, Landmark, Utensils, BedDouble, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { MapView, type MapMarker, geocodeAddress, reverseGeocodeToAddress } from "@/components/Map";
 import type { OsmPoi, PoiCategory } from "@/components/OverseasMap";
+import type { Map as MapLibreMap } from "maplibre-gl";
 
 // 해외 지도(MapLibre GL)는 용량이 커서, 실제로 해외 계획을 다룰 때만 불러오도록 지연 로딩
 const OverseasMapView = lazy(() =>
@@ -72,6 +74,8 @@ export function LocationPickerDialog({
   const [nearbyPois, setNearbyPois] = useState<OsmPoi[]>([]);
   const [loadingPois, setLoadingPois] = useState(false);
   const [poisError, setPoisError] = useState<string | null>(null);
+  const [activePoiCategory, setActivePoiCategory] = useState<PoiCategory>("attraction");
+  const overseasMapRef = useRef<MapLibreMap | null>(null);
 
   // 다이얼로그를 열 때마다 초기 상태로 리셋
   useEffect(() => {
@@ -104,6 +108,8 @@ export function LocationPickerDialog({
         .then(pois => {
           if (cancelled) return;
           setNearbyPois(pois);
+          // 새로 불러온 목록에 현재 선택된 카테고리 결과가 없으면, 결과가 있는 첫 카테고리로 자동 전환
+          setActivePoiCategory(prev => (pois.some(p => p.category === prev) ? prev : pois[0]?.category ?? prev));
         })
         .catch((err: unknown) => {
           if (cancelled) return;
@@ -173,6 +179,27 @@ export function LocationPickerDialog({
     } finally {
       setSearching(false);
     }
+  };
+
+  // 주변 추천 카드를 선택했을 때, 지도가 어디로 이동했는지 놓치지 않도록 해당 지점으로
+  // 확실히 확대 이동시키고 이름표가 붙은 풍선(팝업)을 잠깐 띄워 위치를 명확히 보여줌
+  const selectPoi = (poi: OsmPoi) => {
+    selectLocation(poi.lat, poi.lng, poi.name);
+    const map = overseasMapRef.current;
+    if (!map) return;
+    try {
+      map.flyTo({ center: [poi.lng, poi.lat], zoom: Math.max(map.getZoom(), 17) });
+    } catch {
+      return; // 지도 인스턴스가 이미 정리된 경우 등 — 위치 선택 자체는 이미 반영되었으므로 조용히 무시
+    }
+    import("maplibre-gl")
+      .then(({ Popup }) => {
+        new Popup({ offset: 20, closeButton: false, closeOnClick: true })
+          .setLngLat([poi.lng, poi.lat])
+          .setText(poi.name)
+          .addTo(map);
+      })
+      .catch(() => { /* 팝업은 부가 요소라 실패해도 위치 이동 자체는 이미 정상 동작함 */ });
   };
 
   const markers: MapMarker[] = picked
@@ -269,6 +296,7 @@ export function LocationPickerDialog({
                 onMapClick={(lat, lng) => selectLocation(lat, lng)}
                 onMarkerDragEnd={(_id, lat, lng) => selectLocation(lat, lng)}
                 onMarkerDelete={clearSelection}
+                onMapReady={map => { overseasMapRef.current = map; }}
               />
             </Suspense>
           )}
@@ -308,7 +336,8 @@ export function LocationPickerDialog({
             )}
           </div>
 
-          {/* 주변 추천 (Overpass API, 해외 지도 전용) */}
+          {/* 주변 추천 (Overpass API, 해외 지도 전용) — 좌우 스크롤 카드 대신 카테고리 버튼 +
+              세로 목록으로 구성해, 모바일에서 가로 스크롤 없이 탭만으로 훑어볼 수 있게 함 */}
           {!isDomestic && picked && (
             <div className="border border-border rounded-lg p-3 bg-secondary/40">
               <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-2">
@@ -320,27 +349,52 @@ export function LocationPickerDialog({
               ) : !loadingPois && nearbyPois.length === 0 ? (
                 <p className="text-xs text-muted-foreground">이 주변에서 추천할 만한 장소를 찾지 못했습니다.</p>
               ) : (
-                <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
-                  {nearbyPois.map(poi => {
-                    const Icon = POI_ICONS[poi.category];
-                    return (
-                      <button
-                        key={poi.id}
-                        type="button"
-                        onClick={() => selectLocation(poi.lat, poi.lng, poi.name)}
-                        className="flex-shrink-0 w-40 text-left px-3 py-2 rounded-lg bg-white border border-border hover:border-primary/40 hover:shadow-sm transition-all"
-                      >
-                        <span className="text-[10px] font-bold text-primary flex items-center gap-1">
-                          <Icon className="w-3 h-3" /> {POI_CATEGORY_LABELS[poi.category]}
-                        </span>
-                        <span className="block text-xs font-medium text-foreground mt-1 line-clamp-2">{poi.name}</span>
-                        <span className="block text-[10px] text-muted-foreground mt-0.5">
-                          {poi.distanceMeters < 1000 ? `${Math.round(poi.distanceMeters)}m` : `${(poi.distanceMeters / 1000).toFixed(1)}km`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {(Object.keys(POI_CATEGORY_LABELS) as PoiCategory[]).map(cat => {
+                      const count = nearbyPois.filter(p => p.category === cat).length;
+                      const Icon = POI_ICONS[cat];
+                      const active = activePoiCategory === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          disabled={count === 0}
+                          onClick={() => setActivePoiCategory(cat)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors",
+                            active ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40",
+                            count === 0 && "opacity-40 cursor-not-allowed"
+                          )}
+                        >
+                          <Icon className="w-3.5 h-3.5" /> {POI_CATEGORY_LABELS[cat]}
+                          {count > 0 && <span className={active ? "text-white/80" : "text-muted-foreground"}>{count}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-0.5">
+                    {nearbyPois.filter(p => p.category === activePoiCategory).length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-2">이 카테고리에는 추천할 만한 장소가 없습니다.</p>
+                    ) : (
+                      nearbyPois
+                        .filter(p => p.category === activePoiCategory)
+                        .map(poi => (
+                          <button
+                            key={poi.id}
+                            type="button"
+                            onClick={() => selectPoi(poi)}
+                            className="w-full flex items-center justify-between gap-2 text-left px-3 py-2.5 rounded-lg bg-white border border-border hover:border-primary/40 hover:shadow-sm transition-all"
+                          >
+                            <span className="text-sm font-medium text-foreground truncate">{poi.name}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              {poi.distanceMeters < 1000 ? `${Math.round(poi.distanceMeters)}m` : `${(poi.distanceMeters / 1000).toFixed(1)}km`}
+                            </span>
+                          </button>
+                        ))
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
