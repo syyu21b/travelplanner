@@ -2,14 +2,29 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, X, Search, Loader2 } from "lucide-react";
+import { MapPin, X, Search, Loader2, Landmark, Utensils, BedDouble, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { MapView, type MapMarker, geocodeAddress, reverseGeocodeToAddress } from "@/components/Map";
+import type { OsmPoi, PoiCategory } from "@/components/OverseasMap";
 
 // 해외 지도(MapLibre GL)는 용량이 커서, 실제로 해외 계획을 다룰 때만 불러오도록 지연 로딩
 const OverseasMapView = lazy(() =>
   import("@/components/OverseasMap").then(m => ({ default: m.OverseasMapView }))
 );
+
+const POI_ICONS: Record<PoiCategory, typeof Landmark> = {
+  attraction: Landmark,
+  food: Utensils,
+  hotel: BedDouble,
+};
+
+// OverseasMap 모듈은 maplibre-gl 등 용량이 커서 지연 로딩하므로, 여기서는 카테고리 라벨만
+// 별도로 두어 이 다이얼로그가 처음 열릴 때 무거운 모듈을 정적으로 끌어오지 않도록 함
+const POI_CATEGORY_LABELS: Record<PoiCategory, string> = {
+  attraction: "관광지",
+  food: "맛집·카페",
+  hotel: "숙소",
+};
 
 type Region = "domestic" | "overseas";
 
@@ -54,6 +69,10 @@ export function LocationPickerDialog({
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SimpleSearchResult[]>([]);
 
+  const [nearbyPois, setNearbyPois] = useState<OsmPoi[]>([]);
+  const [loadingPois, setLoadingPois] = useState(false);
+  const [poisError, setPoisError] = useState<string | null>(null);
+
   // 다이얼로그를 열 때마다 초기 상태로 리셋
   useEffect(() => {
     if (open) {
@@ -61,9 +80,45 @@ export function LocationPickerDialog({
       setPickedAddress(null);
       setSearchQuery("");
       setSearchResults([]);
+      setNearbyPois([]);
+      setPoisError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialLat, initialLng]);
+
+  // 해외 지도에서 위치를 고를 때마다 주변 관광지/맛집·카페/숙소를 Overpass API로 추천 —
+  // 지도 클릭/드래그로 좌표가 자주 바뀔 수 있어 공용 Overpass 서버 요청 빈도 제한에 걸리지 않도록
+  // 800ms 디바운스 후 한 번만 호출하고, 그 사이 좌표가 또 바뀌면 이전 요청 결과는 버림
+  useEffect(() => {
+    if (isDomestic || !open || !picked) {
+      setNearbyPois([]);
+      setPoisError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingPois(true);
+    setPoisError(null);
+    const timer = window.setTimeout(() => {
+      import("@/components/OverseasMap")
+        .then(m => m.fetchNearbyPOIs(picked.lat, picked.lng))
+        .then(pois => {
+          if (cancelled) return;
+          setNearbyPois(pois);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setNearbyPois([]);
+          setPoisError(err instanceof Error ? err.message : "주변 정보를 불러오지 못했습니다.");
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingPois(false);
+        });
+    }, 800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [isDomestic, open, picked?.lat, picked?.lng]);
 
   const selectLocation = (lat: number, lng: number, address?: string | null) => {
     setPicked({ lat, lng });
@@ -252,6 +307,43 @@ export function LocationPickerDialog({
               </button>
             )}
           </div>
+
+          {/* 주변 추천 (Overpass API, 해외 지도 전용) */}
+          {!isDomestic && picked && (
+            <div className="border border-border rounded-lg p-3 bg-secondary/40">
+              <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary" /> 주변 추천
+                {loadingPois && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+              </p>
+              {poisError ? (
+                <p className="text-xs text-muted-foreground">{poisError}</p>
+              ) : !loadingPois && nearbyPois.length === 0 ? (
+                <p className="text-xs text-muted-foreground">이 주변에서 추천할 만한 장소를 찾지 못했습니다.</p>
+              ) : (
+                <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+                  {nearbyPois.map(poi => {
+                    const Icon = POI_ICONS[poi.category];
+                    return (
+                      <button
+                        key={poi.id}
+                        type="button"
+                        onClick={() => selectLocation(poi.lat, poi.lng, poi.name)}
+                        className="flex-shrink-0 w-40 text-left px-3 py-2 rounded-lg bg-white border border-border hover:border-primary/40 hover:shadow-sm transition-all"
+                      >
+                        <span className="text-[10px] font-bold text-primary flex items-center gap-1">
+                          <Icon className="w-3 h-3" /> {POI_CATEGORY_LABELS[poi.category]}
+                        </span>
+                        <span className="block text-xs font-medium text-foreground mt-1 line-clamp-2">{poi.name}</span>
+                        <span className="block text-[10px] text-muted-foreground mt-0.5">
+                          {poi.distanceMeters < 1000 ? `${Math.round(poi.distanceMeters)}m` : `${(poi.distanceMeters / 1000).toFixed(1)}km`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <Button onClick={handleConfirm} disabled={!picked} className="flex-1 bg-primary text-white h-11">

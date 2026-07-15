@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import type { MapMarker } from "@/components/Map";
 
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
+const OVERPASS_BASE = "https://overpass-api.de/api/interpreter";
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export interface OsmGeocodeResult {
@@ -78,6 +79,111 @@ export async function reverseGeocodeToAddressOSM(lat: number, lng: number): Prom
   } catch {
     return null;
   }
+}
+
+// ── 주변 POI 추천 (Overpass API) ──
+// 좌표 하나를 중심으로 관광지/맛집·카페/숙소를 OSM 태그 기준으로 찾아 카테고리별로 묶어줌.
+// 공용 Overpass 서버는 응답이 느리고 요청 빈도 제한이 있어, 지도 클릭/드래그마다 바로 호출하지 말고
+// 호출부(LocationPickerDialog 등)에서 디바운스한 뒤 한 번만 호출하는 것을 전제로 설계함.
+
+export type PoiCategory = "attraction" | "food" | "hotel";
+
+export interface OsmPoi {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  category: PoiCategory;
+  /** 세부 태그값 (예: museum, cafe, hotel) — 아이콘/설명에 참고용 */
+  kind: string;
+  distanceMeters: number;
+}
+
+const POI_CATEGORY_QUERIES: Record<PoiCategory, string> = {
+  attraction: '["tourism"~"^(attraction|museum|viewpoint|gallery|zoo|theme_park|artwork)$"]',
+  food: '["amenity"~"^(restaurant|cafe|fast_food|bar)$"]',
+  hotel: '["tourism"~"^(hotel|guest_house|hostel)$"]',
+};
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function categorizePoiTags(tags: Record<string, string>): { category: PoiCategory; kind: string } | null {
+  if (tags.tourism && /^(attraction|museum|viewpoint|gallery|zoo|theme_park|artwork)$/.test(tags.tourism)) {
+    return { category: "attraction", kind: tags.tourism };
+  }
+  if (tags.amenity && /^(restaurant|cafe|fast_food|bar)$/.test(tags.amenity)) {
+    return { category: "food", kind: tags.amenity };
+  }
+  if (tags.tourism && /^(hotel|guest_house|hostel)$/.test(tags.tourism)) {
+    return { category: "hotel", kind: tags.tourism };
+  }
+  return null;
+}
+
+/**
+ * 좌표 주변의 관광지/맛집·카페/숙소를 Overpass API로 조회 (반경 기본 1.2km).
+ * 카테고리별로 가까운 순 최대 8개까지만 반환.
+ */
+export async function fetchNearbyPOIs(lat: number, lng: number, radiusMeters = 1200): Promise<OsmPoi[]> {
+  const around = `(around:${radiusMeters},${lat},${lng})`;
+  const query = `[out:json][timeout:15];(node${POI_CATEGORY_QUERIES.attraction}${around};node${POI_CATEGORY_QUERIES.food}${around};node${POI_CATEGORY_QUERIES.hotel}${around};);out body 100;`;
+
+  let res: Response;
+  try {
+    res = await fetch(OVERPASS_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: query,
+    });
+  } catch {
+    throw new Error("주변 정보를 불러오지 못했습니다. 네트워크 연결을 확인해주세요.");
+  }
+  if (!res.ok) {
+    throw new Error(`주변 정보 요청이 실패했습니다 (status: ${res.status}). 잠시 후 다시 시도해주세요.`);
+  }
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("주변 정보 응답을 처리하지 못했습니다.");
+  }
+
+  const elements: any[] = Array.isArray(data?.elements) ? data.elements : [];
+  const byCategory: Record<PoiCategory, OsmPoi[]> = { attraction: [], food: [], hotel: [] };
+
+  elements
+    .map((el): OsmPoi | null => {
+      const tags = el?.tags || {};
+      const name: string | undefined = tags["name:ko"] || tags["name:en"] || tags.name;
+      if (!name || typeof el.lat !== "number" || typeof el.lon !== "number") return null;
+      const categorized = categorizePoiTags(tags);
+      if (!categorized) return null;
+      return {
+        id: `${el.type}/${el.id}`,
+        lat: el.lat,
+        lng: el.lon,
+        name,
+        category: categorized.category,
+        kind: categorized.kind,
+        distanceMeters: haversineMeters(lat, lng, el.lat, el.lon),
+      };
+    })
+    .filter((p): p is OsmPoi => p !== null)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .forEach(p => {
+      if (byCategory[p.category].length < 8) byCategory[p.category].push(p);
+    });
+
+  return [...byCategory.attraction, ...byCategory.food, ...byCategory.hotel];
 }
 
 // 도시/국가/지역/도로/장소명 라벨을 "한국어 이름 -> 영어 이름 -> 현지 이름" 순으로 표시.
