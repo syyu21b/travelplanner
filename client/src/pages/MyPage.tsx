@@ -136,6 +136,7 @@ export default function MyPage() {
     } catch { return []; }
   })();
   const savedDiaries = allPublicDiaries.filter((d: any) => savedIds.includes(d.id));
+  const likedDiaries = allPublicDiaries.filter((d: any) => d.likes?.includes(user?.id));
   const myComments = (() => {
     try {
       return (JSON.parse(localStorage.getItem('diaryComments') || '[]') as any[])
@@ -650,7 +651,55 @@ export default function MyPage() {
                 )}
               </Card>
 
-              {/* 내 문의 내역 */}
+              {/* 내가 좋아요 누른 게시글 (관리자는 문의할 일이 없으므로 문의 내역 대신 표시되지만, 일반 회원도 댓글과 문의 내역 사이에 노출) */}
+              <Card className="p-6 bg-white">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-primary" /> {t('mypage.activity.likedTitle')}
+                  </h3>
+                  <button
+                    onClick={() => setLocation('/community')}
+                    className="text-sm text-primary font-semibold hover:underline flex items-center gap-1"
+                  >
+                    {t('mypage.activity.goCommunity')} <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                {likedDiaries.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Heart className="w-10 h-10 mx-auto mb-3 text-border" />
+                    <p className="text-sm">{t('mypage.activity.noLiked')}</p>
+                    <button onClick={() => setLocation('/community')} className="mt-3 text-sm text-primary font-semibold hover:underline">
+                      {t('mypage.activity.viewPopular')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {likedDiaries.slice(0, 5).map((d: any) => (
+                      <div key={d.id} className="flex items-center gap-4 py-3">
+                        {d.photos?.[0] && d.photos[0].type !== 'video' ? (
+                          <img src={d.photos[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                            <BookOpen className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-foreground text-sm truncate">{d.title}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3" /> {d.location} · {new Date(d.createdAt).toLocaleDateString(dateLocale)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {d.likes?.length || 0}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              {/* 내 문의 내역 (관리자는 문의할 일이 없으므로 숨김) */}
+              {!user?.isAdmin && (
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-primary" /> {t('mypage.activity.inquiriesTitle')}
@@ -728,6 +777,7 @@ export default function MyPage() {
                   </div>
                 )}
               </Card>
+              )}
             </div>
           )}
 

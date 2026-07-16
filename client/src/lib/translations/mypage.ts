@@ -56,6 +56,8 @@ export const mypage = {
       inquiryAnswered: '답변완료',
       inquiryPending: '답변대기',
       inquiryAnswerLabel: '관리자 답변',
+      likedTitle: '내가 좋아요 누른 게시글',
+      noLiked: '아직 좋아요를 누른 게시글이 없습니다.',
     },
     security: {
       changePwTitle: '비밀번호 변경',
@@ -223,6 +225,8 @@ export const mypage = {
       inquiryAnswered: 'Answered',
       inquiryPending: 'Pending',
       inquiryAnswerLabel: 'Admin Reply',
+      likedTitle: 'Posts I Liked',
+      noLiked: 'No liked posts yet.',
     },
     security: {
       changePwTitle: 'Change Password',
