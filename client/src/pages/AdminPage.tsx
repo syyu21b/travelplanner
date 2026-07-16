@@ -8,18 +8,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  Users, Search, Edit2, Trash2, Shield, ChevronLeft, Crown,
+  Users, Search, Edit2, Trash2, Shield, ChevronLeft, ChevronRight, Crown,
   Eye, EyeOff, X, CheckCircle, MessageCircle, Mail,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NaverMapsUsagePanel } from '@/components/NaverMapsUsagePanel';
 import { getInquiries, answerInquiry, type Inquiry } from '@/lib/inquiries';
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminPage() {
   const { user, getAllUsers, adminUpdateUser, adminDeleteUser } = useAuth();
   const { notify } = useNotifications();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState('');
+  const [userPage, setUserPage] = useState(1);
+  const [inquiryPage, setInquiryPage] = useState(1);
 
   // 수정 모달
   const [editTarget, setEditTarget] = useState<PublicUser | null>(null);
@@ -57,6 +61,19 @@ export default function AdminPage() {
 
   const totalUsers = allUsers.length;
   const regularUsers = allUsers.filter(u => !u.isAdmin).length;
+
+  const totalUserPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const userPageSafe = Math.min(userPage, totalUserPages);
+  const pagedUsers = filtered.slice((userPageSafe - 1) * ITEMS_PER_PAGE, userPageSafe * ITEMS_PER_PAGE);
+
+  const totalInquiryPages = Math.max(1, Math.ceil(inquiries.length / ITEMS_PER_PAGE));
+  const inquiryPageSafe = Math.min(inquiryPage, totalInquiryPages);
+  const pagedInquiries = inquiries.slice((inquiryPageSafe - 1) * ITEMS_PER_PAGE, inquiryPageSafe * ITEMS_PER_PAGE);
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setUserPage(1);
+  }
 
   function openEdit(u: PublicUser) {
     setEditTarget(u);
@@ -232,7 +249,7 @@ export default function AdminPage() {
                       접수된 문의가 없습니다.
                     </td>
                   </tr>
-                ) : inquiries.map((inq, i) => (
+                ) : pagedInquiries.map((inq, i) => (
                   <tr key={inq.id} className={`border-b border-[#F9F7F2] hover:bg-[#FDFCFA] transition-colors ${i % 2 === 0 ? '' : 'bg-[#FDFCFA]'}`}>
                     <td className="px-4 py-3 font-semibold text-[#7D6B5D] max-w-[200px] truncate">{inq.title}</td>
                     <td className="px-4 py-3 text-[#7D6B5D] text-xs">{inq.name}</td>
@@ -267,8 +284,42 @@ export default function AdminPage() {
           </div>
 
           {inquiries.length > 0 && (
-            <div className="px-4 py-3 border-t border-[#E8E2D9] text-xs text-[#A68B77]">
-              총 {inquiries.length}건 (답변 대기 {pendingInquiries}건)
+            <div className="px-4 py-3 border-t border-[#E8E2D9] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-[#A68B77]">
+                총 {inquiries.length}건 (답변 대기 {pendingInquiries}건)
+              </span>
+              {totalInquiryPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setInquiryPage(p => Math.max(1, p - 1))}
+                    disabled={inquiryPageSafe === 1}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-[#DED6CC] text-[#A68B77] hover:bg-[#E8E2D9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  {Array.from({ length: totalInquiryPages }, (_, idx) => idx + 1).map(page => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setInquiryPage(page)}
+                      className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                        page === inquiryPageSafe ? 'bg-[#A68B77] text-white' : 'text-[#A68B77] hover:bg-[#E8E2D9]'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setInquiryPage(p => Math.min(totalInquiryPages, p + 1))}
+                    disabled={inquiryPageSafe === totalInquiryPages}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-[#DED6CC] text-[#A68B77] hover:bg-[#E8E2D9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -282,7 +333,7 @@ export default function AdminPage() {
               <Input
                 placeholder="닉네임, 아이디, 이메일 검색"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9 h-9 border-[#DED6CC] text-sm"
               />
             </div>
@@ -307,7 +358,7 @@ export default function AdminPage() {
                       검색 결과가 없습니다.
                     </td>
                   </tr>
-                ) : filtered.map((u, i) => (
+                ) : pagedUsers.map((u, i) => (
                   <tr key={u.id} className={`border-b border-[#F9F7F2] hover:bg-[#FDFCFA] transition-colors ${i % 2 === 0 ? '' : 'bg-[#FDFCFA]'}`}>
                     <td className="px-4 py-3 font-semibold text-[#7D6B5D]">
                       {u.nickname}
@@ -355,8 +406,42 @@ export default function AdminPage() {
           </div>
 
           {filtered.length > 0 && (
-            <div className="px-4 py-3 border-t border-[#E8E2D9] text-xs text-[#A68B77]">
-              총 {filtered.length}명 {search && `(전체 ${totalUsers}명 중 검색 결과)`}
+            <div className="px-4 py-3 border-t border-[#E8E2D9] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-[#A68B77]">
+                총 {filtered.length}명 {search && `(전체 ${totalUsers}명 중 검색 결과)`}
+              </span>
+              {totalUserPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                    disabled={userPageSafe === 1}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-[#DED6CC] text-[#A68B77] hover:bg-[#E8E2D9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  {Array.from({ length: totalUserPages }, (_, idx) => idx + 1).map(page => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setUserPage(page)}
+                      className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                        page === userPageSafe ? 'bg-[#A68B77] text-white' : 'text-[#A68B77] hover:bg-[#E8E2D9]'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
+                    disabled={userPageSafe === totalUserPages}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-[#DED6CC] text-[#A68B77] hover:bg-[#E8E2D9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </Card>
