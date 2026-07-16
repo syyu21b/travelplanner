@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   User, Mail, Lock, Trash2, Camera, Edit2, Check, X, Shield,
   BookOpen, Plane, Bookmark, MessageCircle, Heart, Calendar,
-  KeyRound, UserX, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
+  KeyRound, UserX, ChevronLeft, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
   IdCard, Stamp, Globe2, ShieldCheck, Save, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -50,6 +50,8 @@ function compressProfilePhoto(file: File): Promise<string> {
 }
 
 type TabType = 'info' | 'activity' | 'security' | 'passport' | 'account' | 'settings';
+
+const INQUIRIES_PER_PAGE = 10;
 
 export default function MyPage() {
   const {
@@ -104,6 +106,9 @@ export default function MyPage() {
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawConfirm, setWithdrawConfirm] = useState('');
 
+  // 내 문의 내역 페이지네이션
+  const [inquiryPage, setInquiryPage] = useState(1);
+
   // 활동 데이터
   const myDiaries = (() => {
     try {
@@ -142,6 +147,13 @@ export default function MyPage() {
       return getInquiries().filter(i => i.userId === user?.id);
     } catch { return []; }
   })();
+  const sortedInquiries = [...myInquiries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const totalInquiryPages = Math.max(1, Math.ceil(sortedInquiries.length / INQUIRIES_PER_PAGE));
+  const inquiryPageSafe = Math.min(inquiryPage, totalInquiryPages);
+  const pagedInquiries = sortedInquiries.slice(
+    (inquiryPageSafe - 1) * INQUIRIES_PER_PAGE,
+    inquiryPageSafe * INQUIRIES_PER_PAGE
+  );
   const totalLikesReceived = myPublicDiaries.reduce((sum: number, d: any) =>
     sum + (d.likes?.length || 0), 0);
 
@@ -648,8 +660,7 @@ export default function MyPage() {
                   <p className="text-center py-6 text-sm text-muted-foreground">{t('mypage.activity.noInquiries')}</p>
                 ) : (
                   <div className="space-y-3">
-                    {[...myInquiries]
-                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    {pagedInquiries
                       .map(inq => (
                         <div key={inq.id} className="p-4 bg-secondary rounded-lg border border-border">
                           <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
@@ -681,6 +692,39 @@ export default function MyPage() {
                           )}
                         </div>
                       ))}
+                  </div>
+                )}
+                {totalInquiryPages > 1 && (
+                  <div className="flex items-center justify-center flex-wrap gap-1.5 mt-5">
+                    <button
+                      type="button"
+                      onClick={() => setInquiryPage(p => Math.max(1, p - 1))}
+                      disabled={inquiryPageSafe === 1}
+                      className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    {Array.from({ length: totalInquiryPages }, (_, idx) => idx + 1).map(page => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => setInquiryPage(page)}
+                        className={cn(
+                          "w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full text-sm font-bold transition",
+                          page === inquiryPageSafe ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setInquiryPage(p => Math.min(totalInquiryPages, p + 1))}
+                      disabled={inquiryPageSafe === totalInquiryPages}
+                      className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </Card>

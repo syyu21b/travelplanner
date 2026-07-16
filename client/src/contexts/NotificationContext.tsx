@@ -93,6 +93,12 @@ function saveAllSettings(map: Record<string, NotificationSettings>) {
   localStorage.setItem("notificationSettings", JSON.stringify(map));
 }
 
+// 저장된 설정에 새로 추가된 필드(예: inquiryNew)가 없을 수 있으므로
+// 항상 기본값과 병합해 누락된 필드가 false로 취급되는 것을 방지
+function getSettingsFor(userId: string): NotificationSettings {
+  return { ...DEFAULT_SETTINGS, ...(getAllSettings()[userId] || {}) };
+}
+
 function daysUntil(dateStr: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -113,11 +119,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       return;
     }
     setNotifications(getAllNotifications().filter(n => n.recipientId === user.id));
-    setSettings(getAllSettings()[user.id] || DEFAULT_SETTINGS);
+    setSettings(getSettingsFor(user.id));
   }, [user]);
 
   const notify = useCallback((payload: NotifyPayload) => {
-    const recipientSettings = getAllSettings()[payload.recipientId] || DEFAULT_SETTINGS;
+    const recipientSettings = getSettingsFor(payload.recipientId);
     const settingKeyMap: Record<NotificationType, keyof NotificationSettings> = {
       like: "likes",
       comment: "comments",
