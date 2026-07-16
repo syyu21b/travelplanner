@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NaverMapsUsagePanel } from '@/components/NaverMapsUsagePanel';
+import NotificationBell from '@/components/NotificationBell';
 import { getInquiries, answerInquiry, type Inquiry } from '@/lib/inquiries';
 
 const ITEMS_PER_PAGE = 10;
@@ -164,9 +165,12 @@ export default function AdminPage() {
               <h1 className="text-lg font-bold text-[#7D6B5D]">관리자 패널</h1>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-[#A68B77] bg-[#F9F7F2] px-3 py-1.5 rounded-full border border-[#DED6CC]">
-            <Crown className="w-4 h-4 text-amber-500" />
-            <span className="font-semibold">{user.nickname}</span>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <div className="flex items-center gap-2 text-sm text-[#A68B77] bg-[#F9F7F2] px-3 py-1.5 rounded-full border border-[#DED6CC]">
+              <Crown className="w-4 h-4 text-amber-500" />
+              <span className="font-semibold">{user.nickname}</span>
+            </div>
           </div>
         </div>
       </header>
