@@ -80,8 +80,11 @@ export default function NotificationBell() {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <PopoverContent
+        align="end"
+        className="w-80 p-0 overflow-hidden flex flex-col max-h-[min(28rem,80vh)]"
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
           <span className="font-bold text-sm">{t("notifications.title")}</span>
           {unreadCount > 0 && (
             <button
@@ -92,12 +95,12 @@ export default function NotificationBell() {
             </button>
           )}
         </div>
-        <ScrollArea className="max-h-96">
-          {notifications.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">
-              {t("notifications.empty")}
-            </div>
-          ) : (
+        {notifications.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            {t("notifications.empty")}
+          </div>
+        ) : (
+          <ScrollArea className="h-[min(24rem,70vh)]">
             <div className="py-1">
               {notifications.map(n => {
                 const Icon = ICONS[n.type];
@@ -124,8 +127,8 @@ export default function NotificationBell() {
                 );
               })}
             </div>
-          )}
-        </ScrollArea>
+          </ScrollArea>
+        )}
       </PopoverContent>
     </Popover>
   );
