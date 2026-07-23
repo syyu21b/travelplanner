@@ -67,7 +67,7 @@ export default function HeaderSearch() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border"
+          className="flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border"
           aria-label={t("home.header.searchLabel")}
         >
           <Search className="w-4 h-4" />

@@ -11,7 +11,7 @@ import {
   Heart, Share2, Globe, Lock, ChevronRight, Plane, Clock, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { StarRatingInput, StarRatingDisplay } from '@/components/StarRating';
@@ -1007,7 +1007,7 @@ export default function TravelDiary() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-foreground">{t('diary.form.startDateLabel')}</label>
                   <Input type="date" value={editData.startDate} onChange={e => setEditData({ ...editData, startDate: e.target.value })} className="h-11" />
@@ -1082,7 +1082,7 @@ export default function TravelDiary() {
                             const blocks = (editData.blocks || []).filter(b => b.id !== block.id);
                             setEditData({ ...editData, blocks: blocks.length ? blocks : [{ id: '1', type: 'text', content: '' }] });
                           }}
-                          className="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -1195,7 +1195,7 @@ export default function TravelDiary() {
                           ) : (
                             <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-gray-100" />
                           )}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
+                          <div className="absolute inset-0 bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
                             <input
                               type="text"
                               value={photo.caption || ''}
@@ -1210,7 +1210,7 @@ export default function TravelDiary() {
                           </div>
                           <button
                             onClick={() => setEditData({ ...editData, photos: editData.photos.filter(p => p.id !== photo.id) })}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1503,7 +1503,7 @@ export default function TravelDiary() {
                         <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-gray-100" />
                       )}
                       {photo.caption && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-xl opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           {photo.caption}
                         </div>
                       )}
@@ -1529,9 +1529,10 @@ export default function TravelDiary() {
               {t('diary.detail.like')} {diary.likes.length > 0 && diary.likes.length}
             </button>
             <button
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success(t('diary.toast.linkCopied'));
+              onClick={async () => {
+                if (await copyToClipboard(window.location.href)) {
+                  toast.success(t('diary.toast.linkCopied'));
+                }
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition font-semibold text-sm"
             >
@@ -1621,7 +1622,7 @@ export default function TravelDiary() {
                       ) : (
                         <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-gray-100" />
                       )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
+                      <div className="absolute inset-0 bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
                         <input
                           type="text"
                           value={photo.caption || ''}
@@ -1636,7 +1637,7 @@ export default function TravelDiary() {
                       </div>
                       <button
                         onClick={() => setEditAlbumData({ ...editAlbumData, photos: editAlbumData.photos.filter(p => p.id !== photo.id) })}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -1646,7 +1647,7 @@ export default function TravelDiary() {
                           title={photo.lat !== undefined ? t('diary.album.locationTagged') : t('diary.album.tagLocation')}
                           className={cn(
                             "rounded-full p-1 transition-opacity",
-                            photo.lat !== undefined ? "bg-primary text-white" : "bg-black/50 text-white opacity-0 group-hover:opacity-100"
+                            photo.lat !== undefined ? "bg-primary text-white" : "bg-black/50 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                           )}
                         >
                           <MapPin className="w-3 h-3" />
@@ -1655,7 +1656,7 @@ export default function TravelDiary() {
                           <button
                             onClick={() => handleClearPhotoLocation(photo.id, 'edit')}
                             title={t('diary.album.removeLocation')}
-                            className="rounded-full p-1 bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="rounded-full p-1 bg-red-500 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1769,7 +1770,7 @@ export default function TravelDiary() {
                       </span>
                     )}
                     {photo.caption && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-xl opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {photo.caption}
                       </div>
                     )}
@@ -2139,7 +2140,7 @@ export default function TravelDiary() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-foreground">{t('diary.form.startDateRequiredLabel')}</label>
                 <Input type="date" value={newStartDate} onChange={e => setNewStartDate(e.target.value)} className="h-11" />
@@ -2290,7 +2291,7 @@ export default function TravelDiary() {
                           <img src={block.content} alt="" className="w-full max-h-60 object-contain rounded-lg bg-slate-50" />
                         </div>
                       )}
-                      <div className="absolute -right-2 -top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute -right-2 -top-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleDeleteBlock(block.id)}
                           className="bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
@@ -2331,7 +2332,7 @@ export default function TravelDiary() {
                       )}
                       <button
                         onClick={() => setNewPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -2451,7 +2452,7 @@ export default function TravelDiary() {
                     )}
                     <button
                       onClick={() => setNewAlbumPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -2460,7 +2461,7 @@ export default function TravelDiary() {
                       title={photo.lat !== undefined ? t('diary.album.locationTagged') : t('diary.album.tagLocation')}
                       className={cn(
                         "absolute bottom-1 left-1 rounded-full p-1 transition-colors",
-                        photo.lat !== undefined ? "bg-primary text-white" : "bg-black/50 text-white opacity-0 group-hover:opacity-100"
+                        photo.lat !== undefined ? "bg-primary text-white" : "bg-black/50 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                       )}
                     >
                       <MapPin className="w-3 h-3" />

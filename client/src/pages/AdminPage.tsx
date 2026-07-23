@@ -293,7 +293,7 @@ export default function AdminPage() {
                 총 {inquiries.length}건 (답변 대기 {pendingInquiries}건)
               </span>
               {totalInquiryPages > 1 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center flex-wrap justify-center gap-1">
                   <button
                     type="button"
                     onClick={() => setInquiryPage(p => Math.max(1, p - 1))}
@@ -415,7 +415,7 @@ export default function AdminPage() {
                 총 {filtered.length}명 {search && `(전체 ${totalUsers}명 중 검색 결과)`}
               </span>
               {totalUserPages > 1 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center flex-wrap justify-center gap-1">
                   <button
                     type="button"
                     onClick={() => setUserPage(p => Math.max(1, p - 1))}

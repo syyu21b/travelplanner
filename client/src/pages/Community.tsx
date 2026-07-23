@@ -12,7 +12,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StarRatingDisplay } from '@/components/StarRating';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -500,12 +500,12 @@ export default function Community() {
           <div className="container mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => { setSelectedDiary(null); setActivePhotoIndex(0); setShowPlanSchedule(false); }}
-              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1"
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 flex-shrink-0"
             >
               <ChevronLeft className="w-4 h-4" /> {t('community.detail.back')}
             </button>
-            <span className="text-border">›</span>
-            <span className="text-foreground font-semibold text-sm truncate">{diary.title}</span>
+            <span className="text-border flex-shrink-0">›</span>
+            <span className="text-foreground font-semibold text-sm truncate min-w-0 flex-1">{diary.title}</span>
           </div>
         </div>
 
@@ -1221,8 +1221,8 @@ export default function Community() {
                             {cmtCount > 0 && cmtCount}
                           </button>
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(window.location.href);
+                            onClick={async () => {
+                              if (!(await copyToClipboard(window.location.href))) return;
                               toast.success(t('community.actions.shareToast'));
                               if (user && user.id !== diary.userId) {
                                 notify({ recipientId: diary.userId, type: 'share', actorName: user.name, diaryId: diary.id, diaryTitle: diary.title });

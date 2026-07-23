@@ -18,7 +18,7 @@ import {
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import * as QRCodeLib from 'qrcode.react';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
 import { MapView, type MapMarker } from '@/components/Map';
@@ -1456,7 +1456,7 @@ export default function Home() {
               <label className="text-sm font-semibold">{t('home.newPlanDialog.tripTitleLabel')}</label>
               <Input placeholder={t('home.newPlanDialog.tripTitlePlaceholder')} value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} className="h-11" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-semibold">{t('home.newPlanDialog.startDateLabel')}</label>
                 <Input type="date" value={newPlanStartDate} onChange={e => setNewPlanStartDate(e.target.value)} className="h-11" />
@@ -1704,15 +1704,15 @@ export default function Home() {
 
             {/* 오른쪽: 여행 계획 목록 */}
             <div className="lg:col-span-2">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
                 <h2 className="text-xl font-black text-foreground">{t('home.planList.title')}</h2>
-                <div className="flex gap-1 bg-secondary p-1 rounded-xl">
+                <div className="flex gap-1 bg-secondary p-1 rounded-xl overflow-x-auto max-w-full [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
                   {(['all', '예정', '진행 중', '완료'] as const).map(f => (
                     <button
                       key={f}
                       onClick={() => setPlanFilter(f)}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex-shrink-0",
                         planFilter === f ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
@@ -1893,14 +1893,14 @@ export default function Home() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-4xl font-black text-foreground flex items-center gap-3">
-                        {currentPlan.title}
-                        <Plane className="text-primary" />
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground flex items-center gap-2 min-w-0">
+                        <span className="truncate">{currentPlan.title}</span>
+                        <Plane className="text-primary flex-shrink-0" />
                       </h2>
                       <button
                         onClick={handleStartEditTitle}
-                        className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary"
+                        className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary flex-shrink-0"
                         title={t('home.planDetail.editTitleTooltip')}
                       >
                         <Edit2 className="w-5 h-5" />
@@ -2595,9 +2595,10 @@ export default function Home() {
                   <Download className="w-4 h-4" /> {t('home.shareDialog.saveTextOption')}
                 </Button>
                 <Button
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast.success(t('home.toast.shareLinkCopied'));
+                  onClick={async () => {
+                    if (await copyToClipboard(window.location.href)) {
+                      toast.success(t('home.toast.shareLinkCopied'));
+                    }
                     setShowShareModal(false);
                   }}
                   className="w-full bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2"

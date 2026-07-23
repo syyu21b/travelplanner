@@ -69,7 +69,7 @@ export default function NotificationBell() {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="relative hidden sm:flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border"
+          className="relative flex w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:bg-secondary transition-all border border-border"
           aria-label={t("notifications.title")}
         >
           <Bell className="w-4 h-4" />
