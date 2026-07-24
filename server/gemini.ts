@@ -46,7 +46,15 @@ export interface Itinerary {
   tips?: string[];
 }
 
-export class GeminiError extends Error {}
+export class GeminiError extends Error {
+  /** 클라이언트가 에러 문구를 파싱하지 않고도 상황별로 분기할 수 있도록 하는 안정적인 식별자 */
+  code?: "rate_limited";
+
+  constructor(message: string, code?: "rate_limited") {
+    super(message);
+    this.code = code;
+  }
+}
 
 const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -190,7 +198,8 @@ async function callGeminiText(prompt: string, apiKey: string): Promise<string> {
 
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
-    throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`);
+    const code = response.status === 429 ? "rate_limited" : undefined;
+    throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`, code);
   }
 
   const data = (await response.json()) as {
@@ -226,7 +235,8 @@ async function callGeminiStructured(prompt: string, apiKey: string): Promise<Iti
 
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
-    throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`);
+    const code = response.status === 429 ? "rate_limited" : undefined;
+    throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`, code);
   }
 
   const data = (await response.json()) as {

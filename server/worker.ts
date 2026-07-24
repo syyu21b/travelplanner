@@ -39,7 +39,8 @@ export default {
         return json({ itinerary });
       } catch (err) {
         const message = err instanceof GeminiError ? err.message : "일정 생성 중 오류가 발생했습니다.";
-        return json({ error: message }, 502);
+        const code = err instanceof GeminiError ? err.code : undefined;
+        return json({ error: message, code }, 502);
       }
     }
 

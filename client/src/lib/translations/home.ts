@@ -408,6 +408,7 @@ export const home = {
       aiPlanError: "일정 생성 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
       aiPlanTimeout: "응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.",
       aiPlanEmpty: "AI가 유효한 일정을 만들지 못했습니다. 입력 내용을 조금 바꿔 다시 시도해주세요.",
+      aiPlanRateLimited: "AI 일정 생성 사용량 한도에 도달했습니다. 잠시 후(또는 내일) 다시 시도해주세요.",
     },
   },
   en: {
@@ -819,6 +820,7 @@ export const home = {
       aiPlanError: "Something went wrong generating the itinerary. Please try again shortly.",
       aiPlanTimeout: "The response is taking too long. Please try again shortly.",
       aiPlanEmpty: "AI couldn't generate a valid itinerary. Try adjusting your input and try again.",
+      aiPlanRateLimited: "AI itinerary generation has hit its usage limit. Please try again shortly (or tomorrow).",
     },
   },
 } as const;

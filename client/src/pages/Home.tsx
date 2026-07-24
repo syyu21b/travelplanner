@@ -129,6 +129,16 @@ interface TravelPlan {
 
 // /api/plan-trip 응답 형태 (server/gemini.ts의 Itinerary와 동일한 구조를 클라이언트에서 느슨하게 재정의).
 // 서버 응답은 신뢰할 수 없는 입력으로 취급 — 아래 변환 로직에서 필드마다 방어적으로 검증한다.
+// /api/plan-trip 실패 응답의 code(예: "rate_limited")를 에러 문구를 파싱하지 않고도
+// catch 블록에서 구분해 분기할 수 있도록 하는 최소한의 에러 타입
+class AiPlanRequestError extends Error {
+  code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 interface AiItineraryItem {
   time?: unknown;
   title?: unknown;
@@ -682,7 +692,8 @@ export default function Home() {
 
       if (!res.ok || !payloadObj?.itinerary) {
         const serverMessage = typeof payloadObj?.error === 'string' ? payloadObj.error : null;
-        throw new Error(serverMessage || `HTTP ${res.status}`);
+        const code = typeof payloadObj?.code === 'string' ? payloadObj.code : undefined;
+        throw new AiPlanRequestError(serverMessage || `HTTP ${res.status}`, code);
       }
 
       const aiItinerary = payloadObj.itinerary as AiItinerary;
@@ -736,6 +747,8 @@ export default function Home() {
       console.error('AI plan generation failed:', err);
       if (err instanceof DOMException && err.name === 'AbortError') {
         toast.error(t('home.toast.aiPlanTimeout'));
+      } else if (err instanceof AiPlanRequestError && err.code === 'rate_limited') {
+        toast.error(t('home.toast.aiPlanRateLimited'));
       } else {
         toast.error(t('home.toast.aiPlanError'));
       }
@@ -1556,7 +1569,7 @@ export default function Home() {
               <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
                 {getCategoryLabel(s.category)}
               </span>
-              <span className="font-semibold text-foreground truncate flex-1">{s.title}</span>
+              <span className="font-semibold text-foreground truncate flex-1 min-w-0">{s.title}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </button>
           ))}
@@ -1586,7 +1599,7 @@ export default function Home() {
               className="w-full flex items-center gap-3 p-2.5 bg-secondary rounded-lg text-sm hover:bg-secondary/70 transition-colors text-left"
             >
               <Hotel className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="font-semibold text-foreground truncate flex-1">{a.name}</span>
+              <span className="font-semibold text-foreground truncate flex-1 min-w-0">{a.name}</span>
               <span className="text-muted-foreground font-mono text-xs flex-shrink-0">{a.checkInDate}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </button>
@@ -1617,7 +1630,7 @@ export default function Home() {
               className="w-full flex items-center gap-3 p-2.5 bg-secondary rounded-lg text-sm hover:bg-secondary/70 transition-colors text-left"
             >
               <Plane className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="font-semibold text-foreground truncate flex-1">{f.airline} {f.flightNumber}</span>
+              <span className="font-semibold text-foreground truncate flex-1 min-w-0">{f.airline} {f.flightNumber}</span>
               {f.seat && <span className="text-muted-foreground font-mono text-xs flex-shrink-0">{f.seat}</span>}
               <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </button>
@@ -2879,8 +2892,8 @@ export default function Home() {
                                     className="w-3 h-3 rounded-full flex-shrink-0"
                                     style={{ backgroundColor: CATEGORY_CHART_COLORS[entry.category] || CATEGORY_CHART_COLORS.other }}
                                   />
-                                  <span className="text-sm font-semibold text-foreground flex-1 truncate">{getCategoryLabel(entry.category)}</span>
-                                  <span className="text-sm font-bold text-foreground">₩{entry.amount.toLocaleString()}</span>
+                                  <span className="text-sm font-semibold text-foreground flex-1 min-w-0 truncate">{getCategoryLabel(entry.category)}</span>
+                                  <span className="text-sm font-bold text-foreground flex-shrink-0">₩{entry.amount.toLocaleString()}</span>
                                   <span className="text-xs text-muted-foreground w-10 text-right flex-shrink-0">{pct}%</span>
                                 </div>
                               );
@@ -3015,8 +3028,8 @@ export default function Home() {
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-foreground">
-              <Eye className="w-5 h-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-foreground break-words">
+              <Eye className="w-5 h-5 text-primary flex-shrink-0" />
               {previewPlan?.title} - {t('home.previewDialog.titleSuffix')}
             </DialogTitle>
           </DialogHeader>
@@ -3107,7 +3120,7 @@ export default function Home() {
                           <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
                             {getCategoryLabel(s.category)}
                           </span>
-                          <span className="font-semibold text-foreground truncate">{s.title}</span>
+                          <span className="font-semibold text-foreground truncate flex-1 min-w-0">{s.title}</span>
                         </div>
                       ))}
                   </div>
@@ -4212,8 +4225,8 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
   return (
     <Card className="p-5 bg-white border-border hover:border-primary/50 transition-colors shadow-sm">
       <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <span className={cn("px-3 py-1 rounded-full text-xs font-bold", getCategoryColor(schedule.category))}>
               {getCategoryLabel(schedule.category)}
             </span>
@@ -4222,7 +4235,7 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
               {formatTime12h(schedule.time)}{schedule.endTime ? ` - ${formatTime12h(schedule.endTime)}` : ''}
             </span>
           </div>
-          <h4 className="text-xl font-bold text-foreground mb-2">{schedule.title}</h4>
+          <h4 className="text-xl font-bold text-foreground mb-2 break-words">{schedule.title}</h4>
           <div className="flex flex-wrap gap-4 text-sm text-slate-600">
             {schedule.location && <p className="flex items-center gap-1"><MapPin className="w-4 h-4 text-primary" /> {schedule.location}</p>}
             {schedule.cost && <p className="flex items-center gap-1"><DollarSign className="w-4 h-4 text-primary" /> ₩{schedule.cost.toLocaleString()}</p>}
@@ -4240,9 +4253,9 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
               ))}
             </div>
           )}
-          {schedule.notes && <p className="text-sm text-slate-500 mt-3 italic">"{schedule.notes}"</p>}
+          {schedule.notes && <p className="text-sm text-slate-500 mt-3 italic break-words">"{schedule.notes}"</p>}
         </div>
-        <div className="flex gap-2 ml-4">
+        <div className="flex gap-2 ml-4 flex-shrink-0">
           <button onClick={onEdit} className="p-2 text-slate-300 hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
           <button onClick={() => onDelete(schedule.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
         </div>
@@ -4282,12 +4295,12 @@ function BudgetCard({ budget, isEditing, onEdit, onUpdate, onDelete, onCancel, g
   }
   return (
     <Card className="p-4 bg-white border-border">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold mb-1 inline-block", getCategoryColor(budget.category))}>{getCategoryLabel(budget.category)}</span>
-          <p className="font-bold text-foreground">{budget.description}</p>
+          <p className="font-bold text-foreground break-words">{budget.description}</p>
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <p className="text-lg font-black text-primary">₩{budget.amount.toLocaleString()}</p>
           <div className="flex gap-2 mt-1 justify-end">
             <button onClick={onEdit} className="text-slate-300 hover:text-primary"><Edit2 className="w-3 h-3" /></button>
@@ -4333,14 +4346,14 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
         {item.imageUrl && (
           <img src={item.imageUrl} alt={item.item} className="w-16 h-16 object-cover rounded border border-border" />
         )}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <input type="checkbox" checked={item.checked} onChange={() => onToggle(item.id)} className="w-5 h-5 rounded-full border-sky-300 text-primary" />
-            <span className={cn("font-bold", item.checked ? "line-through text-slate-300" : "text-foreground")}>{item.item}</span>
+            <input type="checkbox" checked={item.checked} onChange={() => onToggle(item.id)} className="w-5 h-5 rounded-full border-sky-300 text-primary flex-shrink-0" />
+            <span className={cn("font-bold break-words", item.checked ? "line-through text-slate-300" : "text-foreground")}>{item.item}</span>
           </div>
           {item.link && <a href={item.link} target="_blank" className="text-xs text-primary underline">{t('home.shopping.viewProduct')}</a>}
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-shrink-0">
           <button onClick={onEdit} className="text-slate-300 hover:text-primary"><Edit2 className="w-4 h-4" /></button>
           <button onClick={() => onDelete(item.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
         </div>

@@ -262,8 +262,9 @@ function vitePluginPlanTripProxy(): Plugin {
             res.end(JSON.stringify({ itinerary }));
           } catch (err) {
             const message = err instanceof GeminiError ? err.message : "일정 생성 중 오류가 발생했습니다.";
+            const code = err instanceof GeminiError ? err.code : undefined;
             res.writeHead(502, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: message }));
+            res.end(JSON.stringify({ error: message, code }));
           }
         });
       });
