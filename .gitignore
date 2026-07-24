@@ -17,6 +17,13 @@ build/
 .env.test.local
 .env.production.local
 
+# Wrangler local secrets (never commit)
+.dev.vars
+.dev.vars.*
+
+# Wrangler local dev cache/build artifacts
+.wrangler/
+
 # IDE and editor files
 .vscode/
 .idea/

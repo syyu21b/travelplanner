@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2, Lock
+  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2, Lock, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -21,8 +21,9 @@ import * as QRCodeLib from 'qrcode.react';
 import { cn, copyToClipboard } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
-import { MapView, type MapMarker } from '@/components/Map';
+import { MapView, type MapMarker, geocodeAddress } from '@/components/Map';
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import { recordGeminiUsage } from '@/lib/geminiUsage';
 
 // 해외 지도(MapLibre GL)는 용량이 커서, 실제로 "해외" 모드를 선택했을 때만 불러오도록 지연 로딩
 const OverseasMapView = lazy(() =>
@@ -126,6 +127,37 @@ interface TravelPlan {
   totalBudgetAmount?: number;
 }
 
+// /api/plan-trip 응답 형태 (server/gemini.ts의 Itinerary와 동일한 구조를 클라이언트에서 느슨하게 재정의).
+// 서버 응답은 신뢰할 수 없는 입력으로 취급 — 아래 변환 로직에서 필드마다 방어적으로 검증한다.
+interface AiItineraryItem {
+  time?: unknown;
+  title?: unknown;
+  description?: unknown;
+  location?: unknown;
+  category?: unknown;
+  preparations?: unknown;
+}
+
+interface AiItineraryDay {
+  day?: unknown;
+  summary?: unknown;
+  items?: unknown;
+}
+
+interface AiItineraryBudgetItem {
+  category?: unknown;
+  amount?: unknown;
+  description?: unknown;
+}
+
+interface AiItinerary {
+  destination?: unknown;
+  region?: unknown;
+  days?: unknown;
+  budgets?: unknown;
+  tips?: unknown;
+}
+
 function compressPlanCoverPhoto(file: File): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -209,6 +241,166 @@ function normalizePlan(p: TravelPlan): TravelPlan {
     accommodations: p.accommodations ?? [],
     flights: p.flights ?? [],
   };
+}
+
+// AI 일정 카테고리(한글) -> ScheduleItem 카테고리 매핑. ScheduleItem에는 'shopping'이 없으므로 'other'로 합침
+function mapAiCategoryToScheduleCategory(category: unknown): ScheduleItem['category'] {
+  switch (category) {
+    case '식사': return 'meal';
+    case '관광': return 'activity';
+    case '이동': return 'transport';
+    case '숙박': return 'accommodation';
+    default: return 'other';
+  }
+}
+
+// AI 예산 카테고리(한글) -> Budget 카테고리 매핑. Budget에는 'shopping'이 별도로 존재함
+function mapAiCategoryToBudgetCategory(category: unknown): Budget['category'] {
+  switch (category) {
+    case '식사': return 'meal';
+    case '관광': return 'activity';
+    case '이동': return 'transport';
+    case '숙박': return 'accommodation';
+    case '쇼핑': return 'shopping';
+    default: return 'other';
+  }
+}
+
+// AI가 반환한 region 값을 검증 — 정확히 domestic/overseas가 아니면 안전하게 domestic으로 기본값 처리
+function resolveAiRegion(region: unknown): 'domestic' | 'overseas' {
+  return region === 'overseas' ? 'overseas' : 'domestic';
+}
+
+// 'YYYY-MM-DD' 문자열에 일수를 더함. toISOString()은 UTC 변환 과정에서 타임존에 따라 날짜가
+// 하루 밀릴 수 있어(예: UTC+9에서 자정은 전날 UTC 15시) 로컬 날짜 필드를 직접 조합해 반환한다.
+function addDaysToDateString(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// AI가 반환한(신뢰할 수 없는) itinerary JSON을 기존 TravelPlan.schedules와 동일한 형태로 변환.
+// 응답 형태가 예상과 다르더라도(필드 누락, 잘못된 타입 등) 절대 예외를 던지지 않고 가능한 만큼만 반영한다.
+function buildSchedulesFromAiItinerary(itinerary: AiItinerary, startDate: string): ScheduleItem[] {
+  const schedules: ScheduleItem[] = [];
+  if (!Array.isArray(itinerary.days)) return schedules;
+
+  itinerary.days.forEach((rawDay, dayIdx) => {
+    const day = rawDay as AiItineraryDay;
+    if (!day || typeof day !== 'object') return;
+    const dayNumber = typeof day.day === 'number' && Number.isFinite(day.day) && day.day > 0 ? day.day : dayIdx + 1;
+    const date = addDaysToDateString(startDate, dayNumber - 1);
+    if (!Array.isArray(day.items)) return;
+
+    day.items.forEach((rawItem, itemIdx) => {
+      const item = rawItem as AiItineraryItem;
+      if (!item || typeof item !== 'object') return;
+      const title = typeof item.title === 'string' && item.title.trim() ? item.title.trim() : null;
+      if (!title) return; // 제목 없는 항목은 일정으로서 의미가 없으므로 건너뜀
+      const preparations = Array.isArray(item.preparations)
+        ? item.preparations.filter((p): p is string => typeof p === 'string' && p.trim().length > 0).map(p => p.trim())
+        : [];
+
+      schedules.push({
+        id: `ai-${Date.now()}-${dayIdx}-${itemIdx}`,
+        date,
+        time: typeof item.time === 'string' && /^\d{1,2}:\d{2}$/.test(item.time) ? item.time : '09:00',
+        title,
+        category: mapAiCategoryToScheduleCategory(item.category),
+        location: typeof item.location === 'string' && item.location.trim() ? item.location.trim() : undefined,
+        notes: typeof item.description === 'string' && item.description.trim() ? item.description.trim() : undefined,
+        preparations: preparations.length > 0 ? preparations : undefined,
+      });
+    });
+  });
+
+  return schedules;
+}
+
+// AI가 만든 일정 항목들의 location(텍스트)을 실제 좌표(lat/lng)로 지오코딩 — 기존 "위치 검색"
+// 다이얼로그(LocationPickerDialog)가 쓰는 것과 동일한 함수를 재사용한다(국내: 네이버 지도
+// geocoder, 해외: Nominatim/OSM). 좌표가 있어야 지도 탭에 마커가 찍히고 길찾기가 가능해진다.
+// 개별 항목의 검색이 실패해도(주소를 못 찾음 등) 전체 흐름은 절대 중단되지 않고 그 항목만
+// 좌표 없이 남는다 — 일정 생성 자체가 지도 문제로 실패하는 일은 없어야 하기 때문.
+async function geocodeAiScheduleItems(
+  schedules: ScheduleItem[],
+  region: 'domestic' | 'overseas',
+): Promise<ScheduleItem[]> {
+  // lucide-react의 Map 아이콘이 파일 스코프에서 전역 Map을 가리므로 globalThis로 명시
+  const cache = new globalThis.Map<string, { lat: number; lng: number } | null>();
+  const geocodeAddressOSM = region === 'overseas'
+    ? (await import('@/components/OverseasMap')).geocodeAddressOSM
+    : null;
+
+  const results: ScheduleItem[] = [];
+  for (const item of schedules) {
+    const query = item.location?.trim();
+    if (!query) {
+      results.push(item);
+      continue;
+    }
+
+    if (!cache.has(query)) {
+      let coords: { lat: number; lng: number } | null = null;
+      try {
+        if (region === 'domestic') {
+          const found = await geocodeAddress(query);
+          if (found[0]) coords = { lat: found[0].lat, lng: found[0].lng };
+        } else if (geocodeAddressOSM) {
+          const found = await geocodeAddressOSM(query);
+          if (found[0]) coords = { lat: found[0].lat, lng: found[0].lng };
+        }
+      } catch {
+        coords = null; // 검색 실패는 무시 — 해당 항목만 지도에 표시되지 않을 뿐 전체 흐름은 계속됨
+      }
+      cache.set(query, coords);
+      // Nominatim 사용 정책(초당 1건 이하)을 지키기 위해, 실제로 새 요청을 보낸 경우에만 대기
+      if (region === 'overseas') {
+        await new Promise(resolve => setTimeout(resolve, 1100));
+      }
+    }
+
+    const coords = cache.get(query) ?? null;
+    results.push(coords ? { ...item, lat: coords.lat, lng: coords.lng } : item);
+  }
+
+  return results;
+}
+
+// AI가 반환한(신뢰할 수 없는) budgets JSON을 기존 TravelPlan.budgets와 동일한 형태로 변환.
+// 형태가 예상과 다르더라도 예외를 던지지 않고 유효한 항목만 반영한다.
+function buildBudgetsFromAiItinerary(itinerary: AiItinerary): Budget[] {
+  if (!Array.isArray(itinerary.budgets)) return [];
+
+  const budgets: Budget[] = [];
+  itinerary.budgets.forEach((rawItem, idx) => {
+    const item = rawItem as AiItineraryBudgetItem;
+    if (!item || typeof item !== 'object') return;
+    const amount = typeof item.amount === 'number' && Number.isFinite(item.amount) && item.amount > 0
+      ? Math.round(item.amount)
+      : null;
+    if (amount === null) return; // 금액이 없거나 유효하지 않은 항목은 의미가 없으므로 건너뜀
+    const description = typeof item.description === 'string' && item.description.trim()
+      ? item.description.trim()
+      : fallbackBudgetDescription(item.category);
+
+    budgets.push({
+      id: `ai-budget-${Date.now()}-${idx}`,
+      category: mapAiCategoryToBudgetCategory(item.category),
+      amount,
+      description,
+    });
+  });
+
+  return budgets;
+}
+
+// budgets 항목에 description이 비어있을 때 쓸 최소한의 대체 텍스트 (카테고리명 그대로 사용)
+function fallbackBudgetDescription(category: unknown): string {
+  return typeof category === 'string' && category.trim() ? category.trim() : '기타 비용';
 }
 
 // 길찾기: 구글 지도의 공식 URL 스킴을 사용 (API 키 불필요, 모바일에서 지도 앱/웹으로 안정적으로 연결됨)
@@ -297,6 +489,15 @@ export default function Home() {
   const [newPlanStartDate, setNewPlanStartDate] = useState(planDraft?.startDate || '');
   const [newPlanEndDate, setNewPlanEndDate] = useState(planDraft?.endDate || '');
   const [newPlanRegion, setNewPlanRegion] = useState<'domestic' | 'overseas'>(planDraft?.region === 'overseas' ? 'overseas' : 'domestic');
+
+  // AI로 계획세우기
+  const [showAiPlanDialog, setShowAiPlanDialog] = useState(false);
+  const [aiPlanDestination, setAiPlanDestination] = useState('');
+  const [aiPlanStartDate, setAiPlanStartDate] = useState('');
+  const [aiPlanEndDate, setAiPlanEndDate] = useState('');
+  const [aiPlanPreferences, setAiPlanPreferences] = useState('');
+  const [isGeneratingAiPlan, setIsGeneratingAiPlan] = useState(false);
+  const [isMappingAiPlan, setIsMappingAiPlan] = useState(false);
 
   // 제목 수정 상태
   const [editingTitle, setEditingTitle] = useState(false);
@@ -416,6 +617,133 @@ export default function Home() {
     setNewPlanTitle(''); setNewPlanStartDate(''); setNewPlanEndDate(''); setNewPlanRegion('domestic');
     setShowNewPlanDialog(false);
     toast.success(t('home.toast.planCreated'));
+  };
+
+  // AI로 계획세우기: /api/plan-trip 프록시(Vite dev 미들웨어 / Cloudflare Worker)를 호출해
+  // 받은 일정을 기존 TravelPlan과 동일한 형태로 저장 — 저장 이후로는 수동으로 만든 계획과
+  // 완전히 동일하게 취급되므로 PDF/텍스트 저장, 링크 복사, 여행 요약이 그대로 동작한다.
+  const handleGenerateAiPlan = async () => {
+    if (!user) {
+      toast.error(t('session.loginRequired'));
+      return;
+    }
+    const destination = aiPlanDestination.trim();
+    if (!destination || !aiPlanStartDate || !aiPlanEndDate) {
+      toast.error(t('home.toast.aiPlanFillFields'));
+      return;
+    }
+    if (aiPlanEndDate < aiPlanStartDate) {
+      toast.error(t('home.toast.endBeforeStart'));
+      return;
+    }
+
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const start = new Date(`${aiPlanStartDate}T00:00:00`);
+    const end = new Date(`${aiPlanEndDate}T00:00:00`);
+    const days = Math.round((end.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+    if (!Number.isFinite(days) || days < 1 || days > 30) {
+      toast.error(t('home.toast.aiPlanTooManyDays'));
+      return;
+    }
+
+    if (isGeneratingAiPlan) return; // 중복 제출 방지
+
+    setIsGeneratingAiPlan(true);
+    const controller = new AbortController();
+    // 일정 생성 후 별도로 JSON 구조화까지 2단계로 Gemini를 호출하기 때문에(목적지가 임의로
+    // 바뀌는 문제를 막기 위함) 응답까지 시간이 꽤 걸릴 수 있어 넉넉하게 잡음
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+    try {
+      const res = await fetch('/api/plan-trip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination,
+          days,
+          startDate: aiPlanStartDate,
+          preferences: aiPlanPreferences.trim() || undefined,
+        }),
+        signal: controller.signal,
+      });
+
+      // 실제로 응답을 받은 시점(성공/실패 무관)에 요청 1건으로 집계 — 서버 쪽 Gemini 호출량을
+      // 가장 근접하게 반영하는 지점
+      recordGeminiUsage('requests');
+
+      let payload: unknown = null;
+      try {
+        payload = await res.json();
+      } catch {
+        payload = null;
+      }
+
+      const payloadObj = (payload && typeof payload === 'object') ? payload as Record<string, unknown> : null;
+
+      if (!res.ok || !payloadObj?.itinerary) {
+        const serverMessage = typeof payloadObj?.error === 'string' ? payloadObj.error : null;
+        throw new Error(serverMessage || `HTTP ${res.status}`);
+      }
+
+      const aiItinerary = payloadObj.itinerary as AiItinerary;
+      const rawSchedules = buildSchedulesFromAiItinerary(aiItinerary, aiPlanStartDate);
+      if (rawSchedules.length === 0) {
+        toast.error(t('home.toast.aiPlanEmpty'));
+        return;
+      }
+      const budgets = buildBudgetsFromAiItinerary(aiItinerary);
+      const region = resolveAiRegion(aiItinerary.region);
+
+      // 일정의 location(텍스트)을 실제 좌표로 지오코딩 — 지도 탭에 마커가 찍히고 길찾기가
+      // 되려면 lat/lng이 필요함. 실패해도 일정 저장 자체는 계속 진행됨(해당 항목만 좌표 없음).
+      setIsMappingAiPlan(true);
+      let schedules = rawSchedules;
+      try {
+        schedules = await geocodeAiScheduleItems(rawSchedules, region);
+      } catch (geocodeErr) {
+        console.error('AI plan geocoding failed (non-fatal):', geocodeErr);
+      } finally {
+        setIsMappingAiPlan(false);
+      }
+
+      const newPlan: TravelPlan = {
+        id: Date.now().toString(),
+        userId: user.id,
+        title: `${destination} ${t('home.aiPlanDialog.titleSuffix')}`,
+        startDate: aiPlanStartDate,
+        endDate: aiPlanEndDate,
+        region,
+        schedules,
+        budgets,
+        shoppingList: [],
+        accommodations: [],
+        flights: [],
+      };
+
+      const updated = [...travelPlans, newPlan];
+      updateTravelPlans(updated);
+      setCurrentPlan(newPlan);
+      setShowAiPlanDialog(false);
+      setAiPlanDestination('');
+      setAiPlanStartDate('');
+      setAiPlanEndDate('');
+      setAiPlanPreferences('');
+      recordGeminiUsage('generations');
+      toast.success(t('home.toast.aiPlanSuccess'));
+    } catch (err) {
+      // 서버 프록시가 없는 환경(로컬 Node 배포 등)이거나 네트워크가 끊긴 경우 등 어떤 실패든
+      // 화면이 깨지지 않고 항상 토스트 메시지로만 안내되도록 함
+      console.error('AI plan generation failed:', err);
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        toast.error(t('home.toast.aiPlanTimeout'));
+      } else {
+        toast.error(t('home.toast.aiPlanError'));
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      setIsGeneratingAiPlan(false);
+      setIsMappingAiPlan(false);
+    }
   };
 
   const updateCurrentPlan = (updatedPlan: TravelPlan) => {
@@ -1471,6 +1799,66 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
+      {/* AI로 계획세우기 다이얼로그 */}
+      <Dialog open={showAiPlanDialog} onOpenChange={(open) => { if (!isGeneratingAiPlan) setShowAiPlanDialog(open); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" /> {t('home.aiPlanDialog.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">{t('home.aiPlanDialog.destinationLabel')}</label>
+              <Input
+                placeholder={t('home.aiPlanDialog.destinationPlaceholder')}
+                value={aiPlanDestination}
+                onChange={e => setAiPlanDestination(e.target.value)}
+                className="h-11"
+                disabled={isGeneratingAiPlan}
+                maxLength={100}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">{t('home.newPlanDialog.startDateLabel')}</label>
+                <Input type="date" value={aiPlanStartDate} onChange={e => setAiPlanStartDate(e.target.value)} className="h-11" disabled={isGeneratingAiPlan} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">{t('home.newPlanDialog.endDateLabel')}</label>
+                <Input type="date" value={aiPlanEndDate} onChange={e => setAiPlanEndDate(e.target.value)} className="h-11" disabled={isGeneratingAiPlan} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">{t('home.aiPlanDialog.preferencesLabel')}</label>
+              <Textarea
+                placeholder={t('home.aiPlanDialog.preferencesPlaceholder')}
+                value={aiPlanPreferences}
+                onChange={e => setAiPlanPreferences(e.target.value)}
+                className="min-h-[80px] resize-none"
+                disabled={isGeneratingAiPlan}
+                maxLength={500}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">{t('home.aiPlanDialog.autoNote')}</p>
+            <Button onClick={handleGenerateAiPlan} disabled={isGeneratingAiPlan} className="w-full bg-primary text-white h-11 mt-2 gap-2">
+              {isMappingAiPlan ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> {t('home.aiPlanDialog.mapping')}</>
+              ) : isGeneratingAiPlan ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> {t('home.aiPlanDialog.generating')}</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> {t('home.aiPlanDialog.generateButton')}</>
+              )}
+            </Button>
+            {isGeneratingAiPlan && (
+              <p className="text-xs text-center text-muted-foreground">
+                {isMappingAiPlan ? t('home.aiPlanDialog.mappingHint') : t('home.aiPlanDialog.generatingHint')}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── 헤더 ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
@@ -1597,7 +1985,19 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 flex items-center gap-2 flex-wrap justify-end max-w-[calc(100%-2rem)]">
+              <Button
+                onClick={() => {
+                  if (!user) {
+                    toast.error(t('session.loginRequired'));
+                    return;
+                  }
+                  setShowAiPlanDialog(true);
+                }}
+                className="bg-gradient-to-r from-primary to-[#7D6B5D] text-white hover:opacity-90 gap-1.5 rounded-full shadow-lg font-bold text-sm px-4 h-9"
+              >
+                <Sparkles className="w-4 h-4" /> <span className="hidden sm:inline">{t('home.hero.aiPlanButton')}</span>
+              </Button>
               <Button
                 onClick={() => {
                   if (!user) {
@@ -1608,7 +2008,7 @@ export default function Home() {
                 }}
                 className="bg-white/95 text-[#3B2B1E] hover:bg-white gap-1.5 rounded-full shadow-lg font-bold text-sm px-4 h-9"
               >
-                <Plus className="w-4 h-4" /> {t('home.hero.newPlanButton')}
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t('home.hero.newPlanButton')}</span>
               </Button>
             </div>
           </div>

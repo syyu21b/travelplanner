@@ -3,15 +3,26 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
-import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { GeminiError, planTrip, planTripInputSchema } from "./server/gemini";
+
+const PROJECT_ROOT = import.meta.dirname;
+
+// vite dev 프로세스는 .env를 자동으로 process.env에 주입하지 않으므로(클라이언트 번들용
+// import.meta.env만 채워짐), 서버 전용 플러그인(vitePluginPlanTripProxy 등)에서 쓰기 위해
+// 직접 로드해 병합한다. 이미 실제 환경변수로 설정된 값(예: 배포 환경)은 덮어쓰지 않는다.
+const dotEnv = loadEnv("development", PROJECT_ROOT, "");
+for (const [key, value] of Object.entries(dotEnv)) {
+  if (process.env[key] === undefined) {
+    process.env[key] = value;
+  }
+}
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
 // Writes browser logs directly to files, trimmed when exceeding size limit
 // =============================================================================
-
-const PROJECT_ROOT = import.meta.dirname;
 const LOG_DIR = path.join(PROJECT_ROOT, ".manus-logs");
 const MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024; // 1MB per log file
 const TRIM_TARGET_BYTES = Math.floor(MAX_LOG_SIZE_BYTES * 0.6); // Trim to 60% to avoid constant re-trimming
@@ -203,6 +214,63 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
+// 로컬 개발(`pnpm dev`)에서 프로덕션의 Cloudflare Worker(server/worker.ts)와 동일한
+// /api/plan-trip 엔드포인트를 제공. 실제 Gemini 호출 로직은 server/gemini.ts를 공유한다.
+function vitePluginPlanTripProxy(): Plugin {
+  return {
+    name: "plan-trip-proxy",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use("/api/plan-trip", async (req, res) => {
+        if (req.method !== "POST") {
+          res.writeHead(405, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: ".env에 GEMINI_API_KEY가 설정되어 있지 않습니다." }));
+          return;
+        }
+
+        let raw = "";
+        req.on("data", (chunk) => {
+          raw += chunk.toString();
+        });
+
+        req.on("end", async () => {
+          let body: unknown;
+          try {
+            body = JSON.parse(raw);
+          } catch {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "요청 본문이 올바른 JSON이 아닙니다." }));
+            return;
+          }
+
+          const parsed = planTripInputSchema.safeParse(body);
+          if (!parsed.success) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "입력값이 올바르지 않습니다.", details: parsed.error.flatten() }));
+            return;
+          }
+
+          try {
+            const itinerary = await planTrip(parsed.data, apiKey);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ itinerary }));
+          } catch (err) {
+            const message = err instanceof GeminiError ? err.message : "일정 생성 중 오류가 발생했습니다.";
+            res.writeHead(502, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: message }));
+          }
+        });
+      });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -210,6 +278,7 @@ export default defineConfig({
     jsxLocPlugin(),
     vitePluginManusDebugCollector(),
     vitePluginStorageProxy(),
+    vitePluginPlanTripProxy(),
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",
