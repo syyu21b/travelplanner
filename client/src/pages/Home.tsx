@@ -125,6 +125,8 @@ interface TravelPlan {
   flights?: Flight[];
   preparationChecks?: Record<string, boolean>;
   totalBudgetAmount?: number;
+  /** AI로 계획을 생성할 때 선택한 인원수(1~10명) — 예산 탭에서 1인당 예산 계산에 사용됨 */
+  travelers?: number;
 }
 
 // /api/plan-trip 응답 형태 (server/gemini.ts의 Itinerary와 동일한 구조를 클라이언트에서 느슨하게 재정의).
@@ -505,6 +507,7 @@ export default function Home() {
   const [aiPlanDestination, setAiPlanDestination] = useState('');
   const [aiPlanStartDate, setAiPlanStartDate] = useState('');
   const [aiPlanEndDate, setAiPlanEndDate] = useState('');
+  const [aiPlanTravelers, setAiPlanTravelers] = useState(1);
   const [aiPlanPreferences, setAiPlanPreferences] = useState('');
   const [isGeneratingAiPlan, setIsGeneratingAiPlan] = useState(false);
   const [isMappingAiPlan, setIsMappingAiPlan] = useState(false);
@@ -672,6 +675,7 @@ export default function Home() {
           destination,
           days,
           startDate: aiPlanStartDate,
+          travelers: aiPlanTravelers,
           preferences: aiPlanPreferences.trim() || undefined,
         }),
         signal: controller.signal,
@@ -729,6 +733,7 @@ export default function Home() {
         shoppingList: [],
         accommodations: [],
         flights: [],
+        travelers: aiPlanTravelers,
       };
 
       const updated = [...travelPlans, newPlan];
@@ -738,6 +743,7 @@ export default function Home() {
       setAiPlanDestination('');
       setAiPlanStartDate('');
       setAiPlanEndDate('');
+      setAiPlanTravelers(1);
       setAiPlanPreferences('');
       recordGeminiUsage('generations');
       toast.success(t('home.toast.aiPlanSuccess'));
@@ -1427,8 +1433,8 @@ export default function Home() {
                       <p className="text-xs font-bold text-primary mb-0.5">{formatTime12h(s.time)}{s.endTime ? ` ~ ${formatTime12h(s.endTime)}` : ''}</p>
                       <p className={cn("font-bold text-foreground truncate", s.completed && "line-through")}>{s.title}</p>
                       {s.location && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
-                          <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 min-w-0">
+                          <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{s.location}</span>
                         </p>
                       )}
                     </div>
@@ -1842,6 +1848,30 @@ export default function Home() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold">{t('home.newPlanDialog.endDateLabel')}</label>
                 <Input type="date" value={aiPlanEndDate} onChange={e => setAiPlanEndDate(e.target.value)} className="h-11" disabled={isGeneratingAiPlan} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">{t('home.aiPlanDialog.travelersLabel')}</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAiPlanTravelers(v => Math.max(1, v - 1))}
+                  disabled={isGeneratingAiPlan || aiPlanTravelers <= 1}
+                  className="w-11 h-11 rounded-xl border border-border flex items-center justify-center text-lg font-bold text-foreground disabled:opacity-40 hover:bg-secondary transition-colors flex-shrink-0"
+                >
+                  −
+                </button>
+                <div className="flex-1 text-center font-bold text-foreground">
+                  {t('home.aiPlanDialog.travelersCount', { n: aiPlanTravelers })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAiPlanTravelers(v => Math.min(10, v + 1))}
+                  disabled={isGeneratingAiPlan || aiPlanTravelers >= 10}
+                  className="w-11 h-11 rounded-xl border border-border flex items-center justify-center text-lg font-bold text-foreground disabled:opacity-40 hover:bg-secondary transition-colors flex-shrink-0"
+                >
+                  +
+                </button>
               </div>
             </div>
             <div className="space-y-2">
@@ -2706,8 +2736,8 @@ export default function Home() {
                                           <Calendar className="w-3 h-3 flex-shrink-0" /> {s.date} {formatTime12h(s.time)}
                                         </p>
                                         {s.location && (
-                                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
-                                            <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
+                                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 min-w-0">
+                                            <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{s.location}</span>
                                           </p>
                                         )}
                                       </div>
@@ -2817,6 +2847,12 @@ export default function Home() {
                           <p className="text-xs text-white/80 mt-1.5 font-semibold">
                             {t('home.budget.usagePercent', { n: Math.round((totalBudget / plannedBudget) * 100) })}
                           </p>
+                        </div>
+                      )}
+                      {!!currentPlan.travelers && currentPlan.travelers > 1 && (
+                        <div className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between flex-wrap gap-2 text-xs sm:text-sm">
+                          <span className="font-semibold text-white/90">{t('home.budget.travelersCountLabel', { n: currentPlan.travelers })}</span>
+                          <span className="font-bold">{t('home.budget.perSpentPersonLabel')}: ₩{Math.round(totalBudget / currentPlan.travelers).toLocaleString()}</span>
                         </div>
                       )}
                     </Card>
@@ -3054,6 +3090,12 @@ export default function Home() {
                     <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('home.previewDialog.totalBudgetLabel')}</p>
                     <p className="font-bold text-primary text-lg">₩{previewPlan.budgets.reduce((s, b) => s + b.amount, 0).toLocaleString()}</p>
                   </div>
+                  {!!previewPlan.travelers && previewPlan.travelers > 1 && (
+                    <div>
+                      <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('home.budget.travelersCountLabel', { n: previewPlan.travelers })}</p>
+                      <p className="font-bold text-primary text-lg">₩{Math.round(previewPlan.budgets.reduce((s, b) => s + b.amount, 0) / previewPlan.travelers).toLocaleString()} <span className="text-xs font-semibold text-muted-foreground">/ {t('home.budget.perSpentPersonLabel')}</span></p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-muted-foreground font-semibold text-xs uppercase tracking-wider mb-1">{t('home.previewDialog.scheduleCountLabel')}</p>
                     <p className="font-bold text-foreground">{t('home.unitCount', { n: previewPlan.schedules.length })}</p>

@@ -80,6 +80,8 @@ export const home = {
       title: "AI로 여행 계획 세우기",
       destinationLabel: "여행지",
       destinationPlaceholder: "예: 부산, 도쿄, 방콕",
+      travelersLabel: "인원수 (최대 10명)",
+      travelersCount: "{{n}}명",
       preferencesLabel: "원하는 스타일 (선택)",
       preferencesPlaceholder: "예: 맛집 위주, 아이 동반, 저예산, 사진 명소 위주 등",
       generateButton: "AI로 일정 생성",
@@ -88,7 +90,7 @@ export const home = {
       mapping: "지도에 위치를 표시하는 중...",
       mappingHint: "각 일정의 위치를 찾아 지도에 표시하고 있어요. 조금만 기다려주세요.",
       titleSuffix: "여행",
-      autoNote: "여행지에 따라 국내/해외 지도가 자동으로 설정되고, 예상 예산과 준비물도 함께 만들어져요.",
+      autoNote: "인원수에 맞춰 예상 예산(총액/1인당)과 준비물이 조정되고, 여행지에 따라 국내/해외 지도가 자동으로 설정돼요.",
     },
     planDetail: {
       coverPhotoTitle: "대표 사진 설정",
@@ -238,6 +240,8 @@ export const home = {
       spentLabel: "총 지출",
       remainingLabel: "남은 금액",
       usagePercent: "예산의 {{n}}% 사용",
+      travelersCountLabel: "인원 {{n}}명",
+      perSpentPersonLabel: "1인당 지출",
       categoryChartTitle: "카테고리별 지출",
       categoryChartEmptyState: "지출 내역을 추가하면 카테고리별 통계를 볼 수 있습니다.",
       form: {
@@ -493,6 +497,8 @@ export const home = {
       title: "Plan a Trip with AI",
       destinationLabel: "Destination",
       destinationPlaceholder: "e.g. Busan, Tokyo, Bangkok",
+      travelersLabel: "Travelers (up to 10)",
+      travelersCount: "{{n}}",
       preferencesLabel: "Preferences (optional)",
       preferencesPlaceholder: "e.g. foodie trip, traveling with kids, budget-friendly, photo spots",
       generateButton: "Generate with AI",
@@ -501,7 +507,7 @@ export const home = {
       mapping: "Placing locations on the map...",
       mappingHint: "Looking up each stop's location and pinning it on the map. Just a moment.",
       titleSuffix: "Trip",
-      autoNote: "The domestic/overseas map is set automatically based on your destination, along with an estimated budget and packing list.",
+      autoNote: "The estimated budget (total & per person) and packing list scale with your traveler count, and the domestic/overseas map is set automatically based on your destination.",
     },
     planDetail: {
       coverPhotoTitle: "Set cover photo",
@@ -651,6 +657,8 @@ export const home = {
       spentLabel: "Total Spent",
       remainingLabel: "Remaining",
       usagePercent: "{{n}}% of budget used",
+      travelersCountLabel: "{{n}} travelers",
+      perSpentPersonLabel: "Spent per person",
       categoryChartTitle: "Spending by Category",
       categoryChartEmptyState: "Add expenses to see a category breakdown.",
       form: {

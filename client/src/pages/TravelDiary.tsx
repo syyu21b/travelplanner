@@ -1854,12 +1854,12 @@ export default function TravelDiary() {
                           {(() => {
                             const address = p.address || resolvedPhotoAddresses[p.id];
                             return address ? (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                                <MapPin className="w-3 h-3 flex-shrink-0" /> {address}
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 min-w-0">
+                                <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{address}</span>
                               </p>
                             ) : (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                                <MapPin className="w-3 h-3 flex-shrink-0" /> {(p.lat as number).toFixed(6)}, {(p.lng as number).toFixed(6)}
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 min-w-0">
+                                <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{(p.lat as number).toFixed(6)}, {(p.lng as number).toFixed(6)}</span>
                               </p>
                             );
                           })()}

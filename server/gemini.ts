@@ -7,6 +7,7 @@ export const planTripInputSchema = z.object({
   destination: z.string().trim().min(1, "여행지를 입력해주세요.").max(100),
   days: z.number().int().min(1, "최소 1일 이상이어야 합니다.").max(30, "최대 30일까지 가능합니다."),
   startDate: z.string().trim().max(20).optional(),
+  travelers: z.number().int().min(1, "최소 1명 이상이어야 합니다.").max(10, "최대 10명까지 가능합니다.").optional(),
   preferences: z.string().trim().max(500).optional(),
   budget: z.string().trim().max(100).optional(),
 });
@@ -149,12 +150,12 @@ const ITINERARY_RESPONSE_SCHEMA = {
     },
     budgets: {
       type: "ARRAY",
-      description: "카테고리별 예상 지출 내역 (원화 기준 현실적인 금액)",
+      description: "카테고리별 예상 지출 내역 (원화 기준 현실적인 금액, 프롬프트에 명시된 전체 인원 기준 합산 총액)",
       items: {
         type: "OBJECT",
         properties: {
           category: { type: "STRING", enum: [...BUDGET_CATEGORY_ENUM] },
-          amount: { type: "INTEGER", description: "예상 금액 (원, KRW)" },
+          amount: { type: "INTEGER", description: "예상 금액 (원, KRW) — 1인 기준이 아니라 전체 인원 합산 총액" },
           description: { type: "STRING", description: "지출 항목에 대한 간단한 설명" },
         },
         required: ["category", "amount", "description"],
@@ -176,11 +177,13 @@ const ITINERARY_RESPONSE_SCHEMA = {
 // 반드시 스키마 없이 진행하고, 구조화는 별도의 2단계에서 처리한다.
 function buildFreeformPrompt(input: PlanTripInput): string {
   const dest = input.destination;
+  const travelers = input.travelers ?? 1;
   const lines = [
     `여행지 "${dest}"에 대한 여행 일정을 짜는 여행 일정 전문가입니다. 아래 조건에 맞는 상세한 여행 일정을 작성해주세요.`,
     "",
     `목적지: ${dest} (반드시 이 지역이어야 하며, 다른 지역으로 바꾸지 마세요)`,
     `기간: ${input.days}일`,
+    `인원: ${travelers}명`,
   ];
   if (input.startDate) lines.push(`출발일: ${input.startDate}`);
   if (input.preferences) lines.push(`선호사항: ${input.preferences}`);
@@ -189,10 +192,14 @@ function buildFreeformPrompt(input: PlanTripInput): string {
     "",
     "각 날짜별로 오전/오후/저녁 활동을 시간 순서대로 배치하고, 이동 시간과 식사 시간도 고려해주세요.",
     `실제로 "${dest}"에 존재하는 장소 위주로 추천하고, 하루에 너무 많은 일정을 몰아넣지 마세요.`,
+    `인원(${travelers}명)을 항상 고려하세요: 식당/카페는 ${travelers}명이 한 번에 앉을 수 있는 곳인지, ` +
+      `대규모 인원이면 사전 예약이 필요한지 언급하고, 이동수단은 ${travelers}명 기준으로 렌터카 대수/택시 대수/대중교통 여부를 ` +
+      "구체적으로 판단해서 추천해주세요.",
     "각 활동마다 지도 검색에 쓸 수 있는 구체적인 위치 정보(도로명 주소, 정확한 건물명/상호명+지역명)를 함께 적어주세요 " +
       "— '근처', '~일대'처럼 검색이 안 되는 모호한 표현은 피해주세요.",
     "각 활동에 필요하면 챙길 준비물도 언급해주세요.",
-    "카테고리별(숙박/이동/식사/관광/쇼핑/기타)로 현실적인 예상 지출도 원화(KRW)로 추정해서 알려주세요.",
+    `카테고리별(숙박/이동/식사/관광/쇼핑/기타)로 현실적인 예상 지출을 원화(KRW)로 추정하되, 반드시 ${travelers}명 전체 합산 금액으로 ` +
+      "알려주세요(1인 기준 금액이 아님 — 예: 숙박비는 방 개수, 식사비는 인원수만큼 곱한 총액).",
     "자유로운 글 형식으로 작성하면 됩니다 (표, 마크다운 모두 가능).",
   );
   return lines.join("\n");
@@ -201,13 +208,16 @@ function buildFreeformPrompt(input: PlanTripInput): string {
 // 2단계: 1단계에서 만든(이미 목적지가 확정된) 자유 형식 텍스트를 그대로 구조화만 하는 프롬프트.
 // "새로 만들지 말고 재구성만 하라"고 명시해 모델이 내용을 바꾸지 않도록 한다.
 function buildStructurePrompt(freeformItinerary: string, input: PlanTripInput): string {
+  const travelers = input.travelers ?? 1;
   return [
     "아래는 이미 확정된 여행 일정입니다. 이 내용을 절대 새로 만들거나 다른 여행지로 바꾸지 말고,",
     "주어진 JSON 스키마 형식으로 그대로 옮겨 담아주세요 (재구성/정리 작업입니다).",
     `destination 필드는 반드시 "${input.destination}"으로 채우세요.`,
     "region 필드에는 이 여행지가 대한민국 국내면 domestic, 해외면 overseas를 넣어주세요.",
     "각 일정 항목의 preparations에는 본문에 언급된 준비물을, 언급이 없으면 그 활동에 실제로 필요할 만한 것을 판단해서 채우고, 특별히 없으면 빈 배열로 두세요.",
-    "budgets에는 본문에 언급된 예상 지출을 카테고리별로 정리하고, 본문에 명시되지 않았다면 내용을 바탕으로 현실적인 금액을 추정해주세요.",
+    `이 여행의 인원은 ${travelers}명입니다. budgets에는 본문에 언급된 예상 지출을 카테고리별로 정리하되, ` +
+      `각 amount는 반드시 ${travelers}명 전체 합산 금액이어야 합니다(1인 기준 금액으로 적지 마세요) — ` +
+      "본문에 명시되지 않았다면 인원수를 고려해 현실적인 총액을 추정해주세요.",
     "",
     "----- 원본 일정 -----",
     freeformItinerary,

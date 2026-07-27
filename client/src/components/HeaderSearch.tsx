@@ -114,8 +114,8 @@ export default function HeaderSearch() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground truncate">{d.title}</p>
-                  <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                    <MapPin className="w-3 h-3 flex-shrink-0" /> {d.location}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 min-w-0">
+                    <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{d.location}</span>
                   </p>
                 </div>
               </button>
