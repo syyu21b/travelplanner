@@ -2297,8 +2297,8 @@ export default function Home() {
                       <Plane className="w-7 h-7 text-primary/50" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover/cover:bg-black/40 transition-colors flex items-center justify-center">
-                    <Camera className="w-5 h-5 text-white opacity-0 group-hover/cover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-black/20 sm:bg-black/0 sm:group-hover/cover:bg-black/40 transition-colors flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-white opacity-100 sm:opacity-0 sm:group-hover/cover:opacity-100 transition-opacity" />
                   </div>
                 </button>
                 <input
