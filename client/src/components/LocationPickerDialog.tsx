@@ -28,10 +28,13 @@ const POI_CATEGORY_LABELS: Record<PoiCategory, string> = {
   hotel: "숙소",
 };
 
-// 구글 지도 검색 URL 스킴 사용 (API 키 불필요) — 장소명과 좌표를 함께 넣어 검색하면
-// 구글 지도가 해당 좌표 근처에서 이름이 일치하는 장소를 찾아 정보 카드를 보여줄 확률이 높음
+// 구글 지도 검색 URL 스킴 사용 (API 키 불필요). 공식 문서상 query 파라미터는 "장소명/주소"
+// 이거나 "위도,경도" 둘 중 하나여야 하며 섞어 쓰는 건 지원되지 않는다 — 예전에는 이름과
+// 좌표를 한 문자열로 합쳐서 보냈는데, OSM에만 있고 구글 지도 자체 데이터베이스에는 없는(현지
+// 소규모 상점 등) 이름이면 검색어 전체가 매칭되지 않아 "찾을 수 없음"이 뜨는 경우가 잦았다.
+// OSM 좌표는 정확하므로 이름 매칭 성패와 무관하게 항상 해당 지점을 보여주도록 좌표만 사용한다.
 function openPoiInGoogleMaps(poi: OsmPoi) {
-  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${poi.name} ${poi.lat},${poi.lng}`)}`;
+  const url = `https://www.google.com/maps/search/?api=1&query=${poi.lat},${poi.lng}`;
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
@@ -169,13 +172,18 @@ export function LocationPickerDialog({
           setSearchResults(mapped.slice(0, 5));
         }
       } else {
-        const { geocodeAddressOSM } = await import("@/components/OverseasMap");
+        const { geocodeAddressOSM, BROAD_ADMIN_PLACE_TYPES } = await import("@/components/OverseasMap");
         const results = await geocodeAddressOSM(query);
         const mapped: SimpleSearchResult[] = results.map(r => ({ lat: r.lat, lng: r.lng, primary: r.displayName }));
         if (mapped.length === 1) {
           selectLocation(mapped[0].lat, mapped[0].lng, mapped[0].primary);
         } else {
           setSearchResults(mapped.slice(0, 5));
+        }
+        // "독일", "캘리포니아"처럼 국가/주 단위로 검색하면 그 지역의 임의의(때로는 인적 없는)
+        // 중심점이 잡혀 주변 추천(맛집/관광지)이 부정확하거나 텅 비게 되므로 미리 안내
+        if (results[0]?.placeType && BROAD_ADMIN_PLACE_TYPES.has(results[0].placeType)) {
+          toast.warning("국가/지역 단위로 검색하면 주변 추천이 부정확할 수 있어요. 도시나 정확한 장소명으로 검색해보세요.");
         }
       }
     } catch (err) {

@@ -42,7 +42,16 @@ export interface OsmGeocodeResult {
   lat: number;
   lng: number;
   displayName: string;
+  /** Nominatim이 분류한 결과 종류(addresstype 우선, 없으면 type) — 예: country/state/city/town.
+   *  country/state처럼 매우 넓은 행정구역이면 주변 추천(맛집/관광지)의 기준점이 임의의(때로는
+   *  외딴) 지점이 되어 추천 품질이 떨어지므로, 호출부에서 이 값을 보고 사용자에게 더 구체적인
+   *  장소로 검색하라고 안내할 수 있게 노출한다. */
+  placeType?: string;
 }
+
+// 국가/주(state) 등 매우 넓은 행정구역 단위 결과 — 이 경우 지오코딩된 좌표가 그 지역의 임의의
+// 중심점(때로는 인구가 없는 외곽 지역)이 되어, 그 지점 기준 주변 추천이 부정확하거나 텅 비게 됨
+export const BROAD_ADMIN_PLACE_TYPES = new Set(["country", "state", "region"]);
 
 /** 주소/장소명으로 검색해 좌표를 찾음 (Nominatim, 브라우저에서 직접 호출 가능 — API 키 불필요) */
 export async function geocodeAddressOSM(query: string): Promise<OsmGeocodeResult[]> {
@@ -70,6 +79,7 @@ export async function geocodeAddressOSM(query: string): Promise<OsmGeocodeResult
       lat: parseFloat(d.lat),
       lng: parseFloat(d.lon),
       displayName: typeof d.display_name === "string" ? d.display_name : "",
+      placeType: typeof d.addresstype === "string" ? d.addresstype : (typeof d.type === "string" ? d.type : undefined),
     }))
     .filter(r => Number.isFinite(r.lat) && Number.isFinite(r.lng));
 }
@@ -191,7 +201,11 @@ function parsePoiElements(data: any, originLat: number, originLng: number): OsmP
   elements
     .map((el): OsmPoi | null => {
       const tags = el?.tags || {};
-      const name: string | undefined = tags["name:ko"] || tags["name:en"] || tags.name;
+      // 현지어 name만 있는 지점이 많아(특히 유럽) 읽기 어렵고 구글 지도 이름 검색 매칭률도
+      // 낮으므로 영어 태그를 최우선으로 사용. 링크 자체는 LocationPickerDialog의
+      // openPoiInGoogleMaps에서 이름이 아닌 정확한 좌표로 열어, 이름 매칭 실패와 무관하게
+      // 항상 해당 위치를 보여준다.
+      const name: string | undefined = tags["name:en"] || tags["name:ko"] || tags.name;
       if (!name || typeof el.lat !== "number" || typeof el.lon !== "number") return null;
       const categorized = categorizePoiTags(tags);
       if (!categorized) return null;
