@@ -22,7 +22,8 @@ export function GeminiUsagePanel() {
       <h2 className="text-base font-bold text-[#7D6B5D] mb-1">AI 여행 일정(Gemini API) 사용량</h2>
       <p className="text-xs text-[#A68B77] flex items-start gap-1 mb-4">
         <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-        Google AI Studio는 사용량 통계를 조회하는 공개 API를 제공하지 않아, 이 앱에서 실제로 호출한 횟수를 자체 집계한 값입니다. 요청 1건당 서버에서 Gemini API를 2회(생성 + 구조화) 호출합니다.
+        Google AI Studio는 사용량 통계를 조회하는 공개 API를 제공하지 않아, 이 브라우저에서 실제로 호출한 횟수를 자체 집계한 값입니다. 요청 1건당 서버에서 Gemini API를 2회(생성 + 구조화) 호출합니다.
+        무료 티어 한도는 이 앱을 쓰는 모든 사용자가 하루 단위로 공유하는 계정 전체 한도라서, 아래 숫자가 낮아도 실제로는 한도 초과로 일정 생성이 실패할 수 있습니다.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {items.map(item => {

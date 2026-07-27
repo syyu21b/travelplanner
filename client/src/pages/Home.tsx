@@ -749,6 +749,8 @@ export default function Home() {
         toast.error(t('home.toast.aiPlanTimeout'));
       } else if (err instanceof AiPlanRequestError && err.code === 'rate_limited') {
         toast.error(t('home.toast.aiPlanRateLimited'));
+      } else if (err instanceof AiPlanRequestError && err.code === 'overloaded') {
+        toast.error(t('home.toast.aiPlanOverloaded'));
       } else {
         toast.error(t('home.toast.aiPlanError'));
       }
@@ -2306,21 +2308,23 @@ export default function Home() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground flex items-center gap-2 min-w-0">
-                        <span className="truncate">{currentPlan.title}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground flex items-center gap-2 flex-wrap break-words">
+                        <span>{currentPlan.title}</span>
                         <Plane className="text-primary flex-shrink-0" />
                       </h2>
-                      <button
-                        onClick={handleStartEditTitle}
-                        className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary flex-shrink-0"
-                        title={t('home.planDetail.editTitleTooltip')}
-                      >
-                        <Edit2 className="w-5 h-5" />
-                      </button>
-                      <span className="text-sm font-bold px-3 py-1 rounded-full bg-primary text-white shadow-sm shadow-primary/30 flex-shrink-0">
-                        {getDday(currentPlan)}
-                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={handleStartEditTitle}
+                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary flex-shrink-0"
+                          title={t('home.planDetail.editTitleTooltip')}
+                        >
+                          <Edit2 className="w-5 h-5" />
+                        </button>
+                        <span className="text-sm font-bold px-3 py-1 rounded-full bg-primary text-white shadow-sm shadow-primary/30 flex-shrink-0">
+                          {getDday(currentPlan)}
+                        </span>
+                      </div>
                     </div>
                   )}
 

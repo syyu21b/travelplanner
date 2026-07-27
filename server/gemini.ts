@@ -48,9 +48,9 @@ export interface Itinerary {
 
 export class GeminiError extends Error {
   /** 클라이언트가 에러 문구를 파싱하지 않고도 상황별로 분기할 수 있도록 하는 안정적인 식별자 */
-  code?: "rate_limited";
+  code?: "rate_limited" | "overloaded";
 
-  constructor(message: string, code?: "rate_limited") {
+  constructor(message: string, code?: "rate_limited" | "overloaded") {
     super(message);
     this.code = code;
   }
@@ -58,6 +58,41 @@ export class GeminiError extends Error {
 
 const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 무료 티어 모델은 트래픽이 몰리면 "일시적인 고수요"를 뜻하는 503 UNAVAILABLE을 꽤 자주
+// 반환한다(구글 쪽에서도 "보통 일시적이니 잠시 후 재시도하라"고 안내하는 에러) — 이는
+// 이 앱의 AI 사용량 한도와는 무관한 별개의 문제라서, 사용자에게 에러를 보여주기 전에
+// 짧은 대기 후 몇 차례 자동 재시도로 대부분의 일시적 실패를 흡수한다.
+const OVERLOAD_MAX_ATTEMPTS = 3;
+
+async function fetchGeminiWithRetry(requestBody: Record<string, unknown>, apiKey: string): Promise<Response> {
+  for (let attempt = 1; attempt <= OVERLOAD_MAX_ATTEMPTS; attempt++) {
+    let response: Response;
+    try {
+      response = await fetch(GEMINI_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+    } catch (err) {
+      throw new GeminiError(`Gemini API 호출에 실패했습니다: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    if (response.status !== 503 || attempt === OVERLOAD_MAX_ATTEMPTS) {
+      return response;
+    }
+    await sleep(1500 * attempt);
+  }
+  // 위 루프가 항상 return하므로 도달하지 않음 — 타입 체커를 위한 안전장치
+  throw new GeminiError("Gemini API 호출에 실패했습니다.");
+}
 
 // Gemini responseSchema는 OpenAPI 3.0 Schema의 부분집합을 사용하며 type 값은 대문자여야 한다.
 const BUDGET_CATEGORY_ENUM = ["식사", "관광", "이동", "숙박", "쇼핑", "기타"] as const;
@@ -180,25 +215,14 @@ function buildStructurePrompt(freeformItinerary: string, input: PlanTripInput): 
 }
 
 async function callGeminiText(prompt: string, apiKey: string): Promise<string> {
-  let response: Response;
-  try {
-    response = await fetch(GEMINI_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      }),
-    });
-  } catch (err) {
-    throw new GeminiError(`Gemini API 호출에 실패했습니다: ${err instanceof Error ? err.message : String(err)}`);
-  }
+  const response = await fetchGeminiWithRetry(
+    { contents: [{ role: "user", parts: [{ text: prompt }] }] },
+    apiKey,
+  );
 
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
-    const code = response.status === 429 ? "rate_limited" : undefined;
+    const code = response.status === 429 ? "rate_limited" : response.status === 503 ? "overloaded" : undefined;
     throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`, code);
   }
 
@@ -213,29 +237,20 @@ async function callGeminiText(prompt: string, apiKey: string): Promise<string> {
 }
 
 async function callGeminiStructured(prompt: string, apiKey: string): Promise<Itinerary> {
-  let response: Response;
-  try {
-    response = await fetch(GEMINI_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
+  const response = await fetchGeminiWithRetry(
+    {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: ITINERARY_RESPONSE_SCHEMA,
       },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: ITINERARY_RESPONSE_SCHEMA,
-        },
-      }),
-    });
-  } catch (err) {
-    throw new GeminiError(`Gemini API 호출에 실패했습니다: ${err instanceof Error ? err.message : String(err)}`);
-  }
+    },
+    apiKey,
+  );
 
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
-    const code = response.status === 429 ? "rate_limited" : undefined;
+    const code = response.status === 429 ? "rate_limited" : response.status === 503 ? "overloaded" : undefined;
     throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`, code);
   }
 
