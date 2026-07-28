@@ -45,7 +45,14 @@ function loadStats(): UsageStats {
 }
 
 function saveStats(stats: UsageStats): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  // localStorage 용량이 꽉 찬 상태에서 이 저장이 실패해 QuotaExceededError가 위로 전파되면
+  // 지도 표시/지오코딩처럼 이미 성공한 동작까지 에러로 이어질 수 있다 — 사용량 집계는
+  // 부가 기능이므로 실패해도 조용히 무시한다.
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  } catch {
+    /* ignore — 사용량 집계 실패가 실제 기능을 막아서는 안 됨 */
+  }
 }
 
 function pruneOldEntries(record: Record<string, number>): Record<string, number> {

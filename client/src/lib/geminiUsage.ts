@@ -45,7 +45,14 @@ function loadStats(): UsageStats {
 }
 
 function saveStats(stats: UsageStats): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  // localStorage 용량이 꽉 찬 상태(대용량 base64 사진 등으로 인해)에서 이 저장이 실패하면
+  // QuotaExceededError가 그대로 위로 전파되어, 실제로는 성공한 AI 일정 생성까지 "실패"로
+  // 보이게 만드는 문제가 있었다 — 사용량 집계는 부가 기능이므로 실패해도 조용히 무시한다.
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  } catch {
+    /* ignore — 사용량 집계 실패가 AI 일정 생성 자체를 막아서는 안 됨 */
+  }
 }
 
 function pruneOldEntries(record: Record<string, number>): Record<string, number> {
