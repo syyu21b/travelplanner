@@ -49,9 +49,9 @@ export interface Itinerary {
 
 export class GeminiError extends Error {
   /** 클라이언트가 에러 문구를 파싱하지 않고도 상황별로 분기할 수 있도록 하는 안정적인 식별자 */
-  code?: "rate_limited" | "overloaded";
+  code?: "rate_limited" | "overloaded" | "unsupported_location";
 
-  constructor(message: string, code?: "rate_limited" | "overloaded") {
+  constructor(message: string, code?: "rate_limited" | "overloaded" | "unsupported_location") {
     super(message);
     this.code = code;
   }
@@ -64,11 +64,20 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Cloudflare Worker는 요청을 받은 곳과 가까운 엣지 지점에서 실행되는데, 그 지점이 Google이
+// Gemini API(무료 키 방식) 사용을 막아둔 지역으로 아웃바운드 라우팅되면 매번 이 문구로 거부한다.
+// 지리적 차단이라 완벽히 해결되진 않지만, 같은 요청도 재시도 시 Cloudflare가 다른 상위 경로/IP로
+// 내보내는 경우가 있어 재시도가 종종 통과되는 것이 관찰됨 — 그래서 503(일시 과부하)과 동일하게
+// 재시도 대상에 포함시킨다.
+function isUnsupportedLocationError(bodyText: string): boolean {
+  return bodyText.includes("User location is not supported");
+}
+
 // 무료 티어 모델은 트래픽이 몰리면 "일시적인 고수요"를 뜻하는 503 UNAVAILABLE을 꽤 자주
 // 반환한다(구글 쪽에서도 "보통 일시적이니 잠시 후 재시도하라"고 안내하는 에러) — 이는
 // 이 앱의 AI 사용량 한도와는 무관한 별개의 문제라서, 사용자에게 에러를 보여주기 전에
 // 짧은 대기 후 몇 차례 자동 재시도로 대부분의 일시적 실패를 흡수한다.
-const OVERLOAD_MAX_ATTEMPTS = 3;
+const OVERLOAD_MAX_ATTEMPTS = 4;
 
 async function fetchGeminiWithRetry(requestBody: Record<string, unknown>, apiKey: string): Promise<Response> {
   for (let attempt = 1; attempt <= OVERLOAD_MAX_ATTEMPTS; attempt++) {
@@ -86,10 +95,24 @@ async function fetchGeminiWithRetry(requestBody: Record<string, unknown>, apiKey
       throw new GeminiError(`Gemini API 호출에 실패했습니다: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    if (response.status !== 503 || attempt === OVERLOAD_MAX_ATTEMPTS) {
+    if (attempt === OVERLOAD_MAX_ATTEMPTS) {
       return response;
     }
-    await sleep(1500 * attempt);
+
+    if (response.status === 503) {
+      await sleep(1500 * attempt);
+      continue;
+    }
+
+    if (response.status === 400) {
+      const bodyText = await response.clone().text().catch(() => "");
+      if (isUnsupportedLocationError(bodyText)) {
+        await sleep(800 * attempt);
+        continue;
+      }
+    }
+
+    return response;
   }
   // 위 루프가 항상 return하므로 도달하지 않음 — 타입 체커를 위한 안전장치
   throw new GeminiError("Gemini API 호출에 실패했습니다.");
@@ -224,6 +247,18 @@ function buildStructurePrompt(freeformItinerary: string, input: PlanTripInput): 
   ].join("\n");
 }
 
+// HTTP 상태(및 지역 차단처럼 상태만으로 구분 안 되는 경우 응답 본문)로부터 클라이언트에 전달할
+// 안정적인 에러 코드를 결정 — 재시도를 다 소진한 뒤에도 여전히 실패한 경우에만 호출됨.
+async function toGeminiError(response: Response): Promise<GeminiError> {
+  const errText = await response.text().catch(() => "");
+  const code =
+    response.status === 429 ? "rate_limited" :
+    response.status === 503 ? "overloaded" :
+    response.status === 400 && isUnsupportedLocationError(errText) ? "unsupported_location" :
+    undefined;
+  return new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`, code);
+}
+
 async function callGeminiText(prompt: string, apiKey: string): Promise<string> {
   const response = await fetchGeminiWithRetry(
     { contents: [{ role: "user", parts: [{ text: prompt }] }] },
@@ -231,9 +266,7 @@ async function callGeminiText(prompt: string, apiKey: string): Promise<string> {
   );
 
   if (!response.ok) {
-    const errText = await response.text().catch(() => "");
-    const code = response.status === 429 ? "rate_limited" : response.status === 503 ? "overloaded" : undefined;
-    throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`, code);
+    throw await toGeminiError(response);
   }
 
   const data = (await response.json()) as {
@@ -259,9 +292,7 @@ async function callGeminiStructured(prompt: string, apiKey: string): Promise<Iti
   );
 
   if (!response.ok) {
-    const errText = await response.text().catch(() => "");
-    const code = response.status === 429 ? "rate_limited" : response.status === 503 ? "overloaded" : undefined;
-    throw new GeminiError(`Gemini API 오류 (${response.status}): ${errText.slice(0, 500)}`, code);
+    throw await toGeminiError(response);
   }
 
   const data = (await response.json()) as {

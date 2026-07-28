@@ -757,6 +757,8 @@ export default function Home() {
         toast.error(t('home.toast.aiPlanRateLimited'));
       } else if (err instanceof AiPlanRequestError && err.code === 'overloaded') {
         toast.error(t('home.toast.aiPlanOverloaded'));
+      } else if (err instanceof AiPlanRequestError && err.code === 'unsupported_location') {
+        toast.error(t('home.toast.aiPlanUnsupportedLocation'));
       } else {
         toast.error(t('home.toast.aiPlanError'));
       }

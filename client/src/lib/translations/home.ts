@@ -414,6 +414,7 @@ export const home = {
       aiPlanEmpty: "AI가 유효한 일정을 만들지 못했습니다. 입력 내용을 조금 바꿔 다시 시도해주세요.",
       aiPlanRateLimited: "AI 일정 생성 사용량 한도에 도달했습니다 (화면에 표시된 사용 횟수와 무관하게, 실제 API 쪽의 하루 한도가 이미 초과된 상태일 수 있어요). 잠시 후(또는 내일) 다시 시도해주세요.",
       aiPlanOverloaded: "AI 서버가 일시적으로 혼잡합니다 (사용량 한도와는 무관합니다). 잠시 후 다시 시도해주세요.",
+      aiPlanUnsupportedLocation: "현재 접속 환경에서는 AI 서버 연결이 지역적으로 제한되어 있어요. 잠시 후 다시 시도하거나, 다른 네트워크(Wi-Fi/데이터)로 접속해 다시 시도해주세요.",
     },
   },
   en: {
@@ -831,6 +832,7 @@ export const home = {
       aiPlanEmpty: "AI couldn't generate a valid itinerary. Try adjusting your input and try again.",
       aiPlanRateLimited: "AI itinerary generation has hit its usage limit (the real API-side daily limit may already be exceeded, regardless of the count shown on screen). Please try again shortly (or tomorrow).",
       aiPlanOverloaded: "The AI server is temporarily busy (this is unrelated to your usage limit). Please try again shortly.",
+      aiPlanUnsupportedLocation: "AI service access is regionally restricted from your current connection. Please try again shortly, or switch to a different network (Wi-Fi/mobile data) and retry.",
     },
   },
 } as const;
