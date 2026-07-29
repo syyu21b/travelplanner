@@ -7,9 +7,9 @@
   "observability": {
     "enabled": true
   },
-  // Vercel에 배포한 api/plan-trip.ts 함수의 URL로 교체하세요 (지역 차단 우회용 프록시).
+  // Vercel에 배포한 api/plan-trip.ts 함수 URL (지역 차단 우회용 프록시)
   "vars": {
-    "PLAN_TRIP_PROXY_URL": "https://your-project.vercel.app/api/plan-trip"
+    "PLAN_TRIP_PROXY_URL": "https://travelplanner-syyu21b.vercel.app/api/plan-trip"
   },
   "assets": {
     "directory": "./dist/public",
