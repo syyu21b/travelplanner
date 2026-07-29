@@ -1,4 +1,4 @@
-import { GeminiError, planTrip, planTripInputSchema } from "../server/gemini";
+import { GeminiError, planTrip, planTripInputSchema } from "../server/gemini.js";
 
 // Vercel Node.js Serverless Function — 고정된 단일 리전에서 실행되므로, 여러 엣지 지점을
 // 오가며 가끔 지역 차단에 걸리는 Cloudflare Worker 대신 이 함수가 Gemini API를 대신 호출한다.
