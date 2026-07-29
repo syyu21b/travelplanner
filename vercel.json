@@ -1,6 +1,4 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/**/*.ts", "use": "@vercel/node" }
-  ]
+  "buildCommand": "vite build",
+  "outputDirectory": "dist/public"
 }
