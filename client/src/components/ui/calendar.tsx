@@ -82,7 +82,7 @@ function Calendar({
             : "rounded-md pl-2 pr-1 flex items-center gap-1 text-sm h-8 [&>svg]:text-muted-foreground [&>svg]:size-3.5",
           defaultClassNames.caption_label
         ),
-        table: "w-full border-collapse",
+        table: "w-full",
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
           "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none",
@@ -154,13 +154,38 @@ function Calendar({
           );
         },
         DayButton: CalendarDayButton,
-        WeekNumber: ({ children, ...props }) => {
+        // The default MonthGrid/Weekdays/Weeks/Week/Day components render real
+        // <table>/<tr>/<td> elements with `display: flex` forced onto the rows.
+        // Some mobile browsers mis-measure a flexed <tr>'s contribution to the
+        // <table>'s auto height, so the last week can render outside the
+        // calendar's bordered box. Rendering plain divs (with the same ARIA
+        // grid roles DayPicker already assigns) sidesteps that table layout
+        // quirk entirely.
+        MonthGrid: ({ className, ...props }) => (
+          <div className={cn(className)} {...props} />
+        ),
+        Weekdays: ({ className, ...props }) => (
+          <div aria-hidden role="row" className={cn(className)} {...props} />
+        ),
+        Weekday: ({ className, ...props }) => (
+          <div role="columnheader" className={cn(className)} {...props} />
+        ),
+        Weeks: ({ className, ...props }) => (
+          <div role="rowgroup" className={cn(className)} {...props} />
+        ),
+        Week: ({ className, week: _week, ...props }) => (
+          <div role="row" className={cn(className)} {...props} />
+        ),
+        Day: ({ className, day: _day, modifiers: _modifiers, ...props }) => (
+          <div className={cn(className)} {...props} />
+        ),
+        WeekNumber: ({ children, className, week: _week, ...props }) => {
           return (
-            <td {...props}>
+            <div className={cn(className)} {...props}>
               <div className="flex size-(--cell-size) items-center justify-center text-center">
                 {children}
               </div>
-            </td>
+            </div>
           );
         },
         ...components,
