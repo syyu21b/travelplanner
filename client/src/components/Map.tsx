@@ -103,13 +103,14 @@ export function geocodeAddress(query: string): Promise<GeocodeResult[]> {
         }
 
         // NCP 콘솔에서 Geocoding이 비활성화되어 있거나 도메인이 등록되지 않은 경우,
-        // SDK 콜백이 아예 호출되지 않을 수 있어 타임아웃으로 방어
+        // SDK 콜백이 아예 호출되지 않을 수 있어 타임아웃으로 방어. 모바일 셀룰러 네트워크는
+        // Wi-Fi보다 왕복 지연이 커서 8초로는 정상 요청도 종종 타임아웃되므로 여유를 둔다.
         let settled = false;
         const timeoutId = window.setTimeout(() => {
           if (settled) return;
           settled = true;
           reject(new Error("주소 검색 응답이 없습니다. NCP 콘솔에서 Geocoding이 활성화되어 있는지, 이 도메인이 등록되어 있는지 확인해주세요."));
-        }, 8000);
+        }, 15000);
 
         recordNaverMapsUsage("geocoding");
         naverNs.maps.Service.geocode({ query }, (status, response) => {

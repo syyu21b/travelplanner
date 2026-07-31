@@ -53,14 +53,25 @@ export interface OsmGeocodeResult {
 // 중심점(때로는 인구가 없는 외곽 지역)이 되어, 그 지점 기준 주변 추천이 부정확하거나 텅 비게 됨
 export const BROAD_ADMIN_PLACE_TYPES = new Set(["country", "state", "region"]);
 
+const NOMINATIM_TIMEOUT_MS = 10000;
+
 /** 주소/장소명으로 검색해 좌표를 찾음 (Nominatim, 브라우저에서 직접 호출 가능 — API 키 불필요) */
 export async function geocodeAddressOSM(query: string): Promise<OsmGeocodeResult[]> {
   const url = `${NOMINATIM_BASE}/search?format=jsonv2&addressdetails=0&limit=5&accept-language=ko,en&q=${encodeURIComponent(query)}`;
   let res: Response;
+  // 원래는 타임아웃 없이 fetch만 했는데, 모바일 셀룰러 네트워크에서 요청이 응답 없이 멈추면
+  // (성공도 실패도 아닌 상태) 호출부의 순차 지오코딩 루프 전체가 무한정 멈추게 되어 방어 추가
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), NOMINATIM_TIMEOUT_MS);
   try {
-    res = await fetch(url);
-  } catch {
+    res = await fetch(url, { signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("주소 검색 요청 시간이 초과되었습니다. 네트워크 연결을 확인해주세요.");
+    }
     throw new Error("주소 검색 요청에 실패했습니다. 네트워크 연결을 확인해주세요.");
+  } finally {
+    window.clearTimeout(timeoutId);
   }
   if (!res.ok) {
     throw new Error(`주소 검색 요청이 실패했습니다 (status: ${res.status}). 잠시 후 다시 시도해주세요.`);

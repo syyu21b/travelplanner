@@ -337,6 +337,38 @@ function buildSchedulesFromAiItinerary(itinerary: AiItinerary, startDate: string
 // geocoder, 해외: Nominatim/OSM). 좌표가 있어야 지도 탭에 마커가 찍히고 길찾기가 가능해진다.
 // 개별 항목의 검색이 실패해도(주소를 못 찾음 등) 전체 흐름은 절대 중단되지 않고 그 항목만
 // 좌표 없이 남는다 — 일정 생성 자체가 지도 문제로 실패하는 일은 없어야 하기 때문.
+// 모바일 셀룰러 네트워크는 Wi-Fi보다 순간적인 지연/끊김이 잦아, 첫 시도가 실패해도 한 번 더
+// 시도하면 성공하는 경우가 많다. AI 일정의 좌표가 하나라도 더 채워져야 지도 탭에 표시되므로,
+// 개별 항목 검색이 일시적인 네트워크 문제로 실패했을 때 바로 포기하지 않고 재시도한다.
+async function geocodeOnce(
+  query: string,
+  region: 'domestic' | 'overseas',
+  geocodeAddressOSM: typeof import('@/components/OverseasMap').geocodeAddressOSM | null,
+): Promise<{ lat: number; lng: number } | null> {
+  const attempts = 2;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      if (region === 'domestic') {
+        const found = await geocodeAddress(query);
+        if (found[0]) return { lat: found[0].lat, lng: found[0].lng };
+      } else if (geocodeAddressOSM) {
+        const found = await geocodeAddressOSM(query);
+        if (found[0]) return { lat: found[0].lat, lng: found[0].lng };
+      }
+      return null;
+    } catch {
+      if (attempt === attempts) return null; // 검색 실패는 무시 — 해당 항목만 지도에 표시되지 않을 뿐 전체 흐름은 계속됨
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  return null;
+}
+
+// 국내 동시 처리 개수 제한 — 네이버 지오코더는 Nominatim과 달리 초당 요청 수 제약이 문서화되어
+// 있지 않으므로 병렬로 처리해 전체 소요 시간을 줄인다(모바일에서 항목이 많을 때 전체 흐름이
+// 길어질수록 탭 전환/화면 잠금 등으로 중간에 끊길 위험이 커지기 때문).
+const DOMESTIC_GEOCODE_CONCURRENCY = 4;
+
 async function geocodeAiScheduleItems(
   schedules: ScheduleItem[],
   region: 'domestic' | 'overseas',
@@ -347,39 +379,35 @@ async function geocodeAiScheduleItems(
     ? (await import('@/components/OverseasMap')).geocodeAddressOSM
     : null;
 
-  const results: ScheduleItem[] = [];
-  for (const item of schedules) {
-    const query = item.location?.trim();
-    if (!query) {
-      results.push(item);
-      continue;
-    }
+  const uniqueQueries = Array.from(new Set(
+    schedules.map(item => item.location?.trim()).filter((q): q is string => !!q)
+  ));
 
-    if (!cache.has(query)) {
-      let coords: { lat: number; lng: number } | null = null;
-      try {
-        if (region === 'domestic') {
-          const found = await geocodeAddress(query);
-          if (found[0]) coords = { lat: found[0].lat, lng: found[0].lng };
-        } else if (geocodeAddressOSM) {
-          const found = await geocodeAddressOSM(query);
-          if (found[0]) coords = { lat: found[0].lat, lng: found[0].lng };
-        }
-      } catch {
-        coords = null; // 검색 실패는 무시 — 해당 항목만 지도에 표시되지 않을 뿐 전체 흐름은 계속됨
+  if (region === 'domestic') {
+    // 동시에 최대 DOMESTIC_GEOCODE_CONCURRENCY개씩만 진행하는 워커 풀
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < uniqueQueries.length) {
+        const query = uniqueQueries[cursor++];
+        cache.set(query, await geocodeOnce(query, region, geocodeAddressOSM));
       }
-      cache.set(query, coords);
-      // Nominatim 사용 정책(초당 1건 이하)을 지키기 위해, 실제로 새 요청을 보낸 경우에만 대기
-      if (region === 'overseas') {
-        await new Promise(resolve => setTimeout(resolve, 1100));
-      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(DOMESTIC_GEOCODE_CONCURRENCY, uniqueQueries.length) }, worker)
+    );
+  } else {
+    // Nominatim 사용 정책(초당 1건 이하)을 지키기 위해 순차 처리하고, 요청 사이마다 대기
+    for (const query of uniqueQueries) {
+      cache.set(query, await geocodeOnce(query, region, geocodeAddressOSM));
+      await new Promise(resolve => setTimeout(resolve, 1100));
     }
-
-    const coords = cache.get(query) ?? null;
-    results.push(coords ? { ...item, lat: coords.lat, lng: coords.lng } : item);
   }
 
-  return results;
+  return schedules.map(item => {
+    const query = item.location?.trim();
+    const coords = query ? cache.get(query) ?? null : null;
+    return coords ? { ...item, lat: coords.lat, lng: coords.lng } : item;
+  });
 }
 
 // AI가 반환한(신뢰할 수 없는) budgets JSON을 기존 TravelPlan.budgets와 동일한 형태로 변환.
