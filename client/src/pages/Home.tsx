@@ -2465,8 +2465,8 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
                   <TabsList
-                    className="flex sm:grid w-full sm:grid-cols-9 gap-1 overflow-x-auto sm:overflow-visible bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
-                    style={{ scrollbarWidth: 'none' }}
+                    className="flex sm:grid w-full sm:grid-cols-9 gap-1 overflow-x-auto sm:overflow-visible touch-pan-x overscroll-x-contain bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
+                    style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
                   >
                     <TabsTrigger value="schedule" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
                     <TabsTrigger value="accommodation" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.accommodation')}</TabsTrigger>
