@@ -529,6 +529,9 @@ export default function Home() {
   const [newPlanStartDate, setNewPlanStartDate] = useState(planDraft?.startDate || '');
   const [newPlanEndDate, setNewPlanEndDate] = useState(planDraft?.endDate || '');
   const [newPlanRegion, setNewPlanRegion] = useState<'domestic' | 'overseas'>(planDraft?.region === 'overseas' ? 'overseas' : 'domestic');
+  const [newPlanTravelers, setNewPlanTravelers] = useState<number>(
+    Number.isInteger(planDraft?.travelers) && planDraft?.travelers >= 1 && planDraft?.travelers <= 10 ? planDraft.travelers : 1
+  );
 
   // AI로 계획세우기
   const [showAiPlanDialog, setShowAiPlanDialog] = useState(false);
@@ -556,6 +559,7 @@ export default function Home() {
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
   const [editingTotalBudget, setEditingTotalBudget] = useState(false);
   const [totalBudgetInput, setTotalBudgetInput] = useState('');
+  const [totalBudgetTravelersInput, setTotalBudgetTravelersInput] = useState<number>(1);
   const [calcDisplay, setCalcDisplay] = useState('0');
   const [calcPrevValue, setCalcPrevValue] = useState<number>(0);
   const [calcOperation, setCalcOperation] = useState<string | null>(null);
@@ -651,11 +655,12 @@ export default function Home() {
       shoppingList: [],
       accommodations: [],
       flights: [],
+      travelers: newPlanTravelers,
     };
     const updated = [...travelPlans, newPlan];
     updateTravelPlans(updated);
     setCurrentPlan(newPlan);
-    setNewPlanTitle(''); setNewPlanStartDate(''); setNewPlanEndDate(''); setNewPlanRegion('domestic');
+    setNewPlanTitle(''); setNewPlanStartDate(''); setNewPlanEndDate(''); setNewPlanRegion('domestic'); setNewPlanTravelers(1);
     setShowNewPlanDialog(false);
     toast.success(t('home.toast.planCreated'));
   };
@@ -828,12 +833,13 @@ export default function Home() {
         startDate: newPlanStartDate,
         endDate: newPlanEndDate,
         region: newPlanRegion,
+        travelers: newPlanTravelers,
       };
       localStorage.setItem('planFormDraft', JSON.stringify(draft));
     } else {
       localStorage.removeItem('planFormDraft');
     }
-  }, [newPlanTitle, newPlanStartDate, newPlanEndDate, newPlanRegion, showNewPlanDialog]);
+  }, [newPlanTitle, newPlanStartDate, newPlanEndDate, newPlanRegion, newPlanTravelers, showNewPlanDialog]);
 
   // 제목 수정
   const handleStartEditTitle = () => {
@@ -1022,17 +1028,27 @@ export default function Home() {
   const handleStartEditTotalBudget = () => {
     if (!currentPlan) return;
     setTotalBudgetInput(currentPlan.totalBudgetAmount ? String(currentPlan.totalBudgetAmount) : '');
+    setTotalBudgetTravelersInput(
+      Number.isInteger(currentPlan.travelers) && currentPlan.travelers! >= 1 && currentPlan.travelers! <= 10
+        ? currentPlan.travelers!
+        : 1
+    );
     setEditingTotalBudget(true);
   };
 
   const handleSaveTotalBudget = () => {
     if (!currentPlan) return;
-    const parsed = parseInt(totalBudgetInput);
-    if (!totalBudgetInput || isNaN(parsed) || parsed < 0) {
-      toast.error(t('home.toast.enterAmount'));
-      return;
+    // 금액은 이미 설정되어 있고 인원수만 바꾸고 싶은 경우도 있어 입력이 비어 있으면 기존 금액을 유지
+    let amount = currentPlan.totalBudgetAmount;
+    if (totalBudgetInput.trim()) {
+      const parsed = parseInt(totalBudgetInput);
+      if (isNaN(parsed) || parsed < 0) {
+        toast.error(t('home.toast.enterAmount'));
+        return;
+      }
+      amount = parsed;
     }
-    updateCurrentPlan({ ...currentPlan, totalBudgetAmount: parsed });
+    updateCurrentPlan({ ...currentPlan, totalBudgetAmount: amount, travelers: totalBudgetTravelersInput });
     setEditingTotalBudget(false);
     toast.success(t('home.budget.totalBudgetUpdated'));
   };
@@ -1843,6 +1859,30 @@ export default function Home() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold">{t('home.newPlanDialog.endDateLabel')}</label>
                 <Input type="date" value={newPlanEndDate} onChange={e => setNewPlanEndDate(e.target.value)} className="h-11" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">{t('home.aiPlanDialog.travelersLabel')}</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setNewPlanTravelers(v => Math.max(1, v - 1))}
+                  disabled={newPlanTravelers <= 1}
+                  className="w-11 h-11 rounded-xl border border-border flex items-center justify-center text-lg font-bold text-foreground disabled:opacity-40 hover:bg-secondary transition-colors flex-shrink-0"
+                >
+                  −
+                </button>
+                <div className="flex-1 text-center font-bold text-foreground">
+                  {t('home.aiPlanDialog.travelersCount', { n: newPlanTravelers })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNewPlanTravelers(v => Math.min(10, v + 1))}
+                  disabled={newPlanTravelers >= 10}
+                  className="w-11 h-11 rounded-xl border border-border flex items-center justify-center text-lg font-bold text-foreground disabled:opacity-40 hover:bg-secondary transition-colors flex-shrink-0"
+                >
+                  +
+                </button>
               </div>
             </div>
             <Button onClick={handleCreatePlan} className="w-full bg-primary text-white h-11 mt-2">{t('home.newPlanDialog.createButton')}</Button>
@@ -2835,17 +2875,43 @@ export default function Home() {
                         </div>
                       </div>
                       {editingTotalBudget ? (
-                        <div className="flex items-center gap-2 mb-4">
-                          <Input
-                            type="number"
-                            value={totalBudgetInput}
-                            onChange={e => setTotalBudgetInput(e.target.value)}
-                            placeholder={t('home.budget.totalBudgetPlaceholder')}
-                            className="h-11 bg-white/90 text-foreground border-0"
-                            autoFocus
-                          />
-                          <Button onClick={handleSaveTotalBudget} className="h-11 w-11 p-0 bg-white text-primary hover:bg-white/90 flex-shrink-0"><Check className="w-4 h-4" /></Button>
-                          <Button onClick={handleCancelEditTotalBudget} variant="ghost" className="h-11 w-11 p-0 text-white hover:bg-white/20 hover:text-white flex-shrink-0"><X className="w-4 h-4" /></Button>
+                        <div className="mb-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              value={totalBudgetInput}
+                              onChange={e => setTotalBudgetInput(e.target.value)}
+                              placeholder={t('home.budget.totalBudgetPlaceholder')}
+                              className="h-11 bg-white/90 text-foreground border-0"
+                              autoFocus
+                            />
+                            <Button onClick={handleSaveTotalBudget} className="h-11 w-11 p-0 bg-white text-primary hover:bg-white/90 flex-shrink-0"><Check className="w-4 h-4" /></Button>
+                            <Button onClick={handleCancelEditTotalBudget} variant="ghost" className="h-11 w-11 p-0 text-white hover:bg-white/20 hover:text-white flex-shrink-0"><X className="w-4 h-4" /></Button>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 bg-white/10 rounded-xl px-3 py-2">
+                            <span className="text-xs sm:text-sm font-semibold text-white/90">{t('home.aiPlanDialog.travelersLabel')}</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setTotalBudgetTravelersInput(v => Math.max(1, v - 1))}
+                                disabled={totalBudgetTravelersInput <= 1}
+                                className="w-8 h-8 rounded-lg border border-white/30 flex items-center justify-center text-sm font-bold text-white disabled:opacity-40 hover:bg-white/20 transition-colors flex-shrink-0"
+                              >
+                                −
+                              </button>
+                              <span className="min-w-[3.5rem] text-center font-bold text-white text-sm">
+                                {t('home.aiPlanDialog.travelersCount', { n: totalBudgetTravelersInput })}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setTotalBudgetTravelersInput(v => Math.min(10, v + 1))}
+                                disabled={totalBudgetTravelersInput >= 10}
+                                className="w-8 h-8 rounded-lg border border-white/30 flex items-center justify-center text-sm font-bold text-white disabled:opacity-40 hover:bg-white/20 transition-colors flex-shrink-0"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
