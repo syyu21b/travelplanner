@@ -65,6 +65,8 @@ export const home = {
       filterEmpty: "'{{filter}}' 여행이 없습니다.",
       scheduleCount: "일정 {{n}}개",
       summaryButton: "여행 요약",
+      duplicateButton: "복제",
+      copySuffix: " (사본)",
     },
     newPlanDialog: {
       title: "새로운 여행 계획",
@@ -399,6 +401,7 @@ export const home = {
       pdfDownloadFailed: "PDF 다운로드를 실패했습니다",
       pdfPreparing: "PDF 출력을 준비합니다!",
       planDeleted: "여행 계획이 삭제되었습니다!",
+      planDuplicated: "여행 계획이 복제되었습니다! 날짜를 수정해주세요.",
       shareLinkCopied: "공유 링크가 클립보드에 복사되었습니다!",
       requiredFields: "필수 정보를 입력해주세요",
       enterAmount: "금액을 입력해주세요",
@@ -483,6 +486,8 @@ export const home = {
       filterEmpty: "No '{{filter}}' trips.",
       scheduleCount: "{{n}} schedules",
       summaryButton: "Trip Summary",
+      duplicateButton: "Duplicate",
+      copySuffix: " (Copy)",
     },
     newPlanDialog: {
       title: "New Trip Plan",
@@ -817,6 +822,7 @@ export const home = {
       pdfDownloadFailed: "PDF download failed",
       pdfPreparing: "Preparing your PDF...",
       planDeleted: "Trip plan deleted!",
+      planDuplicated: "Trip plan duplicated! Don't forget to update the dates.",
       shareLinkCopied: "Share link copied to clipboard!",
       requiredFields: "Please fill in the required fields",
       enterAmount: "Please enter an amount",

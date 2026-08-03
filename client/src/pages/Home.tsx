@@ -13,7 +13,7 @@ import {
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
-  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2, Lock, Sparkles
+  ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2, Lock, Sparkles, Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -1388,6 +1388,31 @@ export default function Home() {
     toast.success(t('home.toast.planDeleted'));
   };
 
+  // 계획을 복제할 때 하위 항목(일정/예산/준비물/숙소/항공편)의 id도 모두 새로 발급 —
+  // 같은 밀리초 안에 여러 개를 만들 수 있어 Date.now()만으로는 충돌할 수 있으므로 랜덤 suffix를 붙임
+  const handleDuplicatePlan = (planId: string) => {
+    const source = travelPlans.find(p => p.id === planId);
+    if (!source || !user) return;
+
+    const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const duplicated: TravelPlan = {
+      ...source,
+      id: newId(),
+      userId: user.id,
+      title: `${source.title}${t('home.planList.copySuffix')}`,
+      schedules: source.schedules.map(s => ({ ...s, id: newId(), completed: false })),
+      budgets: source.budgets.map(b => ({ ...b, id: newId() })),
+      shoppingList: source.shoppingList.map(s => ({ ...s, id: newId(), checked: false })),
+      accommodations: source.accommodations?.map(a => ({ ...a, id: newId() })),
+      flights: source.flights?.map(f => ({ ...f, id: newId() })),
+      preparationChecks: {},
+    };
+
+    updateTravelPlans([...travelPlans, duplicated]);
+    toast.success(t('home.toast.planDuplicated'));
+  };
+
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
       accommodation: 'bg-blue-100 text-blue-800',
@@ -2323,12 +2348,21 @@ export default function Home() {
                               </Button>
                             </div>
                           </div>
-                          <button
-                            onClick={e => { e.stopPropagation(); handleDeletePlan(plan.id); }}
-                            className="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0 self-start mt-1"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex flex-col items-center gap-2 flex-shrink-0 self-start mt-1">
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDuplicatePlan(plan.id); }}
+                              title={t('home.planList.duplicateButton')}
+                              className="text-slate-200 hover:text-primary transition-colors"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDeletePlan(plan.id); }}
+                              className="text-slate-200 hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </Card>
                       );
                     })}
