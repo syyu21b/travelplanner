@@ -74,6 +74,12 @@ export const home = {
       warning: "삭제 후에는 복구할 수 없습니다.",
       confirmButton: "삭제",
     },
+    duplicatePlanDialog: {
+      title: "여행 계획 복제",
+      message: "이 여행 계획을 복제하시겠습니까?",
+      note: "복제된 계획의 날짜는 직접 수정해주세요.",
+      confirmButton: "복제",
+    },
     newPlanDialog: {
       title: "새로운 여행 계획",
       regionLabel: "국내 / 해외",
@@ -500,6 +506,12 @@ export const home = {
       message: "Are you sure you want to delete this trip plan?",
       warning: "This cannot be undone once deleted.",
       confirmButton: "Delete",
+    },
+    duplicatePlanDialog: {
+      title: "Duplicate Trip Plan",
+      message: "Duplicate this trip plan?",
+      note: "Remember to update the dates on the duplicated plan.",
+      confirmButton: "Duplicate",
     },
     newPlanDialog: {
       title: "New Trip Plan",

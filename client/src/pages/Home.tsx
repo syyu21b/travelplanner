@@ -577,8 +577,9 @@ export default function Home() {
   // 계획 상세 달력 상태
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
-  // 여행 계획 삭제 확인 다이얼로그 — 삭제 대상 id를 들고 있으면 다이얼로그가 열림
+  // 여행 계획 삭제/복제 확인 다이얼로그 — 대상 id를 들고 있으면 다이얼로그가 열림
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
+  const [duplicatePlanId, setDuplicatePlanId] = useState<string | null>(null);
 
   // 여행 요약 - 미리보기 다이얼로그 상태
   const [summaryPreviewPlan, setSummaryPreviewPlan] = useState<TravelPlan | null>(null);
@@ -2353,7 +2354,7 @@ export default function Home() {
                           </div>
                           <div className="flex flex-col items-center gap-2 flex-shrink-0 self-start mt-1">
                             <button
-                              onClick={e => { e.stopPropagation(); handleDuplicatePlan(plan.id); }}
+                              onClick={e => { e.stopPropagation(); setDuplicatePlanId(plan.id); }}
                               title={t('home.planList.duplicateButton')}
                               className="text-slate-200 hover:text-primary transition-colors"
                             >
@@ -3340,7 +3341,7 @@ export default function Home() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              <p className="font-semibold">{t('home.deletePlanDialog.message')}</p>
+              <p className="font-semibold text-black">{t('home.deletePlanDialog.message')}</p>
               <p className="text-xs mt-1 text-red-500">{t('home.deletePlanDialog.warning')}</p>
             </div>
             <div className="flex gap-2">
@@ -3352,6 +3353,34 @@ export default function Home() {
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white"
               >
                 <Trash2 className="w-4 h-4 mr-1" /> {t('home.deletePlanDialog.confirmButton')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 계획 복제 확인 다이얼로그 — 데스크톱/모바일 모두 동일하게 실수 복제 방지 */}
+      <Dialog open={!!duplicatePlanId} onOpenChange={(o) => { if (!o) setDuplicatePlanId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Copy className="w-5 h-5 text-primary" /> {t('home.duplicatePlanDialog.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-secondary border border-border rounded-lg p-3 text-sm">
+              <p className="font-semibold text-black">{t('home.duplicatePlanDialog.message')}</p>
+              <p className="text-xs mt-1 text-muted-foreground">{t('home.duplicatePlanDialog.note')}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setDuplicatePlanId(null)} className="flex-1">
+                {t('home.common.cancel')}
+              </Button>
+              <Button
+                onClick={() => { if (duplicatePlanId) handleDuplicatePlan(duplicatePlanId); setDuplicatePlanId(null); }}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Copy className="w-4 h-4 mr-1" /> {t('home.duplicatePlanDialog.confirmButton')}
               </Button>
             </div>
           </div>
