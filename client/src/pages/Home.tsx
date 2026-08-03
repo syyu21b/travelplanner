@@ -577,6 +577,9 @@ export default function Home() {
   // 계획 상세 달력 상태
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
+  // 여행 계획 삭제 확인 다이얼로그 — 삭제 대상 id를 들고 있으면 다이얼로그가 열림
+  const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
+
   // 여행 요약 - 미리보기 다이얼로그 상태
   const [summaryPreviewPlan, setSummaryPreviewPlan] = useState<TravelPlan | null>(null);
   const [showSummaryPreview, setShowSummaryPreview] = useState(false);
@@ -2322,27 +2325,27 @@ export default function Home() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <div className="flex items-start justify-between gap-2 mb-1.5">
-                              <h3 className="font-bold text-foreground text-xl leading-snug line-clamp-1 group-hover:text-primary transition-colors">{plan.title}</h3>
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <span className="text-xs font-bold px-2.5 py-1 rounded-full border border-primary/20 bg-primary/10 text-primary">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-2 mb-1.5">
+                              <h3 className="w-full sm:w-auto min-w-0 font-bold text-foreground text-base sm:text-xl leading-snug line-clamp-1 group-hover:text-primary transition-colors">{plan.title}</h3>
+                              <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap flex-shrink-0">
+                                <span className="text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-primary/20 bg-primary/10 text-primary">
                                   {getDday(plan)}
                                 </span>
-                                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border", STATUS_STYLES[status])}>
+                                <span className={cn("text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border", STATUS_STYLES[status])}>
                                   {getStatusLabel(status)}
                                 </span>
                               </div>
                             </div>
-                            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                               <Calendar className="w-4 h-4" /> {plan.startDate} ~ {plan.endDate}
                             </p>
                             <div className="flex items-center justify-between gap-3 mt-2.5">
-                              <span className="text-muted-foreground text-sm">{t('home.planList.scheduleCount', { n: plan.schedules.length })}</span>
+                              <span className="text-muted-foreground text-xs sm:text-sm">{t('home.planList.scheduleCount', { n: plan.schedules.length })}</span>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={e => { e.stopPropagation(); setSummaryPreviewPlan(plan); setShowSummaryPreview(true); }}
-                                className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                                className="h-6 sm:h-7 text-[11px] sm:text-xs px-2 sm:px-2.5 gap-1 border-primary/30 text-primary hover:bg-primary/10"
                               >
                                 <Eye className="w-3.5 h-3.5" /> {t('home.planList.summaryButton')}
                               </Button>
@@ -2357,7 +2360,7 @@ export default function Home() {
                               <Copy className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={e => { e.stopPropagation(); handleDeletePlan(plan.id); }}
+                              onClick={e => { e.stopPropagation(); setDeletePlanId(plan.id); }}
                               className="text-slate-200 hover:text-red-400 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -3324,6 +3327,34 @@ export default function Home() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 여행 계획 삭제 확인 다이얼로그 — 데스크톱/모바일 모두 동일하게 실수 삭제 방지 */}
+      <Dialog open={!!deletePlanId} onOpenChange={(o) => { if (!o) setDeletePlanId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" /> {t('home.deletePlanDialog.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+              <p className="font-semibold">{t('home.deletePlanDialog.message')}</p>
+              <p className="text-xs mt-1 text-red-500">{t('home.deletePlanDialog.warning')}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setDeletePlanId(null)} className="flex-1">
+                {t('home.common.cancel')}
+              </Button>
+              <Button
+                onClick={() => { if (deletePlanId) handleDeletePlan(deletePlanId); setDeletePlanId(null); }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+              >
+                <Trash2 className="w-4 h-4 mr-1" /> {t('home.deletePlanDialog.confirmButton')}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

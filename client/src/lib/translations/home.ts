@@ -68,6 +68,12 @@ export const home = {
       duplicateButton: "복제",
       copySuffix: " (사본)",
     },
+    deletePlanDialog: {
+      title: "여행 계획 삭제",
+      message: "이 여행 계획을 정말 삭제하시겠습니까?",
+      warning: "삭제 후에는 복구할 수 없습니다.",
+      confirmButton: "삭제",
+    },
     newPlanDialog: {
       title: "새로운 여행 계획",
       regionLabel: "국내 / 해외",
@@ -488,6 +494,12 @@ export const home = {
       summaryButton: "Trip Summary",
       duplicateButton: "Duplicate",
       copySuffix: " (Copy)",
+    },
+    deletePlanDialog: {
+      title: "Delete Trip Plan",
+      message: "Are you sure you want to delete this trip plan?",
+      warning: "This cannot be undone once deleted.",
+      confirmButton: "Delete",
     },
     newPlanDialog: {
       title: "New Trip Plan",
