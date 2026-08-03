@@ -262,7 +262,14 @@ export function MapView({
           center: new naverNs.maps.LatLng(initialCenter.lat, initialCenter.lng),
           zoom: initialZoom,
           zoomControl: true,
-          zoomControlOptions: { position: naverNs.maps.Position.TOP_RIGHT },
+          // style을 지정하지 않으면 기본값(LARGE)이 적용되어 슬라이더형 "줌 휠" 컨트롤이 세로로
+          // 길게 그려지는데, 모바일 위치 선택 다이얼로그처럼 지도 높이가 낮은 곳에서는 이 컨트롤이
+          // 우하단의 "현재 위치" 버튼과 겹칠 정도로 붙게 됨. SMALL로 지정해 +/- 버튼만 있는
+          // 컴팩트한 컨트롤로 바꿔 항상 여유 공간이 남도록 함.
+          zoomControlOptions: {
+            position: naverNs.maps.Position.TOP_RIGHT,
+            style: naverNs.maps.ZoomControlStyle.SMALL,
+          },
           scrollWheel: true,
           draggable: true,
         });
