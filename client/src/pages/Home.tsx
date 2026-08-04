@@ -1835,14 +1835,6 @@ export default function Home() {
     return `D+${Math.abs(daysUntilEnd)}`;
   };
 
-  const getPlanThumbnail = (planId: string): string | null => {
-    try {
-      const diaries = JSON.parse(localStorage.getItem('travelDiaries') || '[]');
-      const linked = diaries.find((d: any) => d.linkedPlanId === planId && d.photos?.some((p: any) => p.type !== 'video'));
-      return linked?.photos.find((p: any) => p.type !== 'video')?.url || null;
-    } catch { return null; }
-  };
-
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
       {/* 새 여행 계획 다이얼로그 */}
@@ -2309,7 +2301,7 @@ export default function Home() {
                   <div className="space-y-3">
                     {filtered.map((plan, idx) => {
                       const status = getPlanStatus(plan);
-                      const thumbnail = plan.coverPhoto || getPlanThumbnail(plan.id);
+                      const thumbnail = plan.coverPhoto;
                       return (
                         <Card
                           key={plan.id}
