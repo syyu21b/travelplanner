@@ -4913,6 +4913,7 @@ interface TrendingPost {
   id: string;
   title: string;
   location: string;
+  mainPhoto?: { url: string; type?: 'photo' | 'video' };
   photos: { url: string; type?: 'photo' | 'video' }[];
   likes: string[];
   commentCount: number;
@@ -4956,6 +4957,7 @@ function CommunityTrending() {
             id: d.id,
             title: d.title,
             location: d.location,
+            mainPhoto: d.mainPhoto,
             photos: d.photos || [],
             likes: d.likes || [],
             commentCount: cmtCount,
@@ -4976,6 +4978,12 @@ function CommunityTrending() {
   })();
 
   if (allTrendingPosts.length === 0) return null;
+
+  // 대표 사진(mainPhoto)으로 지정한 사진을 우선 사용하고, 없을 때만 게시글 사진 중 첫 번째(영상 제외)로 대체
+  const getTrendingThumbUrl = (post: TrendingPost): string | null => {
+    if (post.mainPhoto && post.mainPhoto.type !== 'video' && post.mainPhoto.url) return post.mainPhoto.url;
+    return post.photos.find(p => p.type !== 'video')?.url || null;
+  };
 
   const navigateToCommunity = (post?: TrendingPost) => {
     if (post) { try { sessionStorage.setItem('trendingOpenDiaryId', post.id); } catch {} }
@@ -5002,16 +5010,18 @@ function CommunityTrending() {
 
       {/* 가로 스크롤 카드 */}
       <div className="flex gap-4 overflow-x-auto pb-3" style={{ scrollbarWidth: 'none' }}>
-        {allTrendingPosts.map((post, idx) => (
+        {allTrendingPosts.map((post, idx) => {
+          const thumbUrl = getTrendingThumbUrl(post);
+          return (
           <button
             key={post.id}
             onClick={() => navigateToCommunity(post)}
             className="flex-shrink-0 w-52 text-left group"
           >
             <div className="relative w-52 h-36 rounded-2xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-sm group-hover:shadow-md transition-shadow">
-              {post.photos[0] && post.photos[0].type !== 'video' ? (
+              {thumbUrl ? (
                 <img
-                  src={post.photos[0].url}
+                  src={thumbUrl}
                   alt={post.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
@@ -5043,7 +5053,8 @@ function CommunityTrending() {
               </p>
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
