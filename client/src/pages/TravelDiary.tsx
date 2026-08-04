@@ -216,7 +216,9 @@ export default function TravelDiary() {
   const [slidePhotoIndex, setSlidePhotoIndex] = useState(0);
   const [albums, setAlbums] = useState<Album[]>(loadAlbums);
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(loadCurrentAlbum);
-  const [activeTab, setActiveTab] = useState<'records' | 'albums'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'albums'>(() =>
+    new URLSearchParams(window.location.search).get('tab') === 'albums' ? 'albums' : 'records'
+  );
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 

@@ -117,6 +117,12 @@ export default function MyPage() {
     } catch { return []; }
   })();
   const myPublicDiaries = myDiaries.filter(d => d.isPublic);
+  const myAlbums = (() => {
+    try {
+      return (JSON.parse(localStorage.getItem('travelAlbums') || '[]') as any[])
+        .filter(a => a.userId === user?.id);
+    } catch { return []; }
+  })();
   const myPlans = (() => {
     try {
       return (JSON.parse(localStorage.getItem('travelPlans') || '[]') as any[])
@@ -157,6 +163,13 @@ export default function MyPage() {
   );
   const totalLikesReceived = myPublicDiaries.reduce((sum: number, d: any) =>
     sum + (d.likes?.length || 0), 0);
+
+  // 여행 기록 목록의 썸네일 — 대표 사진(mainPhoto)으로 지정한 사진을 우선 사용하고,
+  // 지정된 게 없을 때만 게시글에 첨부된 사진 중 첫 번째(영상 제외)로 대체
+  const getDiaryThumbnailUrl = (d: any): string | null => {
+    if (d.mainPhoto && d.mainPhoto.type !== 'video' && d.mainPhoto.url) return d.mainPhoto.url;
+    return d.photos?.find((p: any) => p.type !== 'video')?.url || null;
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -548,10 +561,12 @@ export default function MyPage() {
                     {[...myDiaries]
                       .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                       .slice(0, 5)
-                      .map((d: any) => (
+                      .map((d: any) => {
+                        const thumbUrl = getDiaryThumbnailUrl(d);
+                        return (
                         <div key={d.id} className="flex items-center gap-4 py-3">
-                          {d.photos?.[0] && d.photos[0].type !== 'video' ? (
-                            <img src={d.photos[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                          {thumbUrl ? (
+                            <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                               <BookOpen className="w-5 h-5 text-muted-foreground" />
@@ -574,7 +589,58 @@ export default function MyPage() {
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
+                  </div>
+                )}
+              </Card>
+
+              {/* 내 앨범 */}
+              <Card className="p-6 bg-white">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <Camera className="w-5 h-5 text-primary" /> {t('mypage.activity.albumsTitle')}
+                  </h3>
+                  <button
+                    onClick={() => setLocation('/diary?tab=albums')}
+                    className="text-sm text-primary font-semibold hover:underline flex items-center gap-1"
+                  >
+                    {t('mypage.activity.viewAll')} <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                {myAlbums.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Camera className="w-10 h-10 mx-auto mb-3 text-border" />
+                    <p className="text-sm">{t('mypage.activity.noAlbums')}</p>
+                    <button onClick={() => setLocation('/diary?tab=albums')} className="mt-3 text-sm text-primary font-semibold hover:underline">
+                      {t('mypage.activity.createFirstAlbum')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {[...myAlbums]
+                      .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+                      .slice(0, 5)
+                      .map((a: any) => {
+                        const thumbUrl = a.photos?.[0]?.type !== 'video' ? a.photos?.[0]?.url : null;
+                        return (
+                        <div key={a.id} className="flex items-center gap-4 py-3">
+                          {thumbUrl ? (
+                            <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                              <Camera className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-foreground text-sm truncate">{a.title}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              {t('mypage.activity.photoCount', { count: a.photos?.length || 0 })} · {new Date(a.createdAt).toLocaleDateString(dateLocale)}
+                            </p>
+                          </div>
+                        </div>
+                        );
+                      })}
                   </div>
                 )}
               </Card>
@@ -602,10 +668,12 @@ export default function MyPage() {
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
-                    {savedDiaries.slice(0, 5).map((d: any) => (
+                    {savedDiaries.slice(0, 5).map((d: any) => {
+                      const thumbUrl = getDiaryThumbnailUrl(d);
+                      return (
                       <div key={d.id} className="flex items-center gap-4 py-3">
-                        {d.photos?.[0] && d.photos[0].type !== 'video' ? (
-                          <img src={d.photos[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                        {thumbUrl ? (
+                          <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                             <BookOpen className="w-5 h-5 text-muted-foreground" />
@@ -621,7 +689,8 @@ export default function MyPage() {
                           <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {d.likes?.length || 0}</span>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </Card>
@@ -674,10 +743,12 @@ export default function MyPage() {
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
-                    {likedDiaries.slice(0, 5).map((d: any) => (
+                    {likedDiaries.slice(0, 5).map((d: any) => {
+                      const thumbUrl = getDiaryThumbnailUrl(d);
+                      return (
                       <div key={d.id} className="flex items-center gap-4 py-3">
-                        {d.photos?.[0] && d.photos[0].type !== 'video' ? (
-                          <img src={d.photos[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                        {thumbUrl ? (
+                          <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                             <BookOpen className="w-5 h-5 text-muted-foreground" />
@@ -693,7 +764,8 @@ export default function MyPage() {
                           <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {d.likes?.length || 0}</span>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </Card>
