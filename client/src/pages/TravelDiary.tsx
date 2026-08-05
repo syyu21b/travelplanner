@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Trash2, Edit2, Check, X, Image as ImageIcon,
   BookOpen, Camera, MapPin, Star, Calendar, ChevronLeft,
-  Heart, Share2, Globe, Lock, ChevronRight, Plane, Clock, Loader2
+  Heart, Share2, Globe, Lock, ChevronRight, Plane, Clock, Loader2, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn, copyToClipboard } from '@/lib/utils';
@@ -978,6 +978,92 @@ export default function TravelDiary() {
     }
   };
 
+  // 여행 기록을 PDF로 저장 (브라우저 프린트 기능을 활용한 방식 — Home의 여행 계획 PDF 저장과 동일한 방식이라
+  // 팝업 차단 안내, 폰트 폴백 등 데스크톱/모바일 호환성이 이미 검증되어 있음)
+  const escapeHtml = (str: string) =>
+    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const generateDiaryPDF = (diary: DiaryEntry) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error(t('diary.toast.allowPopups'));
+      return;
+    }
+
+    const periodText = diary.startDate === diary.endDate
+      ? diary.startDate
+      : `${diary.startDate} ~ ${diary.endDate}`;
+
+    const tagsHtml = diary.tags.length > 0
+      ? `<div style="margin: 12px 0 20px;">${diary.tags.map(tag =>
+          `<span style="display:inline-block; background:#f0f9ff; color:#0369a1; font-weight:bold; padding:4px 10px; border-radius:999px; font-size:0.85em; margin:0 6px 6px 0;">#${escapeHtml(tag)}</span>`
+        ).join('')}</div>`
+      : '';
+
+    const contentHtml = diary.displayMode === 'blog' && diary.blocks && diary.blocks.length > 0
+      ? diary.blocks.map(block => {
+          if (block.type === 'text') {
+            return `<div style="white-space:pre-wrap; line-height:1.8; margin:16px 0;">${escapeHtml(block.content)}</div>`;
+          }
+          if (block.type === 'video') {
+            return `<div style="margin:16px 0; padding:14px; background:#f5f5f5; border-radius:8px; color:#888; font-size:0.9em;">🎬 ${t('diary.pdf.videoNotIncluded')}</div>${block.caption ? `<p style="text-align:center; color:#888; font-size:0.85em;">${escapeHtml(block.caption)}</p>` : ''}`;
+          }
+          return `<div style="margin:16px 0;"><img src="${block.content}" style="width:100%; border-radius:8px;" />${block.caption ? `<p style="text-align:center; color:#888; font-size:0.85em; margin-top:6px;">${escapeHtml(block.caption)}</p>` : ''}</div>`;
+        }).join('')
+      : `<div style="white-space:pre-wrap; line-height:1.8;">${escapeHtml(diary.content)}</div>`;
+
+    const galleryPhotos = diary.displayMode !== 'blog' ? diary.photos.filter(p => p.type !== 'video') : [];
+    const skippedVideoCount = diary.displayMode !== 'blog' ? diary.photos.filter(p => p.type === 'video').length : 0;
+    const photosHtml = galleryPhotos.length > 0
+      ? `<div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;">${galleryPhotos.map(p => `
+          <div style="width:calc(33.333% - 7px);">
+            <img src="${p.url}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; border:1px solid #eee;" />
+            ${p.caption ? `<p style="font-size:0.8em; color:#888; margin-top:4px;">${escapeHtml(p.caption)}</p>` : ''}
+          </div>
+        `).join('')}</div>`
+      : '';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${escapeHtml(diary.title)} - ${t('diary.pdf.docTitleSuffix')}</title>
+          <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+          <style>
+            body { font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #333; padding: 40px; word-break: break-word; }
+            h1 { color: #0ea5e9; border-bottom: 3px solid #0ea5e9; padding-bottom: 10px; margin-bottom: 8px; }
+            .meta { color: #666; margin: 2px 0; }
+            .section-title { background: #f0f9ff; padding: 10px; border-radius: 5px; color: #0369a1; margin-top: 30px; margin-bottom: 12px; font-weight: bold; }
+            img { max-width: 100%; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>${escapeHtml(diary.title)}</h1>
+          <p class="meta">📍 ${escapeHtml(diary.location)}</p>
+          <p class="meta">🗓 ${periodText}</p>
+          <p class="meta" style="color:#f59e0b;">⭐ ${diary.rating} / 5</p>
+          ${tagsHtml}
+
+          <div class="section-title">📝 ${t('diary.pdf.contentSection')}</div>
+          ${contentHtml}
+
+          ${photosHtml ? `<div class="section-title">📷 ${t('diary.pdf.photoSection')}</div>${photosHtml}` : ''}
+          ${skippedVideoCount > 0 ? `<p style="color:#888; font-size:0.85em; margin-top:16px;">🎬 ${t('diary.pdf.videosSkipped', { count: skippedVideoCount })}</p>` : ''}
+
+          <script>
+            window.onload = () => {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    toast.success(t('diary.toast.printWindowOpened'));
+  };
+
   if (currentDiary) {
     const diary = diaries.find(d => d.id === currentDiary.id) || currentDiary;
     const isOwner = diary.userId === user?.id;
@@ -1516,8 +1602,8 @@ export default function TravelDiary() {
             </div>
           )}
 
-          {/* Like button */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
+          {/* Like / Share / PDF 저장 버튼 */}
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-4 border-t border-border">
             <button
               onClick={() => handleToggleLike(diary.id)}
               className={cn(
@@ -1530,16 +1616,24 @@ export default function TravelDiary() {
               <Heart className={cn("w-4 h-4", !!user && diary.likes.includes(user.id) && "fill-red-500")} />
               {t('diary.detail.like')} {diary.likes.length > 0 && diary.likes.length}
             </button>
-            <button
-              onClick={async () => {
-                if (await copyToClipboard(window.location.href)) {
-                  toast.success(t('diary.toast.linkCopied'));
-                }
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition font-semibold text-sm"
-            >
-              <Share2 className="w-4 h-4" /> {t('diary.detail.share')}
-            </button>
+            <div className="flex items-center flex-wrap gap-2">
+              <button
+                onClick={() => generateDiaryPDF(diary)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition font-semibold text-sm"
+              >
+                <Download className="w-4 h-4" /> {t('diary.detail.savePdf')}
+              </button>
+              <button
+                onClick={async () => {
+                  if (await copyToClipboard(window.location.href)) {
+                    toast.success(t('diary.toast.linkCopied'));
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition font-semibold text-sm"
+              >
+                <Share2 className="w-4 h-4" /> {t('diary.detail.share')}
+              </button>
+            </div>
           </div>
         </div>
         {planPreviewDialog}

@@ -35,6 +35,8 @@ export const diary = {
       diaryDeleted: "기록이 삭제되었습니다.",
       diaryUpdated: "기록이 수정되었습니다!",
       linkCopied: "링크가 복사되었습니다!",
+      allowPopups: "팝업 차단을 해제해주세요.",
+      printWindowOpened: "인쇄/PDF 저장 창이 열렸습니다.",
     },
     editMode: {
       title: "기록 수정",
@@ -78,8 +80,16 @@ export const diary = {
       photoCount: "사진 ({{count}}장)",
       like: "좋아요",
       share: "공유",
+      savePdf: "PDF 저장",
       prevPhoto: "이전 사진",
       nextPhoto: "다음 사진",
+    },
+    pdf: {
+      docTitleSuffix: "여행 기록",
+      contentSection: "여행 후기",
+      photoSection: "사진",
+      videoNotIncluded: "동영상은 PDF에 포함되지 않습니다.",
+      videosSkipped: "동영상 {{count}}개는 PDF에 포함되지 않습니다.",
     },
     header: {
       title: "여행 기록",
@@ -211,6 +221,8 @@ export const diary = {
       diaryDeleted: "Entry deleted.",
       diaryUpdated: "Entry updated!",
       linkCopied: "Link copied!",
+      allowPopups: "Please allow pop-ups for this site.",
+      printWindowOpened: "Print/PDF window has been opened.",
     },
     editMode: {
       title: "Edit Entry",
@@ -254,8 +266,16 @@ export const diary = {
       photoCount: "Photos ({{count}})",
       like: "Like",
       share: "Share",
+      savePdf: "Save PDF",
       prevPhoto: "Previous photo",
       nextPhoto: "Next photo",
+    },
+    pdf: {
+      docTitleSuffix: "Travel Diary",
+      contentSection: "Travel Review",
+      photoSection: "Photos",
+      videoNotIncluded: "Videos are not included in the PDF.",
+      videosSkipped: "{{count}} video(s) are not included in the PDF.",
     },
     header: {
       title: "Travel Diary",
