@@ -1619,7 +1619,7 @@ export default function TravelDiary() {
             <div className="flex items-center flex-wrap gap-2">
               <button
                 onClick={() => generateDiaryPDF(diary)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition font-semibold text-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-100 transition font-semibold text-sm"
               >
                 <Download className="w-4 h-4" /> {t('diary.detail.savePdf')}
               </button>
@@ -1629,7 +1629,7 @@ export default function TravelDiary() {
                     toast.success(t('diary.toast.linkCopied'));
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition font-semibold text-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-border transition font-semibold text-sm"
               >
                 <Share2 className="w-4 h-4" /> {t('diary.detail.share')}
               </button>
