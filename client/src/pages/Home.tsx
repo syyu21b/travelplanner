@@ -11,7 +11,7 @@ import {
   Plus, Trash2, Download, Share2, MapPin, DollarSign,
   Link as LinkIcon, Clock, Calendar, Edit2, Check, X,
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
-  ChevronRight, Eye, BookOpen, Globe, Shield, Crown,
+  ChevronRight, ChevronLeft, Eye, BookOpen, Globe, Shield, Crown,
   TrendingUp, Heart, MessageCircle, Star,
   ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2, Lock, Sparkles, Copy
 } from 'lucide-react';
@@ -3444,6 +3444,13 @@ export default function Home() {
       <Dialog open={showAllSchedulesPreview} onOpenChange={setShowAllSchedulesPreview}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <button
+              type="button"
+              onClick={() => { setShowAllSchedulesPreview(false); setShowSummaryPreview(true); }}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 self-start"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('home.planDetail.backButton')}
+            </button>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Clock className="w-5 h-5 text-primary" /> {t('home.planDetail.totalSchedulesLabel')}
             </DialogTitle>
@@ -3456,6 +3463,13 @@ export default function Home() {
       <Dialog open={showTimelinePreview} onOpenChange={setShowTimelinePreview}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <button
+              type="button"
+              onClick={() => { setShowTimelinePreview(false); setShowSummaryPreview(true); }}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 self-start"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('home.planDetail.backButton')}
+            </button>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Clock className="w-5 h-5 text-primary" /> {t('home.timeline.title')}
             </DialogTitle>
@@ -3473,6 +3487,13 @@ export default function Home() {
       <Dialog open={showPreparationsPreview} onOpenChange={setShowPreparationsPreview}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <button
+              type="button"
+              onClick={() => { setShowPreparationsPreview(false); setShowSummaryPreview(true); }}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 self-start"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('home.planDetail.backButton')}
+            </button>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Check className="w-5 h-5 text-primary" /> {t('home.planDetail.preparationsLabel')}
             </DialogTitle>
@@ -3494,6 +3515,13 @@ export default function Home() {
       <Dialog open={showAccommodationListPreview} onOpenChange={setShowAccommodationListPreview}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <button
+              type="button"
+              onClick={() => { setShowAccommodationListPreview(false); setShowSummaryPreview(true); }}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 self-start"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('home.planDetail.backButton')}
+            </button>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Hotel className="w-5 h-5 text-primary" /> {t('home.accommodation.listTitle')}
             </DialogTitle>
@@ -3506,6 +3534,13 @@ export default function Home() {
       <Dialog open={showAccommodationDetailPreview} onOpenChange={setShowAccommodationDetailPreview}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <button
+              type="button"
+              onClick={() => { setShowAccommodationDetailPreview(false); setShowAccommodationListPreview(true); }}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 self-start"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('home.planDetail.backButton')}
+            </button>
             <DialogTitle className="flex items-center gap-2 text-foreground break-words">
               <Hotel className="w-5 h-5 text-primary flex-shrink-0" /> {previewAccommodation?.name}
             </DialogTitle>
@@ -3567,6 +3602,13 @@ export default function Home() {
       <Dialog open={showFlightListPreview} onOpenChange={setShowFlightListPreview}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <button
+              type="button"
+              onClick={() => { setShowFlightListPreview(false); setShowSummaryPreview(true); }}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 self-start"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('home.planDetail.backButton')}
+            </button>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Plane className="w-5 h-5 text-primary" /> {t('home.flight.listTitle')}
             </DialogTitle>
@@ -3579,6 +3621,13 @@ export default function Home() {
       <Dialog open={showFlightDetailPreview} onOpenChange={setShowFlightDetailPreview}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <button
+              type="button"
+              onClick={() => { setShowFlightDetailPreview(false); setShowFlightListPreview(true); }}
+              className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 self-start"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('home.planDetail.backButton')}
+            </button>
             <DialogTitle className="flex items-center gap-2 text-foreground break-words">
               <Plane className="w-5 h-5 text-primary flex-shrink-0" /> {previewFlight?.airline} {previewFlight?.flightNumber}
             </DialogTitle>

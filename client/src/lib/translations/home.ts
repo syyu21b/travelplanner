@@ -119,6 +119,7 @@ export const home = {
       totalSchedulesLabel: "전체 일정",
       timelineLabel: "타임라인",
       preparationsLabel: "준비물",
+      backButton: "뒤로가기",
     },
     tabs: {
       schedule: "일정",
@@ -552,6 +553,7 @@ export const home = {
       totalSchedulesLabel: "Total Schedules",
       timelineLabel: "Timeline",
       preparationsLabel: "Checklist Items",
+      backButton: "Back",
     },
     tabs: {
       schedule: "Schedule",
