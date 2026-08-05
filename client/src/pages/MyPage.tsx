@@ -135,12 +135,12 @@ export default function MyPage() {
       return all[user?.id || ''] || [];
     } catch { return []; }
   })();
-  const allPublicDiaries = (() => {
+  const allDiaries = (() => {
     try {
-      return (JSON.parse(localStorage.getItem('travelDiaries') || '[]') as any[])
-        .filter(d => d.isPublic);
+      return JSON.parse(localStorage.getItem('travelDiaries') || '[]') as any[];
     } catch { return []; }
   })();
+  const allPublicDiaries = allDiaries.filter(d => d.isPublic);
   const savedDiaries = allPublicDiaries.filter((d: any) => savedIds.includes(d.id));
   const likedDiaries = allPublicDiaries.filter((d: any) => d.likes?.includes(user?.id));
   const myComments = (() => {
@@ -149,6 +149,13 @@ export default function MyPage() {
         .filter(c => c.userId === user?.id);
     } catch { return []; }
   })();
+  // 댓글을 단 게시글로 이동할 때 참조할 수 있도록, 공개 여부와 무관하게 전체 게시글에서 조회
+  const getCommentParentDiary = (diaryId: string) => allDiaries.find((d: any) => d.id === diaryId);
+  // 커뮤니티의 해당 게시글로 이동 (Home 인기 여행/헤더 검색과 동일한 방식으로 자동 오픈 대상만 표시해 둠)
+  const goToDiaryInCommunity = (diaryId: string) => {
+    try { sessionStorage.setItem('trendingOpenDiaryId', diaryId); } catch {}
+    setLocation('/community');
+  };
   const myInquiries = (() => {
     try {
       return getInquiries().filter(i => i.userId === user?.id);
@@ -680,7 +687,13 @@ export default function MyPage() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-foreground text-sm truncate">{d.title}</p>
+                          <button
+                            type="button"
+                            onClick={() => goToDiaryInCommunity(d.id)}
+                            className="font-bold text-foreground text-sm truncate hover:text-primary hover:underline text-left block w-full"
+                          >
+                            {d.title}
+                          </button>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <MapPin className="w-3 h-3" /> {d.location} · {new Date(d.createdAt).toLocaleDateString(dateLocale)}
                           </p>
@@ -708,14 +721,32 @@ export default function MyPage() {
                     {[...myComments]
                       .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                       .slice(0, 5)
-                      .map((c: any) => (
+                      .map((c: any) => {
+                        const parentDiary = getCommentParentDiary(c.diaryId);
+                        return (
                         <div key={c.id} className="p-3 bg-secondary rounded-lg border border-border">
+                          {parentDiary ? (
+                            <button
+                              type="button"
+                              onClick={() => goToDiaryInCommunity(parentDiary.id)}
+                              disabled={!parentDiary.isPublic}
+                              className={cn(
+                                'text-xs font-bold mb-1.5 truncate block w-full text-left',
+                                parentDiary.isPublic ? 'text-primary hover:underline' : 'text-muted-foreground cursor-default'
+                              )}
+                            >
+                              {parentDiary.title}
+                            </button>
+                          ) : (
+                            <p className="text-xs font-bold text-muted-foreground mb-1.5 italic">{t('mypage.activity.deletedPost')}</p>
+                          )}
                           <p className="text-sm text-foreground leading-relaxed">{c.content}</p>
                           <p className="text-xs text-muted-foreground mt-1.5">
                             {new Date(c.createdAt).toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 )}
               </Card>
@@ -755,7 +786,13 @@ export default function MyPage() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-foreground text-sm truncate">{d.title}</p>
+                          <button
+                            type="button"
+                            onClick={() => goToDiaryInCommunity(d.id)}
+                            className="font-bold text-foreground text-sm truncate hover:text-primary hover:underline text-left block w-full"
+                          >
+                            {d.title}
+                          </button>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <MapPin className="w-3 h-3" /> {d.location} · {new Date(d.createdAt).toLocaleDateString(dateLocale)}
                           </p>
