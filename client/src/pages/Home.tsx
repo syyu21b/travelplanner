@@ -5094,6 +5094,10 @@ function CommunityTrending() {
                   {post.saveCount}
                 </span>
                 <span className="flex items-center gap-1">
+                  <MessageCircle className="w-3 h-3 text-sky-300 fill-sky-300" />
+                  {post.commentCount}
+                </span>
+                <span className="flex items-center gap-1">
                   <Heart className="w-3 h-3 text-red-400 fill-red-400" />
                   {post.likes.length}
                 </span>
