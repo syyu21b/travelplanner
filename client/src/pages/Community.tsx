@@ -448,7 +448,16 @@ export default function Community() {
   }
 
   if (sortBy === 'popular') {
-    filteredDiaries = [...filteredDiaries].sort((a, b) => b.likes.length - a.likes.length);
+    const savedByUser: Record<string, string[]> = JSON.parse(localStorage.getItem('savedDiaries') || '{}');
+    const saveCounts = new globalThis.Map<string, number>();
+    Object.values(savedByUser).forEach(ids => {
+      (ids || []).forEach(id => saveCounts.set(id, (saveCounts.get(id) || 0) + 1));
+    });
+    filteredDiaries = [...filteredDiaries].sort((a, b) => {
+      const scoreA = a.likes.length + diaryComments(a.id).length + (saveCounts.get(a.id) || 0);
+      const scoreB = b.likes.length + diaryComments(b.id).length + (saveCounts.get(b.id) || 0);
+      return scoreB - scoreA || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   } else if (sortBy === 'comments') {
     filteredDiaries = [...filteredDiaries].sort((a, b) =>
       diaryComments(b.id).length - diaryComments(a.id).length

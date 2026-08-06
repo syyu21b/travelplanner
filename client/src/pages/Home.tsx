@@ -12,7 +12,7 @@ import {
   Link as LinkIcon, Clock, Calendar, Edit2, Check, X,
   Image as ImageIcon, Plane, Map, Info, LogOut, User,
   ChevronRight, ChevronLeft, Eye, BookOpen, Globe, Shield, Crown,
-  TrendingUp, Heart, MessageCircle, Star,
+  TrendingUp, Heart, MessageCircle, Star, Bookmark,
   ChevronDown, Camera, Hotel, Phone, Navigation, Hash, ArrowRight, Loader2, Lock, Sparkles, Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -5011,7 +5011,7 @@ function CommunityTrending() {
             likes: d.likes || [],
             commentCount: cmtCount,
             saveCount,
-            // 좋아요/댓글/저장 수가 높을수록 상위 — 동점이면 아래 정렬에서 최신순으로 처리
+            // 좋아요+댓글+저장 수가 높을수록 상위 — 동점이면 최신 글이 상위
             score: likeCount + cmtCount + saveCount,
             createdAt: d.createdAt,
             userId: d.userId,
@@ -5088,9 +5088,15 @@ function CommunityTrending() {
                   {idx + 1}
                 </div>
               )}
-              <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/55 text-white text-xs px-2 py-0.5 rounded-full">
-                <Heart className="w-3 h-3 text-red-400 fill-red-400" />
-                {post.likes.length}
+              <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/55 text-white text-xs px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1">
+                  <Bookmark className="w-3 h-3 text-amber-300 fill-amber-300" />
+                  {post.saveCount}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Heart className="w-3 h-3 text-red-400 fill-red-400" />
+                  {post.likes.length}
+                </span>
               </div>
             </div>
             <div className="mt-2 px-0.5">
