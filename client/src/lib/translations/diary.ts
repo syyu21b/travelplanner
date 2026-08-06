@@ -129,6 +129,11 @@ export const diary = {
       shoppingList: "쇼핑 목록",
       completedFraction: "{{checked}}/{{total}} 완료",
       allSchedules: "전체 일정 ({{count}}개)",
+      accommodations: "숙소 ({{count}}곳)",
+      packingList: "준비물",
+      packingListSection: "준비물 ({{count}}개)",
+      snapshotNotice: "원본 계획이 삭제되어 예산·숙소·준비물 정보는 확인할 수 없어요. 기록 작성 시점의 일정만 표시됩니다.",
+      noSchedule: "등록된 일정이 없습니다.",
     },
     category: {
       accommodation: "숙소",
@@ -315,6 +320,11 @@ export const diary = {
       shoppingList: "Shopping List",
       completedFraction: "{{checked}}/{{total}} completed",
       allSchedules: "All Schedules ({{count}})",
+      accommodations: "Accommodations ({{count}})",
+      packingList: "Packing List",
+      packingListSection: "Packing List ({{count}})",
+      snapshotNotice: "The original plan was deleted, so budget, accommodation, and packing info aren't available. Only the itinerary saved when this was posted is shown.",
+      noSchedule: "No schedule has been added.",
     },
     category: {
       accommodation: "Stay",

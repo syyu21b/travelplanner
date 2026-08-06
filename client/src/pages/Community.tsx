@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StarRatingDisplay } from '@/components/StarRating';
+import { TripPlanPreviewDialog, type TripPlanPreviewData } from '@/components/TripPlanPreviewDialog';
 import { toast } from 'sonner';
 import { cn, copyToClipboard } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,16 @@ interface ScheduleItem {
   completed?: boolean;
 }
 
+interface PlanAccommodation {
+  id: string;
+  name: string;
+  address?: string;
+  checkInDate: string;
+  checkInTime?: string;
+  checkOutDate: string;
+  checkOutTime?: string;
+}
+
 interface TravelPlan {
   id: string;
   userId: string;
@@ -48,6 +59,9 @@ interface TravelPlan {
   startDate: string;
   endDate: string;
   schedules: ScheduleItem[];
+  budgets?: { amount: number }[];
+  accommodations?: PlanAccommodation[];
+  preparationChecks?: Record<string, boolean>;
 }
 
 interface DiaryEntry {
@@ -148,12 +162,39 @@ export default function Community() {
     return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
   };
 
-  // 기록 작성 시 첨부된 일정 스냅샷을 우선 사용하고, 옛 기록(스냅샷 없음)은 원본 계획에서 조회
-  const getLinkedPlanSchedules = (diary: DiaryEntry): ScheduleItem[] => {
-    if (diary.linkedPlanSchedules) return diary.linkedPlanSchedules;
-    if (!diary.linkedPlanId) return [];
-    const plans = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
-    return plans.find(p => p.id === diary.linkedPlanId)?.schedules || [];
+  // 원본 계획을 우선 사용하고(예산/숙소/준비물까지 볼 수 있음), 삭제/변경된 경우에만 기록 작성 시점의
+  // 일정 스냅샷으로 대체 표시 — 여행 기록 페이지의 계획 미리보기와 동일한 우선순위를 써서, 같은 계획을
+  // 어디서 보든(내 기록 vs 커뮤니티) 항상 같은 내용이 보이게 함
+  const getLinkedPlan = (diary: DiaryEntry): TripPlanPreviewData | null => {
+    if (diary.linkedPlanId) {
+      const plans = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
+      const live = plans.find(p => p.id === diary.linkedPlanId);
+      if (live) {
+        return {
+          title: live.title,
+          startDate: live.startDate,
+          endDate: live.endDate,
+          schedules: live.schedules ?? [],
+          budgets: live.budgets ?? [],
+          accommodations: live.accommodations ?? [],
+          preparationChecks: live.preparationChecks ?? {},
+          isSnapshotOnly: false,
+        };
+      }
+    }
+    if (diary.linkedPlanSchedules) {
+      return {
+        title: diary.linkedPlanTitle || '',
+        startDate: diary.startDate,
+        endDate: diary.endDate,
+        schedules: diary.linkedPlanSchedules,
+        budgets: [],
+        accommodations: [],
+        preparationChecks: {},
+        isSnapshotOnly: true,
+      };
+    }
+    return null;
   };
 
   // 댓글 임시 저장 로드
@@ -894,64 +935,12 @@ export default function Community() {
           </DialogContent>
         </Dialog>
 
-        {/* 연결된 여행 계획의 전체 일정 */}
-        <Dialog open={showPlanSchedule} onOpenChange={setShowPlanSchedule}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-foreground">
-                <Plane className="w-5 h-5 text-primary" />
-                {diary.linkedPlanTitle} {t('diary.planPreview.previewSuffix')}
-              </DialogTitle>
-            </DialogHeader>
-            {(() => {
-              const schedules = getLinkedPlanSchedules(diary);
-              const getCategoryColor = (category: string) => {
-                const colors: Record<string, string> = {
-                  accommodation: 'bg-secondary text-foreground',
-                  transport: 'bg-secondary text-foreground',
-                  meal: 'bg-emerald-100 text-emerald-800',
-                  activity: 'bg-indigo-100 text-indigo-800',
-                  shopping: 'bg-orange-100 text-orange-800',
-                  other: 'bg-slate-100 text-slate-800',
-                };
-                return colors[category] || colors.other;
-              };
-              const getCategoryLabel = (category: string) => {
-                const labels: Record<string, string> = {
-                  accommodation: t('diary.category.accommodation'), transport: t('diary.category.transport'), meal: t('diary.category.meal'),
-                  activity: t('diary.category.activity'), shopping: t('diary.category.shopping'), other: t('diary.category.other'),
-                };
-                return labels[category] || t('diary.category.other');
-              };
-              return schedules.length > 0 ? (
-                <div className="space-y-2 max-h-96 overflow-y-auto pt-2">
-                  {schedules
-                    .slice()
-                    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-                    .map(s => (
-                      <div key={s.id} className="flex items-start gap-3 p-2 bg-secondary rounded-lg text-sm">
-                        <span className="text-muted-foreground font-mono text-xs w-20 flex-shrink-0 pt-0.5">{s.date}</span>
-                        <span className="text-sky-500 font-mono text-xs w-24 flex-shrink-0 pt-0.5">{s.time}{s.endTime ? `~${s.endTime}` : ''}</span>
-                        <span className={cn("px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0", getCategoryColor(s.category))}>
-                          {getCategoryLabel(s.category)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <span className="font-semibold text-foreground truncate block">{s.title}</span>
-                          {s.location && (
-                            <span className="text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 flex-shrink-0" /> {s.location}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground pt-2">{t('community.detail.noSchedule')}</p>
-              );
-            })()}
-          </DialogContent>
-        </Dialog>
+        {/* 연결된 여행 계획 미리보기 (여행 기록 페이지와 동일한 컴포넌트 — 항상 같은 내용이 보임) */}
+        <TripPlanPreviewDialog
+          open={showPlanSchedule}
+          onOpenChange={setShowPlanSchedule}
+          plan={getLinkedPlan(diary)}
+        />
       </div>
     );
   }
