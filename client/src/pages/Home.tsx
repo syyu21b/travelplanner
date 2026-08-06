@@ -1817,6 +1817,15 @@ export default function Home() {
     return getStatusLabel(filter);
   };
 
+  // 여행 시작일까지 남은 일수(정렬용 — D-day 배지 문자열과 달리 순수 숫자로 비교해야 하므로 별도로 계산)
+  const getDaysUntilStart = (plan: TravelPlan): number => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(plan.startDate + 'T00:00:00');
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    return Math.round((start.getTime() - today.getTime()) / MS_PER_DAY);
+  };
+
   // 여행 시작일까지 남은(혹은 지난) 일수를 D-day 형태로 계산
   const getDday = (plan: TravelPlan): string => {
     if (!plan.startDate || !plan.endDate) return '';
@@ -2243,7 +2252,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
                 <h2 className="text-xl font-black text-foreground">{t('home.planList.title')}</h2>
                 <div className="flex gap-1 bg-secondary p-1 rounded-xl overflow-x-auto max-w-full [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                  {(['all', '예정', '진행 중', '완료'] as const).map(f => (
+                  {(['all', '진행 중', '예정', '완료'] as const).map(f => (
                     <button
                       key={f}
                       onClick={() => setPlanFilter(f)}
@@ -2259,7 +2268,19 @@ export default function Home() {
               </div>
 
               {(() => {
-                const filtered = planFilter === 'all' ? travelPlans : travelPlans.filter(p => getPlanStatus(p) === planFilter);
+                // "전체" 탭에서는 진행 중 → 예정 → 완료 순으로 그룹핑하고, 같은 상태끼리는
+                // 예정=D-day 적은(임박한) 순, 완료=여행 시작일이 빠른(오래된) 순으로 정렬
+                const PLAN_STATUS_ORDER: Record<string, number> = { '진행 중': 0, '예정': 1, '완료': 2 };
+                const filtered = (planFilter === 'all' ? travelPlans : travelPlans.filter(p => getPlanStatus(p) === planFilter))
+                  .slice()
+                  .sort((a, b) => {
+                    const statusA = getPlanStatus(a);
+                    const statusB = getPlanStatus(b);
+                    if (statusA !== statusB) return PLAN_STATUS_ORDER[statusA] - PLAN_STATUS_ORDER[statusB];
+                    if (statusA === '예정') return getDaysUntilStart(a) - getDaysUntilStart(b);
+                    if (statusA === '완료') return new Date(a.startDate + 'T00:00:00').getTime() - new Date(b.startDate + 'T00:00:00').getTime();
+                    return 0;
+                  });
                 const PLAN_GRADIENTS = [
                   'from-sky-400 to-blue-500',
                   'from-emerald-400 to-teal-500',
