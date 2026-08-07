@@ -934,7 +934,7 @@ export default function TravelDiary() {
 
     const tagsHtml = diary.tags.length > 0
       ? `<div style="margin: 12px 0 20px;">${diary.tags.map(tag =>
-          `<span style="display:inline-block; background:#f0f9ff; color:#0369a1; font-weight:bold; padding:4px 10px; border-radius:999px; font-size:0.85em; margin:0 6px 6px 0;">#${escapeHtml(tag)}</span>`
+          `<span style="display:inline-block; background:#f0f9ff; color:#0369a1; font-weight:bold; padding:4px 10px; border-radius:999px; font-size:0.85em; margin:0 6px 6px 0;">${escapeHtml(tag)}</span>`
         ).join('')}</div>`
       : '';
 
@@ -1278,7 +1278,7 @@ export default function TravelDiary() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {editData.tags.map((tag, i) => (
                     <span key={i} className="bg-secondary text-muted-foreground px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-border">
-                      #{tag}
+                      {tag}
                       <button onClick={() => setEditData({ ...editData, tags: editData.tags.filter((_, idx) => idx !== i) })}>
                         <X className="w-3 h-3" />
                       </button>
@@ -1431,7 +1431,7 @@ export default function TravelDiary() {
             <div className="flex flex-wrap gap-2 mb-6">
               {diary.tags.map((tag, i) => (
                 <span key={i} className="bg-secondary text-primary font-semibold px-3 py-1 rounded-full text-sm border border-border">
-                  #{tag}
+                  {tag}
                 </span>
               ))}
             </div>
@@ -2047,7 +2047,7 @@ export default function TravelDiary() {
                         {diary.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-3">
                             {diary.tags.slice(0, 3).map((tag, i) => (
-                              <span key={i} className="bg-secondary text-primary text-xs px-2 py-0.5 rounded-full">#{tag}</span>
+                              <span key={i} className="bg-secondary text-primary text-xs px-2 py-0.5 rounded-full">{tag}</span>
                             ))}
                             {diary.tags.length > 3 && <span className="text-xs text-muted-foreground">+{diary.tags.length - 3}</span>}
                           </div>

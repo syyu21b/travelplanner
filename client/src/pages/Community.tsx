@@ -620,7 +620,7 @@ export default function Community() {
                   onClick={() => { setSelectedDiary(null); setShowPlanSchedule(false); setSelectedTag(tag); }}
                   className="bg-secondary text-primary font-semibold px-3 py-1 rounded-full text-sm border border-border hover:bg-primary hover:text-white transition"
                 >
-                  #{tag}
+                  {tag}
                 </button>
               ))}
             </div>
@@ -1043,7 +1043,7 @@ export default function Community() {
                           : "bg-secondary text-muted-foreground border-border hover:border-primary hover:text-primary"
                       )}
                     >
-                      #{tag}
+                      {tag}
                     </button>
                   ))}
                 </div>
@@ -1190,7 +1190,7 @@ export default function Community() {
                                 onClick={() => setSelectedTag(tag)}
                                 className="bg-secondary text-primary text-xs px-2.5 py-0.5 rounded-full hover:bg-primary hover:text-white transition"
                               >
-                                #{tag}
+                                {tag}
                               </button>
                             ))}
                             {diary.tags.length > 4 && (
