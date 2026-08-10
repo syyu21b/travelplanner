@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import {
   Plus, Trash2, Download, Share2, MapPin, DollarSign,
@@ -3210,23 +3209,6 @@ export default function Home() {
                 >
                   <Share2 className="w-4 h-4" /> {t('home.shareDialog.copyLinkOption')}
                 </Button>
-
-                {currentPlan && (
-                  <label className="flex items-start gap-3 p-3 rounded-xl border border-border bg-secondary/50 cursor-pointer">
-                    <Checkbox
-                      checked={!!currentPlan.allowClone}
-                      onCheckedChange={(checked) => {
-                        updateCurrentPlan({ ...currentPlan, allowClone: checked === true });
-                        toast.success(checked === true ? t('home.shareDialog.allowCloneOn') : t('home.shareDialog.allowCloneOff'));
-                      }}
-                      className="mt-0.5"
-                    />
-                    <span className="text-sm">
-                      <span className="font-semibold text-foreground block">{t('home.shareDialog.allowCloneLabel')}</span>
-                      <span className="text-muted-foreground text-xs">{t('home.shareDialog.allowCloneDescription')}</span>
-                    </span>
-                  </label>
-                )}
               </div>
             </DialogContent>
           </Dialog>

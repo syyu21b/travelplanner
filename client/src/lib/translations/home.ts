@@ -357,10 +357,6 @@ export const home = {
       savePdfOption: "통합 PDF로 저장 (일정/숙소/항공권/예산/쇼핑/준비물/타임라인)",
       saveTextOption: "여행 계획 파일(.txt)로 저장",
       copyLinkOption: "현재 페이지 링크 복사",
-      allowCloneLabel: "다른 회원이 복제할 수 있도록 허용",
-      allowCloneDescription: "여행 기록/커뮤니티에 이 계획을 공유했을 때, 다른 회원이 이 계획을 복제해 자신의 여행 계획으로 추가할 수 있어요.",
-      allowCloneOn: "이제 다른 회원이 이 계획을 복제할 수 있어요.",
-      allowCloneOff: "다른 회원의 복제가 더 이상 허용되지 않아요.",
     },
     previewDialog: {
       titleSuffix: "미리보기",
@@ -795,10 +791,6 @@ export const home = {
       savePdfOption: "Save as combined PDF (schedule/lodging/flights/budget/shopping/checklist/timeline)",
       saveTextOption: "Save as text file (.txt)",
       copyLinkOption: "Copy link to this page",
-      allowCloneLabel: "Allow other members to duplicate",
-      allowCloneDescription: "When this plan is shared in your travel diary or the community, other members can duplicate it into their own trip plans.",
-      allowCloneOn: "Other members can now duplicate this plan.",
-      allowCloneOff: "Other members can no longer duplicate this plan.",
     },
     previewDialog: {
       titleSuffix: "Preview",

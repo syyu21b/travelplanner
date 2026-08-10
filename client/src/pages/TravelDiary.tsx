@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Plus, Trash2, Edit2, Check, X, Image as ImageIcon,
   BookOpen, Camera, MapPin, Star, Calendar, ChevronLeft,
@@ -101,6 +102,8 @@ interface TravelPlan {
   shoppingList: any[];
   accommodations?: PlanAccommodation[];
   preparationChecks?: Record<string, boolean>;
+  /** 작성자가 이 계획을 커뮤니티에서 다른 회원이 복제해갈 수 있도록 허용했는지 여부 */
+  allowClone?: boolean;
 }
 
 interface AlbumPhoto {
@@ -226,7 +229,16 @@ export default function TravelDiary() {
   const draft = loadDraftForm();
 
   const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
-  const [userPlans] = useState<TravelPlan[]>(loadUserPlans);
+  const [userPlans, setUserPlans] = useState<TravelPlan[]>(loadUserPlans);
+
+  // 연결된 여행 계획의 "다른 회원 복제 허용" 여부를 토글 — 다이어리별 설정이 아니라 계획 자체의
+  // 속성이므로 travelPlans에 바로 반영하고, 드롭다운이 참조하는 userPlans 캐시도 함께 갱신해
+  // 체크 상태가 화면에 즉시 반영되도록 함
+  const handleToggleLinkedPlanAllowClone = (planId: string, allowClone: boolean) => {
+    const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
+    localStorage.setItem('travelPlans', JSON.stringify(all.map(p => p.id === planId ? { ...p, allowClone } : p)));
+    setUserPlans(prev => prev.map(p => p.id === planId ? { ...p, allowClone } : p));
+  };
   const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(loadCurrentDiary);
   const [slidePhotoIndex, setSlidePhotoIndex] = useState(0);
   const [albums, setAlbums] = useState<Album[]>(loadAlbums);
@@ -1078,6 +1090,19 @@ export default function TravelDiary() {
                       </Button>
                     )}
                   </div>
+                  {editData.linkedPlanId && (
+                    <label className="flex items-start gap-3 p-3 rounded-xl border border-border bg-secondary/50 cursor-pointer mt-2">
+                      <Checkbox
+                        checked={!!userPlans.find(p => p.id === editData.linkedPlanId)?.allowClone}
+                        onCheckedChange={(checked) => handleToggleLinkedPlanAllowClone(editData.linkedPlanId!, checked === true)}
+                        className="mt-0.5"
+                      />
+                      <span className="text-sm">
+                        <span className="font-semibold text-foreground block">{t('diary.newDialog.allowCloneLabel')}</span>
+                        <span className="text-muted-foreground text-xs">{t('diary.newDialog.allowCloneDescription')}</span>
+                      </span>
+                    </label>
+                  )}
                 </div>
               )}
 
@@ -2212,6 +2237,19 @@ export default function TravelDiary() {
                     </Button>
                   )}
                 </div>
+                {newLinkedPlanId && (
+                  <label className="flex items-start gap-3 p-3 rounded-xl border border-border bg-secondary/50 cursor-pointer mt-2">
+                    <Checkbox
+                      checked={!!userPlans.find(p => p.id === newLinkedPlanId)?.allowClone}
+                      onCheckedChange={(checked) => handleToggleLinkedPlanAllowClone(newLinkedPlanId, checked === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm">
+                      <span className="font-semibold text-foreground block">{t('diary.newDialog.allowCloneLabel')}</span>
+                      <span className="text-muted-foreground text-xs">{t('diary.newDialog.allowCloneDescription')}</span>
+                    </span>
+                  </label>
+                )}
               </div>
             )}
 
