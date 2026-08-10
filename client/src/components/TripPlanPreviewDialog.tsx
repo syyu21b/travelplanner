@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Plane, Clock, Hotel, Backpack, MapPin, CheckCircle2, Circle, Info } from 'lucide-react';
@@ -41,6 +42,8 @@ interface TripPlanPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   plan: TripPlanPreviewData | null;
+  /** 닫기 버튼 옆에 함께 보여줄 추가 액션(예: 커뮤니티의 "내 계획에 추가" 버튼) — 기본적으로는 미리보기 전용이므로 생략 가능 */
+  extraAction?: ReactNode;
 }
 
 function splitPreparationItems(preparations?: string[]): string[] {
@@ -65,7 +68,7 @@ function getUniquePreparationLabels(schedules: TripPlanPreviewScheduleItem[]): s
 
 // 여행 기록과 커뮤니티에서 연결된 여행 계획을 볼 때 항상 같은 화면(여행 기간/전체 일정/숙소/예산/준비물)이
 // 보이도록 두 페이지가 공유하는 단일 컴포넌트 — 각 페이지는 자신의 TravelPlan 데이터를 이 형태로 변환해 넘기기만 하면 됨
-export function TripPlanPreviewDialog({ open, onOpenChange, plan }: TripPlanPreviewDialogProps) {
+export function TripPlanPreviewDialog({ open, onOpenChange, plan, extraAction }: TripPlanPreviewDialogProps) {
   const { t } = useLanguage();
 
   const getCategoryColor = (category: string) => {
@@ -227,9 +230,12 @@ export function TripPlanPreviewDialog({ open, onOpenChange, plan }: TripPlanPrev
             </div>
 
             {/* 버튼 */}
-            <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full">
-              {t('diary.common.close')}
-            </Button>
+            <div className="flex gap-2">
+              {extraAction}
+              <Button onClick={() => onOpenChange(false)} variant="outline" className="flex-1">
+                {t('diary.common.close')}
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>

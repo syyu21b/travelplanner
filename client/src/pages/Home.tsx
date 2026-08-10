@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import {
   Plus, Trash2, Download, Share2, MapPin, DollarSign,
@@ -127,6 +128,8 @@ interface TravelPlan {
   totalBudgetAmount?: number;
   /** AI로 계획을 생성할 때 선택한 인원수(1~10명) — 예산 탭에서 1인당 예산 계산에 사용됨 */
   travelers?: number;
+  /** 커뮤니티/다이어리에 이 계획이 연결되어 공개됐을 때, 다른 회원이 자신의 여행 계획으로 복제해갈 수 있도록 작성자가 허용했는지 여부. 기본값은 false(비허용) */
+  allowClone?: boolean;
 }
 
 // /api/plan-trip 응답 형태 (server/gemini.ts의 Itinerary와 동일한 구조를 클라이언트에서 느슨하게 재정의).
@@ -252,6 +255,7 @@ function normalizePlan(p: TravelPlan): TravelPlan {
     shoppingList: p.shoppingList ?? [],
     accommodations: p.accommodations ?? [],
     flights: p.flights ?? [],
+    allowClone: p.allowClone === true,
   };
 }
 
@@ -1411,6 +1415,7 @@ export default function Home() {
       accommodations: source.accommodations?.map(a => ({ ...a, id: newId() })),
       flights: source.flights?.map(f => ({ ...f, id: newId() })),
       preparationChecks: {},
+      allowClone: false,
     };
 
     updateTravelPlans([...travelPlans, duplicated]);
@@ -3205,6 +3210,23 @@ export default function Home() {
                 >
                   <Share2 className="w-4 h-4" /> {t('home.shareDialog.copyLinkOption')}
                 </Button>
+
+                {currentPlan && (
+                  <label className="flex items-start gap-3 p-3 rounded-xl border border-border bg-secondary/50 cursor-pointer">
+                    <Checkbox
+                      checked={!!currentPlan.allowClone}
+                      onCheckedChange={(checked) => {
+                        updateCurrentPlan({ ...currentPlan, allowClone: checked === true });
+                        toast.success(checked === true ? t('home.shareDialog.allowCloneOn') : t('home.shareDialog.allowCloneOff'));
+                      }}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm">
+                      <span className="font-semibold text-foreground block">{t('home.shareDialog.allowCloneLabel')}</span>
+                      <span className="text-muted-foreground text-xs">{t('home.shareDialog.allowCloneDescription')}</span>
+                    </span>
+                  </label>
+                )}
               </div>
             </DialogContent>
           </Dialog>

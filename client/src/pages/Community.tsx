@@ -7,7 +7,7 @@ import {
   Heart, MessageCircle, Share2, Search, Globe, MapPin,
   Calendar, Camera, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight,
   Send, Trash2, Flag, TrendingUp, Clock, Users, Star,
-  Filter, SortAsc, Plane, BookOpen, Edit2, Check, X, Shield
+  Filter, SortAsc, Plane, BookOpen, Edit2, Check, X, Shield, Copy
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StarRatingDisplay } from '@/components/StarRating';
@@ -52,16 +52,44 @@ interface PlanAccommodation {
   checkOutTime?: string;
 }
 
+interface PlanBudgetItem {
+  id: string;
+  amount: number;
+  category?: string;
+  description?: string;
+}
+
+interface PlanShoppingItem {
+  id: string;
+  item: string;
+  checked: boolean;
+  imageUrl?: string;
+  link?: string;
+}
+
+interface PlanFlightItem {
+  id: string;
+  [key: string]: unknown;
+}
+
 interface TravelPlan {
   id: string;
   userId: string;
   title: string;
   startDate: string;
   endDate: string;
+  region?: 'domestic' | 'overseas';
+  coverPhoto?: string;
   schedules: ScheduleItem[];
-  budgets?: { amount: number }[];
+  budgets?: PlanBudgetItem[];
+  shoppingList?: PlanShoppingItem[];
   accommodations?: PlanAccommodation[];
+  flights?: PlanFlightItem[];
   preparationChecks?: Record<string, boolean>;
+  totalBudgetAmount?: number;
+  travelers?: number;
+  /** 작성자가 이 계획을 커뮤니티에서 다른 회원이 복제해갈 수 있도록 허용했는지 여부 */
+  allowClone?: boolean;
 }
 
 interface DiaryEntry {
@@ -165,7 +193,7 @@ export default function Community() {
   // 원본 계획을 우선 사용하고(예산/숙소/준비물까지 볼 수 있음), 삭제/변경된 경우에만 기록 작성 시점의
   // 일정 스냅샷으로 대체 표시 — 여행 기록 페이지의 계획 미리보기와 동일한 우선순위를 써서, 같은 계획을
   // 어디서 보든(내 기록 vs 커뮤니티) 항상 같은 내용이 보이게 함
-  const getLinkedPlan = (diary: DiaryEntry): TripPlanPreviewData | null => {
+  const getLinkedPlan = (diary: DiaryEntry): (TripPlanPreviewData & { allowClone: boolean; ownerId: string }) | null => {
     if (diary.linkedPlanId) {
       const plans = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
       const live = plans.find(p => p.id === diary.linkedPlanId);
@@ -179,6 +207,9 @@ export default function Community() {
           accommodations: live.accommodations ?? [],
           preparationChecks: live.preparationChecks ?? {},
           isSnapshotOnly: false,
+          // 원본 계획이 살아있을 때만 복제 가능 여부를 신뢰할 수 있음(작성자가 이후 바꿨을 수 있으므로)
+          allowClone: live.allowClone === true,
+          ownerId: live.userId,
         };
       }
     }
@@ -192,9 +223,64 @@ export default function Community() {
         accommodations: [],
         preparationChecks: {},
         isSnapshotOnly: true,
+        // 원본이 삭제되어 스냅샷만 남은 경우 최신 복제 허용 여부를 알 수 없으므로 항상 복제 불가로 취급
+        allowClone: false,
+        ownerId: diary.userId,
       };
     }
     return null;
+  };
+
+  // 커뮤니티에 공개된 다른 회원의 여행 계획을 복제해 내 "여행 계획" 목록에 추가.
+  // 원본이 아직 살아있고(원본 삭제 시 스냅샷만 남아 허용 여부를 신뢰할 수 없음) 작성자가
+  // 체크박스로 복제를 허용한 경우에만 호출됨 — 하위 항목들은 Home.tsx의 자체 계획 복제 로직과
+  // 동일하게 id를 모두 새로 발급해 원본과 완전히 독립된 사본으로 만든다.
+  const handleClonePlanToMyPlans = (diary: DiaryEntry) => {
+    if (!user) {
+      toast.error(t('session.loginRequired'));
+      return;
+    }
+    if (!diary.linkedPlanId) return;
+
+    let plans: TravelPlan[];
+    try {
+      plans = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
+    } catch {
+      toast.error(t('community.detail.cloneFailed'));
+      return;
+    }
+    const source = plans.find(p => p.id === diary.linkedPlanId);
+    if (!source || source.allowClone !== true) {
+      toast.error(t('community.detail.cloneNotAllowed'));
+      return;
+    }
+    if (source.userId === user.id) {
+      toast.error(t('community.detail.cloneOwnPlan'));
+      return;
+    }
+
+    const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const cloned: TravelPlan = {
+      ...source,
+      id: newId(),
+      userId: user.id,
+      title: `${source.title}${t('home.planList.copySuffix')}`,
+      schedules: (source.schedules ?? []).map(s => ({ ...s, id: newId(), completed: false })),
+      budgets: (source.budgets ?? []).map(b => ({ ...b, id: newId() })),
+      shoppingList: (source.shoppingList ?? []).map(s => ({ ...s, id: newId(), checked: false })),
+      accommodations: (source.accommodations ?? []).map(a => ({ ...a, id: newId() })),
+      flights: (source.flights ?? []).map(f => ({ ...f, id: newId() })),
+      preparationChecks: {},
+      allowClone: false,
+    };
+
+    try {
+      localStorage.setItem('travelPlans', JSON.stringify([...plans, cloned]));
+      toast.success(t('community.detail.clonedToMyPlans'));
+    } catch (err) {
+      console.error('Failed to clone plan to my plans:', err);
+      toast.error(t('community.detail.cloneStorageFull'));
+    }
   };
 
   // 댓글 임시 저장 로드
@@ -534,6 +620,8 @@ export default function Community() {
     const cmts = diaryComments(diary.id);
     const isLiked = user ? diary.likes.includes(user.id) : false;
     const isSaved = savedDiaries.includes(diary.id);
+    const linkedPlan = getLinkedPlan(diary);
+    const canClonePlan = !!linkedPlan && !linkedPlan.isSnapshotOnly && linkedPlan.allowClone && linkedPlan.ownerId !== user?.id;
 
     // 댓글 임시 저장 로드
     if (!commentText && selectedDiary.id) {
@@ -706,17 +794,28 @@ export default function Community() {
 
           {/* Linked plan */}
           {diary.linkedPlanTitle && (
-            <button
-              onClick={() => setShowPlanSchedule(true)}
-              className="w-full mb-6 p-4 bg-secondary rounded-xl border border-border flex items-center gap-3 text-left hover:border-primary transition"
-            >
-              <Plane className="w-5 h-5 text-primary flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">{t('community.detail.linkedPlan')}</p>
-                <p className="font-semibold text-foreground truncate">{diary.linkedPlanTitle}</p>
-              </div>
-              <span className="text-xs font-semibold text-primary flex-shrink-0">{t('community.detail.viewSchedule')}</span>
-            </button>
+            <div className="mb-6 space-y-2">
+              <button
+                onClick={() => setShowPlanSchedule(true)}
+                className="w-full p-4 bg-secondary rounded-xl border border-border flex items-center gap-3 text-left hover:border-primary transition"
+              >
+                <Plane className="w-5 h-5 text-primary flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">{t('community.detail.linkedPlan')}</p>
+                  <p className="font-semibold text-foreground truncate">{diary.linkedPlanTitle}</p>
+                </div>
+                <span className="text-xs font-semibold text-primary flex-shrink-0">{t('community.detail.viewSchedule')}</span>
+              </button>
+              {canClonePlan && (
+                <Button
+                  onClick={() => handleClonePlanToMyPlans(diary)}
+                  variant="outline"
+                  className="w-full gap-2 border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <Copy className="w-4 h-4" /> {t('community.detail.addToMyPlans')}
+                </Button>
+              )}
+            </div>
           )}
 
           {/* Interactions */}
@@ -939,7 +1038,16 @@ export default function Community() {
         <TripPlanPreviewDialog
           open={showPlanSchedule}
           onOpenChange={setShowPlanSchedule}
-          plan={getLinkedPlan(diary)}
+          plan={linkedPlan}
+          extraAction={canClonePlan ? (
+            <Button
+              onClick={() => { handleClonePlanToMyPlans(diary); setShowPlanSchedule(false); }}
+              variant="outline"
+              className="flex-1 gap-2 border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Copy className="w-4 h-4" /> {t('community.detail.addToMyPlans')}
+            </Button>
+          ) : undefined}
         />
       </div>
     );
