@@ -892,7 +892,7 @@ export default function MyPage() {
 
           {/* ── 보안 설정 탭 ── */}
           {activeTab === 'security' && (
-            <div className="max-w-lg">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
                   <Lock className="w-5 h-5 text-primary" /> {t('mypage.security.changePwTitle')}
@@ -991,7 +991,7 @@ export default function MyPage() {
                 </div>
               </Card>
 
-              <Card className="p-5 mt-4 bg-blue-50 border-blue-200">
+              <Card className="p-5 bg-blue-50 border-blue-200">
                 <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
                   <Shield className="w-4 h-4" /> {t('mypage.security.guideTitle')}
                 </h4>
@@ -1007,7 +1007,7 @@ export default function MyPage() {
 
           {/* ── 여권 정보 탭 ── */}
           {activeTab === 'passport' && (
-            <div className="max-w-2xl">
+            <div>
               {!passportUnlocked ? (
                 <Card className="p-8 bg-white text-center">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -1148,7 +1148,7 @@ export default function MyPage() {
 
           {/* ── 계정 관리 탭 ── */}
           {activeTab === 'account' && (
-            <div className="max-w-lg space-y-4">
+            <div className="space-y-4">
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
                   <User className="w-5 h-5 text-primary" /> {t('mypage.account.infoTitle')}
@@ -1204,7 +1204,7 @@ export default function MyPage() {
 
           {/* ── 설정 탭 ── */}
           {activeTab === 'settings' && (
-            <div className="max-w-lg space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* 언어 설정 카드 */}
               <Card className="p-6 bg-white">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
