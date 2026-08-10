@@ -4965,18 +4965,11 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
           {t('home.shopping.form.productLinkLabel')}
         </label>
         <Input placeholder="https://..." value={link} onChange={e => setLink(e.target.value)} className="h-11" />
+      </div>
 
-
-
-    </div>
-
-      <Button onClick={handleSubmit} className="w-full bg-primary hover:bg-secondary0 text-white gap-2 h-11">
+      <Button onClick={handleSubmit} className="w-full bg-primary hover:bg-primary/90 text-white gap-2 h-11">
         <Plus className="w-4 h-4" /> {t('home.shopping.form.submitButton')}
       </Button>
-
-
-          )
-
     </div>
   );
 }
