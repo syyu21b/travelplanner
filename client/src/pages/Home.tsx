@@ -2100,11 +2100,11 @@ export default function Home() {
         <>
           {/* ── 히어로 ── */}
           <div
-            className="w-full min-h-[360px] md:min-h-[420px] relative"
-            style={{ backgroundImage: 'url(/hero-travel.jpg)', backgroundSize: 'cover', backgroundPosition: '75% top' }}
+            className="w-full min-h-[360px] md:min-h-[420px] relative overflow-hidden"
+            style={{ backgroundImage: 'url(/hero-travel.jpg)', backgroundSize: 'cover', backgroundPosition: '75% 20%' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
-            <div className="relative flex flex-col justify-center px-5 sm:px-8 md:px-16 py-16 md:py-0 min-h-[360px] md:min-h-[420px] max-w-5xl">
+            <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-8 md:px-16 py-16 md:py-0 max-w-5xl">
               <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-lg max-w-xl">
                 {t('home.hero.titleLine1')}<br />{t('home.hero.titleLine2')}
               </h1>
