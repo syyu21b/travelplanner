@@ -2101,7 +2101,7 @@ export default function Home() {
           {/* ── 히어로 ── */}
           <div
             className="w-full min-h-[360px] md:min-h-[420px] relative"
-            style={{ backgroundImage: 'url(/hero-travel.svg)', backgroundSize: 'cover', backgroundPosition: 'center top' }}
+            style={{ backgroundImage: 'url(/hero-travel.jpg)', backgroundSize: 'cover', backgroundPosition: '75% top' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
             <div className="relative flex flex-col justify-center px-5 sm:px-8 md:px-16 py-16 md:py-0 min-h-[360px] md:min-h-[420px] max-w-5xl">
