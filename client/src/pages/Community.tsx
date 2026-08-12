@@ -1076,18 +1076,6 @@ export default function Community() {
               <p className="text-sm text-amber-900/60 font-semibold mt-0.5">{t('community.stats.totalReviews')}</p>
             </div>
           </Card>
-          <Card className="relative overflow-hidden p-5 border-sky-200/60 bg-gradient-to-br from-sky-50 via-blue-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-sky-200/40 group-hover:scale-125 transition-transform duration-500" />
-            <div className="relative">
-              <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 text-white flex items-center justify-center mb-2 shadow-md shadow-sky-500/30">
-                <Users className="w-5 h-5" />
-              </div>
-              <p className="text-2xl font-black text-sky-700">
-                {[...new Set(publicDiaries.map(d => d.userId))].length}
-              </p>
-              <p className="text-sm text-sky-900/60 font-semibold mt-0.5">{t('community.stats.travelers')}</p>
-            </div>
-          </Card>
           <Card className="relative overflow-hidden p-5 border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-teal-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
             <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-emerald-200/40 group-hover:scale-125 transition-transform duration-500" />
             <div className="relative">
@@ -1098,6 +1086,18 @@ export default function Community() {
                 {[...new Set(publicDiaries.map(d => d.location))].length}
               </p>
               <p className="text-sm text-emerald-900/60 font-semibold mt-0.5">{t('community.stats.destinations')}</p>
+            </div>
+          </Card>
+          <Card className="relative overflow-hidden p-5 border-sky-200/60 bg-gradient-to-br from-sky-50 via-blue-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-sky-200/40 group-hover:scale-125 transition-transform duration-500" />
+            <div className="relative">
+              <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 text-white flex items-center justify-center mb-2 shadow-md shadow-sky-500/30">
+                <Users className="w-5 h-5" />
+              </div>
+              <p className="text-2xl font-black text-sky-700">
+                {[...new Set(publicDiaries.map(d => d.userId))].length}
+              </p>
+              <p className="text-sm text-sky-900/60 font-semibold mt-0.5">{t('community.stats.travelers')}</p>
             </div>
           </Card>
         </div>

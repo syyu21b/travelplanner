@@ -2107,15 +2107,27 @@ export default function TravelDiary() {
             {/* Album Stats */}
             {myAlbums.length > 0 && (
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <Card className="p-4 bg-white border-border text-center">
-                  <p className="text-3xl font-black text-primary">{myAlbums.length}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{t('diary.album.stats.totalAlbums')}</p>
+                <Card className="relative overflow-hidden p-5 border-violet-200/60 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-violet-200/40 group-hover:scale-125 transition-transform duration-500" />
+                  <div className="relative">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-violet-400 to-fuchsia-500 text-white flex items-center justify-center mb-2 shadow-md shadow-violet-500/30">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
+                    <p className="text-3xl font-black text-violet-700">{myAlbums.length}</p>
+                    <p className="text-sm text-violet-900/60 font-semibold mt-0.5">{t('diary.album.stats.totalAlbums')}</p>
+                  </div>
                 </Card>
-                <Card className="p-4 bg-white border-border text-center">
-                  <p className="text-3xl font-black text-primary">
-                    {myAlbums.reduce((sum, a) => sum + a.photos.length, 0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">{t('diary.album.stats.totalMedia')}</p>
+                <Card className="relative overflow-hidden p-5 border-rose-200/60 bg-gradient-to-br from-rose-50 via-orange-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-rose-200/40 group-hover:scale-125 transition-transform duration-500" />
+                  <div className="relative">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-rose-400 to-orange-500 text-white flex items-center justify-center mb-2 shadow-md shadow-rose-500/30">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    <p className="text-3xl font-black text-rose-700">
+                      {myAlbums.reduce((sum, a) => sum + a.photos.length, 0)}
+                    </p>
+                    <p className="text-sm text-rose-900/60 font-semibold mt-0.5">{t('diary.album.stats.totalMedia')}</p>
+                  </div>
                 </Card>
               </div>
             )}
