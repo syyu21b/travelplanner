@@ -1975,21 +1975,39 @@ export default function TravelDiary() {
             {/* Stats */}
             {myDiaries.length > 0 && (
               <div className="grid grid-cols-3 gap-4 mb-8">
-                <Card className="p-4 bg-white border-border text-center">
-                  <p className="text-3xl font-black text-primary">{myDiaries.length}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalEntries')}</p>
+                <Card className="relative overflow-hidden p-5 border-amber-200/60 bg-gradient-to-br from-amber-50 via-orange-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-amber-200/40 group-hover:scale-125 transition-transform duration-500" />
+                  <div className="relative">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center mb-2 shadow-md shadow-amber-500/30">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <p className="text-3xl font-black text-amber-700">{myDiaries.length}</p>
+                    <p className="text-sm text-amber-900/60 font-semibold mt-0.5">{t('diary.stats.totalEntries')}</p>
+                  </div>
                 </Card>
-                <Card className="p-4 bg-white border-border text-center">
-                  <p className="text-3xl font-black text-primary">
-                    {[...new Set(myDiaries.map(d => d.location))].length}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.visitedPlaces')}</p>
+                <Card className="relative overflow-hidden p-5 border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-teal-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-emerald-200/40 group-hover:scale-125 transition-transform duration-500" />
+                  <div className="relative">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white flex items-center justify-center mb-2 shadow-md shadow-emerald-500/30">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <p className="text-3xl font-black text-emerald-700">
+                      {[...new Set(myDiaries.map(d => d.location))].length}
+                    </p>
+                    <p className="text-sm text-emerald-900/60 font-semibold mt-0.5">{t('diary.stats.visitedPlaces')}</p>
+                  </div>
                 </Card>
-                <Card className="p-4 bg-white border-border text-center">
-                  <p className="text-3xl font-black text-primary">
-                    {myDiaries.reduce((sum, d) => sum + d.photos.length, 0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">{t('diary.stats.totalPhotos')}</p>
+                <Card className="relative overflow-hidden p-5 border-sky-200/60 bg-gradient-to-br from-sky-50 via-blue-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-sky-200/40 group-hover:scale-125 transition-transform duration-500" />
+                  <div className="relative">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 text-white flex items-center justify-center mb-2 shadow-md shadow-sky-500/30">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    <p className="text-3xl font-black text-sky-700">
+                      {myDiaries.reduce((sum, d) => sum + d.photos.length, 0)}
+                    </p>
+                    <p className="text-sm text-sky-900/60 font-semibold mt-0.5">{t('diary.stats.totalPhotos')}</p>
+                  </div>
                 </Card>
               </div>
             )}
