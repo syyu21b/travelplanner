@@ -330,8 +330,8 @@ export default function MyPage() {
     <div className="min-h-screen bg-[#F9F7F2]">
       {/* 프로필 헤더 배너 */}
       <div
-        className="relative overflow-hidden pt-10 pb-16 bg-[#5b4636]"
-        style={{ backgroundImage: 'url(/hero-travel.jpg)', backgroundSize: 'cover', backgroundPosition: '75% 20%' }}
+        className="relative overflow-hidden flex items-center pt-10 pb-16 min-h-[260px] sm:min-h-[300px] bg-[#5b4636]"
+        style={{ backgroundImage: 'url(/hero-travel.jpg)', backgroundSize: 'cover', backgroundPosition: '75% 24%' }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-black/65 via-black/40 to-black/55" />
         <div className="container mx-auto px-4 max-w-4xl relative">
