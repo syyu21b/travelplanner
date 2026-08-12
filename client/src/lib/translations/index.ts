@@ -4,6 +4,7 @@ import { diary } from "./diary";
 import { community } from "./community";
 import { mypage } from "./mypage";
 import { auth } from "./auth";
+import { footer } from "./footer";
 
 export const translations = {
   ko: {
@@ -13,6 +14,7 @@ export const translations = {
     community: community.ko,
     mypage: mypage.ko,
     auth: auth.ko,
+    footer: footer.ko,
   },
   en: {
     ...common.en,
@@ -21,5 +23,6 @@ export const translations = {
     community: community.en,
     mypage: mypage.en,
     auth: auth.en,
+    footer: footer.en,
   },
 };
