@@ -1975,38 +1975,41 @@ export default function TravelDiary() {
             {/* Stats */}
             {myDiaries.length > 0 && (
               <div className="grid grid-cols-3 gap-4 mb-8">
-                <Card className="relative overflow-hidden p-5 border-amber-200/60 bg-gradient-to-br from-amber-50 via-orange-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-amber-200/40 group-hover:scale-125 transition-transform duration-500" />
-                  <div className="relative">
-                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center mb-2 shadow-md shadow-amber-500/30">
+                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-orange-400" />
+                  <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-300/25 blur-2xl group-hover:bg-amber-300/40 transition-colors duration-500" />
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-11 h-11 rounded-2xl bg-amber-50 ring-1 ring-amber-200 text-amber-600 flex items-center justify-center mb-3">
                       <BookOpen className="w-5 h-5" />
                     </div>
-                    <p className="text-3xl font-black text-amber-700">{myDiaries.length}</p>
-                    <p className="text-sm text-amber-900/60 font-semibold mt-0.5">{t('diary.stats.totalEntries')}</p>
+                    <p className="text-3xl font-black tracking-tight text-foreground">{myDiaries.length}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-amber-600/80 mt-1.5">{t('diary.stats.totalEntries')}</p>
                   </div>
                 </Card>
-                <Card className="relative overflow-hidden p-5 border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-teal-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-emerald-200/40 group-hover:scale-125 transition-transform duration-500" />
-                  <div className="relative">
-                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white flex items-center justify-center mb-2 shadow-md shadow-emerald-500/30">
+                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-400" />
+                  <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-emerald-300/25 blur-2xl group-hover:bg-emerald-300/40 transition-colors duration-500" />
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-600 flex items-center justify-center mb-3">
                       <MapPin className="w-5 h-5" />
                     </div>
-                    <p className="text-3xl font-black text-emerald-700">
+                    <p className="text-3xl font-black tracking-tight text-foreground">
                       {[...new Set(myDiaries.map(d => d.location))].length}
                     </p>
-                    <p className="text-sm text-emerald-900/60 font-semibold mt-0.5">{t('diary.stats.visitedPlaces')}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/80 mt-1.5">{t('diary.stats.visitedPlaces')}</p>
                   </div>
                 </Card>
-                <Card className="relative overflow-hidden p-5 border-sky-200/60 bg-gradient-to-br from-sky-50 via-blue-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-sky-200/40 group-hover:scale-125 transition-transform duration-500" />
-                  <div className="relative">
-                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 text-white flex items-center justify-center mb-2 shadow-md shadow-sky-500/30">
+                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-sky-400 to-blue-400" />
+                  <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-sky-300/25 blur-2xl group-hover:bg-sky-300/40 transition-colors duration-500" />
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-11 h-11 rounded-2xl bg-sky-50 ring-1 ring-sky-200 text-sky-600 flex items-center justify-center mb-3">
                       <Camera className="w-5 h-5" />
                     </div>
-                    <p className="text-3xl font-black text-sky-700">
+                    <p className="text-3xl font-black tracking-tight text-foreground">
                       {myDiaries.reduce((sum, d) => sum + d.photos.length, 0)}
                     </p>
-                    <p className="text-sm text-sky-900/60 font-semibold mt-0.5">{t('diary.stats.totalPhotos')}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-sky-600/80 mt-1.5">{t('diary.stats.totalPhotos')}</p>
                   </div>
                 </Card>
               </div>
@@ -2107,26 +2110,28 @@ export default function TravelDiary() {
             {/* Album Stats */}
             {myAlbums.length > 0 && (
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <Card className="relative overflow-hidden p-5 border-violet-200/60 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-violet-200/40 group-hover:scale-125 transition-transform duration-500" />
-                  <div className="relative">
-                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-violet-400 to-fuchsia-500 text-white flex items-center justify-center mb-2 shadow-md shadow-violet-500/30">
+                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-violet-400 to-fuchsia-400" />
+                  <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-violet-300/25 blur-2xl group-hover:bg-violet-300/40 transition-colors duration-500" />
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-11 h-11 rounded-2xl bg-violet-50 ring-1 ring-violet-200 text-violet-600 flex items-center justify-center mb-3">
                       <ImageIcon className="w-5 h-5" />
                     </div>
-                    <p className="text-3xl font-black text-violet-700">{myAlbums.length}</p>
-                    <p className="text-sm text-violet-900/60 font-semibold mt-0.5">{t('diary.album.stats.totalAlbums')}</p>
+                    <p className="text-3xl font-black tracking-tight text-foreground">{myAlbums.length}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-violet-600/80 mt-1.5">{t('diary.album.stats.totalAlbums')}</p>
                   </div>
                 </Card>
-                <Card className="relative overflow-hidden p-5 border-rose-200/60 bg-gradient-to-br from-rose-50 via-orange-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-rose-200/40 group-hover:scale-125 transition-transform duration-500" />
-                  <div className="relative">
-                    <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-rose-400 to-orange-500 text-white flex items-center justify-center mb-2 shadow-md shadow-rose-500/30">
+                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-rose-400 to-orange-400" />
+                  <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-rose-300/25 blur-2xl group-hover:bg-rose-300/40 transition-colors duration-500" />
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-11 h-11 rounded-2xl bg-rose-50 ring-1 ring-rose-200 text-rose-600 flex items-center justify-center mb-3">
                       <Camera className="w-5 h-5" />
                     </div>
-                    <p className="text-3xl font-black text-rose-700">
+                    <p className="text-3xl font-black tracking-tight text-foreground">
                       {myAlbums.reduce((sum, a) => sum + a.photos.length, 0)}
                     </p>
-                    <p className="text-sm text-rose-900/60 font-semibold mt-0.5">{t('diary.album.stats.totalMedia')}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-rose-600/80 mt-1.5">{t('diary.album.stats.totalMedia')}</p>
                   </div>
                 </Card>
               </div>

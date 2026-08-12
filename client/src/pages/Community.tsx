@@ -1066,38 +1066,41 @@ export default function Community() {
 
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <Card className="relative overflow-hidden p-5 border-amber-200/60 bg-gradient-to-br from-amber-50 via-orange-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-amber-200/40 group-hover:scale-125 transition-transform duration-500" />
-            <div className="relative">
-              <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center mb-2 shadow-md shadow-amber-500/30">
+          <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-orange-400" />
+            <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-300/25 blur-2xl group-hover:bg-amber-300/40 transition-colors duration-500" />
+            <div className="relative flex flex-col items-center">
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 ring-1 ring-amber-200 text-amber-600 flex items-center justify-center mb-3">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <p className="text-2xl font-black text-amber-700">{publicDiaries.length}</p>
-              <p className="text-sm text-amber-900/60 font-semibold mt-0.5">{t('community.stats.totalReviews')}</p>
+              <p className="text-3xl font-black tracking-tight text-foreground">{publicDiaries.length}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-600/80 mt-1.5">{t('community.stats.totalReviews')}</p>
             </div>
           </Card>
-          <Card className="relative overflow-hidden p-5 border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-teal-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-emerald-200/40 group-hover:scale-125 transition-transform duration-500" />
-            <div className="relative">
-              <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white flex items-center justify-center mb-2 shadow-md shadow-emerald-500/30">
+          <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-400" />
+            <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-emerald-300/25 blur-2xl group-hover:bg-emerald-300/40 transition-colors duration-500" />
+            <div className="relative flex flex-col items-center">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-600 flex items-center justify-center mb-3">
                 <MapPin className="w-5 h-5" />
               </div>
-              <p className="text-2xl font-black text-emerald-700">
+              <p className="text-3xl font-black tracking-tight text-foreground">
                 {[...new Set(publicDiaries.map(d => d.location))].length}
               </p>
-              <p className="text-sm text-emerald-900/60 font-semibold mt-0.5">{t('community.stats.destinations')}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/80 mt-1.5">{t('community.stats.destinations')}</p>
             </div>
           </Card>
-          <Card className="relative overflow-hidden p-5 border-sky-200/60 bg-gradient-to-br from-sky-50 via-blue-50 to-white text-center group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute -right-5 -top-5 w-24 h-24 rounded-full bg-sky-200/40 group-hover:scale-125 transition-transform duration-500" />
-            <div className="relative">
-              <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 text-white flex items-center justify-center mb-2 shadow-md shadow-sky-500/30">
+          <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-sky-400 to-blue-400" />
+            <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-sky-300/25 blur-2xl group-hover:bg-sky-300/40 transition-colors duration-500" />
+            <div className="relative flex flex-col items-center">
+              <div className="w-11 h-11 rounded-2xl bg-sky-50 ring-1 ring-sky-200 text-sky-600 flex items-center justify-center mb-3">
                 <Users className="w-5 h-5" />
               </div>
-              <p className="text-2xl font-black text-sky-700">
+              <p className="text-3xl font-black tracking-tight text-foreground">
                 {[...new Set(publicDiaries.map(d => d.userId))].length}
               </p>
-              <p className="text-sm text-sky-900/60 font-semibold mt-0.5">{t('community.stats.travelers')}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-sky-600/80 mt-1.5">{t('community.stats.travelers')}</p>
             </div>
           </Card>
         </div>
@@ -1121,23 +1124,29 @@ export default function Community() {
               <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
                 <SortAsc className="w-4 h-4 text-primary" /> {t('community.sort.title')}
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {([
-                  { value: 'latest', label: t('community.sort.latest'), icon: Clock, active: 'bg-gradient-to-r from-sky-400 to-blue-500 shadow-md shadow-sky-500/30' },
-                  { value: 'popular', label: t('community.sort.popular'), icon: TrendingUp, active: 'bg-gradient-to-r from-rose-400 to-orange-500 shadow-md shadow-rose-500/30' },
-                  { value: 'comments', label: t('community.sort.comments'), icon: MessageCircle, active: 'bg-gradient-to-r from-violet-400 to-purple-500 shadow-md shadow-violet-500/30' },
-                ] as const).map(({ value, label, icon: Icon, active }) => (
+                  { value: 'latest', label: t('community.sort.latest'), icon: Clock, bg: 'bg-sky-50', text: 'text-sky-700', iconBg: 'bg-sky-500', ring: 'ring-1 ring-sky-200' },
+                  { value: 'popular', label: t('community.sort.popular'), icon: TrendingUp, bg: 'bg-rose-50', text: 'text-rose-700', iconBg: 'bg-rose-500', ring: 'ring-1 ring-rose-200' },
+                  { value: 'comments', label: t('community.sort.comments'), icon: MessageCircle, bg: 'bg-violet-50', text: 'text-violet-700', iconBg: 'bg-violet-500', ring: 'ring-1 ring-violet-200' },
+                ] as const).map(({ value, label, icon: Icon, bg, text, iconBg, ring }) => (
                   <button
                     key={value}
                     onClick={() => setSortBy(value)}
                     className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
+                      "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200",
                       sortBy === value
-                        ? `${active} text-white`
-                        : "text-muted-foreground hover:bg-secondary hover:translate-x-0.5"
+                        ? `${bg} ${text} ${ring}`
+                        : "text-muted-foreground hover:bg-secondary"
                     )}
                   >
-                    <Icon className="w-4 h-4" /> {label}
+                    <span className={cn(
+                      "w-6 h-6 rounded-lg flex items-center justify-center transition-colors duration-200",
+                      sortBy === value ? `${iconBg} text-white` : "bg-secondary text-muted-foreground"
+                    )}>
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    {label}
                   </button>
                 ))}
               </div>
@@ -1147,12 +1156,12 @@ export default function Community() {
             {allTags.length > 0 && (
               <Card className="p-4 bg-white border-border">
                 <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-fuchsia-400 to-primary flex items-center justify-center shadow-sm shadow-fuchsia-500/30">
-                    <Filter className="w-3.5 h-3.5 text-white" />
+                  <span className="w-6 h-6 rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200 text-fuchsia-600 flex items-center justify-center">
+                    <Filter className="w-3.5 h-3.5" />
                   </span>
                   {t('community.tags.title')}
                 </h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {selectedTag && (
                     <button
                       onClick={() => setSelectedTag('')}
@@ -1163,12 +1172,12 @@ export default function Community() {
                   )}
                   {allTags.map((tag, i) => {
                     const palette = [
-                      'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-500',
-                      'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-500',
-                      'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-500',
-                      'bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-500',
-                      'bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-500',
-                      'bg-teal-50 text-teal-600 border-teal-200 hover:bg-teal-500',
+                      'bg-rose-50 text-rose-600 ring-1 ring-rose-200 hover:bg-rose-500 hover:ring-rose-500',
+                      'bg-amber-50 text-amber-600 ring-1 ring-amber-200 hover:bg-amber-500 hover:ring-amber-500',
+                      'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 hover:bg-emerald-500 hover:ring-emerald-500',
+                      'bg-sky-50 text-sky-600 ring-1 ring-sky-200 hover:bg-sky-500 hover:ring-sky-500',
+                      'bg-violet-50 text-violet-600 ring-1 ring-violet-200 hover:bg-violet-500 hover:ring-violet-500',
+                      'bg-teal-50 text-teal-600 ring-1 ring-teal-200 hover:bg-teal-500 hover:ring-teal-500',
                     ];
                     const colorClasses = palette[i % palette.length];
                     return (
@@ -1176,9 +1185,9 @@ export default function Community() {
                         key={tag}
                         onClick={() => setSelectedTag(tag === selectedTag ? '' : tag)}
                         className={cn(
-                          "px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 hover:text-white hover:shadow-sm hover:scale-105",
+                          "px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 hover:text-white hover:shadow-sm",
                           selectedTag === tag
-                            ? "bg-primary text-white border-primary shadow-sm"
+                            ? "bg-primary text-white ring-1 ring-primary shadow-sm"
                             : colorClasses
                         )}
                       >
@@ -1192,14 +1201,14 @@ export default function Community() {
 
             {/* Saved */}
             {savedDiaries.length > 0 && (
-              <Card className="p-4 bg-gradient-to-br from-pink-50/60 via-white to-white border-pink-200/60">
+              <Card className="p-4 bg-white border-border">
                 <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center shadow-sm shadow-pink-500/30">
-                    <Bookmark className="w-3.5 h-3.5 text-white fill-white" />
+                  <span className="w-6 h-6 rounded-lg bg-pink-50 ring-1 ring-pink-200 text-pink-600 flex items-center justify-center">
+                    <Bookmark className="w-3.5 h-3.5 fill-pink-500" />
                   </span>
                   {t('community.saved.title', { count: savedDiaries.length })}
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {publicDiaries
                     .filter(d => savedDiaries.includes(d.id))
                     .slice(0, 3)
@@ -1209,13 +1218,13 @@ export default function Community() {
                         <button
                           key={d.id}
                           onClick={() => setSelectedDiary(d)}
-                          className="w-full text-left p-2 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-pink-200 transition-all duration-200 flex items-center gap-2.5"
+                          className="w-full text-left p-1.5 rounded-xl hover:bg-pink-50/60 border border-transparent hover:border-pink-100 transition-all duration-200 flex items-center gap-2.5"
                         >
                           {thumb ? (
-                            <img src={thumb.url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 ring-1 ring-pink-200/60" />
+                            <img src={thumb.url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 ring-1 ring-border" />
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-200 to-rose-200 flex items-center justify-center flex-shrink-0">
-                              <MapPin className="w-4 h-4 text-rose-500" />
+                            <div className="w-10 h-10 rounded-lg bg-pink-50 ring-1 ring-pink-200 flex items-center justify-center flex-shrink-0">
+                              <MapPin className="w-4 h-4 text-pink-500" />
                             </div>
                           )}
                           <div className="min-w-0">
