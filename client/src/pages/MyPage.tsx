@@ -329,8 +329,12 @@ export default function MyPage() {
   return (
     <div className="min-h-screen bg-[#F9F7F2]">
       {/* 프로필 헤더 배너 */}
-      <div className="bg-gradient-to-r from-primary via-[#6CA3C8] to-[#8B7355] pt-10 pb-16">
-        <div className="container mx-auto px-4 max-w-4xl">
+      <div
+        className="relative overflow-hidden pt-10 pb-16 bg-[#5b4636]"
+        style={{ backgroundImage: 'url(/hero-travel.jpg)', backgroundSize: 'cover', backgroundPosition: '75% 20%' }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-black/65 via-black/40 to-black/55" />
+        <div className="container mx-auto px-4 max-w-4xl relative">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
             {/* 아바타 */}
             <div className="relative flex-shrink-0">
@@ -354,14 +358,14 @@ export default function MyPage() {
             </div>
 
             {/* 이름 & 정보 */}
-            <div className="text-center sm:text-left text-white flex-1">
+            <div className="text-center sm:text-left text-white flex-1 drop-shadow-md">
               <div className="flex items-center gap-2 justify-center sm:justify-start">
                 <h1 className="text-2xl font-black">{user?.nickname}</h1>
                 {user?.isAdmin && <Crown className="w-5 h-5 text-amber-300" />}
               </div>
-              <p className="text-white/80 text-sm mt-1">@{user?.username}</p>
-              <p className="text-white/70 text-xs mt-0.5">{user?.email}</p>
-              <p className="text-white/60 text-xs mt-0.5">
+              <p className="text-white/90 text-sm mt-1">@{user?.username}</p>
+              <p className="text-white/80 text-xs mt-0.5">{user?.email}</p>
+              <p className="text-white/70 text-xs mt-0.5">
                 {t('mypage.header.joinedOn')} {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(dateLocale) : ''}
               </p>
             </div>
@@ -373,12 +377,12 @@ export default function MyPage() {
                 { label: t('mypage.stats.diaries'), value: myDiaries.length, icon: <BookOpen className="w-4 h-4" /> },
                 { label: t('mypage.stats.saved'), value: savedIds.length, icon: <Bookmark className="w-4 h-4" /> },
               ].map(stat => (
-                <div key={stat.label} className="bg-white/20 backdrop-blur rounded-xl px-4 py-3 min-w-[72px]">
-                  <div className="flex items-center justify-center gap-1 text-white/80 text-xs mb-1">
+                <div key={stat.label} className="bg-black/25 backdrop-blur-sm ring-1 ring-white/20 shadow-md rounded-xl px-4 py-3 min-w-[72px]">
+                  <div className="flex items-center justify-center gap-1 text-white/90 text-xs mb-1">
                     {stat.icon}
                   </div>
                   <p className="text-xl font-black text-white">{stat.value}</p>
-                  <p className="text-white/70 text-xs font-semibold">{stat.label}</p>
+                  <p className="text-white/80 text-xs font-semibold">{stat.label}</p>
                 </div>
               ))}
             </div>
