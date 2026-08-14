@@ -248,6 +248,8 @@ export default function TravelDiary() {
   );
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [diaryPage, setDiaryPage] = useState(1);
+  const [albumPage, setAlbumPage] = useState(1);
 
   // New diary form state
   const [newTitle, setNewTitle] = useState(draft?.title || '');
@@ -349,6 +351,17 @@ export default function TravelDiary() {
 
   const myDiaries = diaries.filter(d => d.userId === user?.id);
   const myAlbums = albums.filter(a => a.userId === user?.id);
+
+  const CARDS_PER_PAGE = 12;
+  const sortedMyDiaries = [...myDiaries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const totalDiaryPages = Math.max(1, Math.ceil(sortedMyDiaries.length / CARDS_PER_PAGE));
+  const diaryPageSafe = Math.min(diaryPage, totalDiaryPages);
+  const paginatedMyDiaries = sortedMyDiaries.slice((diaryPageSafe - 1) * CARDS_PER_PAGE, diaryPageSafe * CARDS_PER_PAGE);
+
+  const sortedMyAlbums = [...myAlbums].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const totalAlbumPages = Math.max(1, Math.ceil(sortedMyAlbums.length / CARDS_PER_PAGE));
+  const albumPageSafe = Math.min(albumPage, totalAlbumPages);
+  const paginatedMyAlbums = sortedMyAlbums.slice((albumPageSafe - 1) * CARDS_PER_PAGE, albumPageSafe * CARDS_PER_PAGE);
 
   // 슬라이드형 사진 인덱스 - 다른 기록을 열면 처음 사진으로 초기화
   useEffect(() => {
@@ -2035,10 +2048,9 @@ export default function TravelDiary() {
                 </Button>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {myDiaries
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .map(diary => {
+              <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedMyDiaries.map(diary => {
                     const cardThumb = diary.mainPhoto || diary.photos.find(p => p.type !== 'video');
                     return (
                     <Card
@@ -2103,6 +2115,41 @@ export default function TravelDiary() {
                     );
                   })}
               </div>
+
+              {totalDiaryPages > 1 && (
+                <div className="flex items-center justify-center flex-wrap gap-1.5 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setDiaryPage(p => Math.max(1, p - 1))}
+                    disabled={diaryPageSafe === 1}
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {Array.from({ length: totalDiaryPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setDiaryPage(page)}
+                      className={cn(
+                        "w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full text-sm font-bold transition",
+                        page === diaryPageSafe ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setDiaryPage(p => Math.min(totalDiaryPages, p + 1))}
+                    disabled={diaryPageSafe === totalDiaryPages}
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              </>
             )}
           </TabsContent>
 
@@ -2157,10 +2204,9 @@ export default function TravelDiary() {
                 </Button>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {myAlbums
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .map(album => {
+              <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedMyAlbums.map(album => {
                     const cardThumb = album.photos.find(p => p.type !== 'video') || album.photos[0];
                     return (
                     <Card
@@ -2198,6 +2244,41 @@ export default function TravelDiary() {
                     );
                   })}
               </div>
+
+              {totalAlbumPages > 1 && (
+                <div className="flex items-center justify-center flex-wrap gap-1.5 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setAlbumPage(p => Math.max(1, p - 1))}
+                    disabled={albumPageSafe === 1}
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {Array.from({ length: totalAlbumPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setAlbumPage(page)}
+                      className={cn(
+                        "w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full text-sm font-bold transition",
+                        page === albumPageSafe ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setAlbumPage(p => Math.min(totalAlbumPages, p + 1))}
+                    disabled={albumPageSafe === totalAlbumPages}
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              </>
             )}
           </TabsContent>
         </Tabs>
