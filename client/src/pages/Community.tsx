@@ -156,7 +156,7 @@ export default function Community() {
   const [filterBy, setFilterBy] = useState<FilterType>('all');
   const [selectedTag, setSelectedTag] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  const POSTS_PER_PAGE = 10;
+  const POSTS_PER_PAGE = 12;
   const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null);
   const [showPlanSchedule, setShowPlanSchedule] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -1256,7 +1256,7 @@ export default function Community() {
               </Card>
             ) : (
               <>
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {paginatedDiaries.map(diary => {
                   const cmtCount = diaryComments(diary.id).length;
                   const isLiked = user ? diary.likes.includes(user.id) : false;
@@ -1266,120 +1266,124 @@ export default function Community() {
                   return (
                     <Card
                       key={diary.id}
-                      className="bg-white border-border shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                      className="group relative bg-white border-border shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col p-0 gap-0"
                     >
-                      {/* Author */}
-                      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-[#8B7355] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {/* Cover photo */}
+                      <button
+                        className="relative block w-full aspect-[4/3] bg-gradient-to-br from-secondary to-secondary/60 overflow-hidden flex-shrink-0"
+                        onClick={() => handleViewDiary(diary)}
+                      >
+                        {coverPhoto ? (
+                          <img
+                            src={coverPhoto.url}
+                            alt={diary.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
+                            <Camera className="w-10 h-10" />
+                          </div>
+                        )}
+                        {diary.rating > 0 && (
+                          <span className="absolute top-2 left-2 bg-black/50 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> {diary.rating}
+                          </span>
+                        )}
+                        {diary.photos.length > 1 && (
+                          <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Camera className="w-3 h-3" /> {diary.photos.length}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Overlay: save / delete */}
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                        {(user?.isAdmin || diary.userId === user?.id) && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setDeleteDiaryId(diary.id); }}
+                            className="p-1.5 rounded-full bg-white/90 text-red-400 hover:bg-white hover:text-red-600 shadow-sm transition"
+                            title={user?.isAdmin ? t('community.admin.deleteTooltip') : t('community.admin.deleteTooltipOwn')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={e => { e.stopPropagation(); handleToggleSave(diary.id); }}
+                          className={cn(
+                            "p-1.5 rounded-full bg-white/90 shadow-sm transition",
+                            isSaved ? "text-primary" : "text-muted-foreground hover:text-primary"
+                          )}
+                        >
+                          {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+
+                      <div className="p-4 flex flex-col flex-1 min-w-0">
+                        {/* Author */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-[#8B7355] flex items-center justify-center text-white font-bold text-[10px] flex-shrink-0">
                             {getUserName(diary.userId).charAt(0)}
                           </div>
-                          <div>
-                            <p className="font-bold text-foreground text-sm">{getUserName(diary.userId)}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="w-3 h-3" /> {diary.location} · {timeAgo(diary.createdAt)}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-foreground truncate">{getUserName(diary.userId)}</p>
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="truncate min-w-0">{diary.location}</span>
+                              <span className="flex-shrink-0">· {timeAgo(diary.createdAt)}</span>
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <StarRatingDisplay value={diary.rating} size="sm" />
-                          {(user?.isAdmin || diary.userId === user?.id) && (
-                            <button
-                              onClick={e => { e.stopPropagation(); setDeleteDiaryId(diary.id); }}
-                              className="p-1.5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition"
-                              title={user?.isAdmin ? t('community.admin.deleteTooltip') : t('community.admin.deleteTooltipOwn')}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          <button
-                            onClick={e => { e.stopPropagation(); handleToggleSave(diary.id); }}
-                            className={cn(
-                              "p-1.5 rounded-full transition",
-                              isSaved ? "text-primary" : "text-muted-foreground hover:text-primary"
-                            )}
-                          >
-                            {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
 
-                      {/* Cover photo */}
-                      {coverPhoto && (
-                        <button
-                          className="w-full block"
-                          onClick={() => handleViewDiary(diary)}
-                        >
-                          <div className="relative">
-                            <img
-                              src={coverPhoto.url}
-                              alt={diary.title}
-                              className="w-full h-64 object-cover bg-gray-100 hover:opacity-95 transition"
-                            />
-                            {diary.photos.length > 1 && (
-                              <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <Camera className="w-3 h-3" /> {diary.photos.length}
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      )}
-
-                      <div className="px-5 pb-5">
                         {/* Title */}
                         <button
                           onClick={() => handleViewDiary(diary)}
-                          className="text-left w-full mt-3"
+                          className="text-left w-full mt-2.5"
                         >
-                          <h3 className="text-lg font-black text-foreground hover:text-primary transition line-clamp-1">
+                          <h3 className="text-base font-black text-foreground hover:text-primary transition line-clamp-1">
                             {diary.title}
                           </h3>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {diary.startDate}{diary.endDate !== diary.startDate ? ` ~ ${diary.endDate}` : ''}
-                          </div>
                         </button>
 
                         {/* Content preview */}
-                        <p className="text-muted-foreground text-sm mt-2 line-clamp-2 leading-relaxed">
+                        <p className="text-muted-foreground text-xs mt-1 line-clamp-2 leading-relaxed flex-1">
                           {diary.content}
                         </p>
 
                         {/* Tags */}
                         {diary.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-3">
-                            {diary.tags.slice(0, 4).map((tag, i) => (
+                          <div className="flex flex-wrap gap-1 mt-2.5">
+                            {diary.tags.slice(0, 2).map((tag, i) => (
                               <button
                                 key={i}
                                 onClick={() => setSelectedTag(tag)}
-                                className="bg-secondary text-primary text-xs px-2.5 py-0.5 rounded-full hover:bg-primary hover:text-white transition"
+                                className="bg-secondary text-primary text-[11px] px-2 py-0.5 rounded-full hover:bg-primary hover:text-white transition truncate max-w-[100px]"
                               >
                                 {tag}
                               </button>
                             ))}
-                            {diary.tags.length > 4 && (
-                              <span className="text-xs text-muted-foreground self-center">+{diary.tags.length - 4}</span>
+                            {diary.tags.length > 2 && (
+                              <span className="text-[11px] text-muted-foreground self-center flex-shrink-0">+{diary.tags.length - 2}</span>
                             )}
                           </div>
                         )}
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
+                        <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border">
                           <button
                             onClick={() => handleToggleLike(diary.id)}
                             className={cn(
-                              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition hover:bg-red-50",
+                              "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold transition hover:bg-red-50",
                               isLiked ? "text-red-500" : "text-muted-foreground"
                             )}
                           >
-                            <Heart className={cn("w-4 h-4", isLiked && "fill-red-500")} />
+                            <Heart className={cn("w-3.5 h-3.5", isLiked && "fill-red-500")} />
                             {diary.likes.length > 0 && diary.likes.length}
                           </button>
                           <button
                             onClick={() => handleViewDiary(diary)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-primary transition"
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-primary transition"
                           >
-                            <MessageCircle className="w-4 h-4" />
+                            <MessageCircle className="w-3.5 h-3.5" />
                             {cmtCount > 0 && cmtCount}
                           </button>
                           <button
@@ -1390,15 +1394,9 @@ export default function Community() {
                                 notify({ recipientId: diary.userId, type: 'share', actorName: user.name, diaryId: diary.id, diaryTitle: diary.title });
                               }
                             }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-primary transition ml-auto"
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-primary transition ml-auto flex-shrink-0"
                           >
-                            <Share2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleViewDiary(diary)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-white transition"
-                          >
-                            {t('community.card.viewDetail')}
+                            <Share2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
