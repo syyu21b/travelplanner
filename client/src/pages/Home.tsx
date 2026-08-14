@@ -2560,18 +2560,18 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
                   <TabsList
-                    className="flex sm:grid w-full sm:grid-cols-9 gap-1 overflow-x-auto sm:overflow-visible touch-pan-x overscroll-x-contain bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
+                    className="flex lg:grid w-full lg:grid-cols-9 gap-1 overflow-x-auto lg:overflow-visible touch-pan-x overscroll-x-contain bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
                   >
-                    <TabsTrigger value="schedule" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
-                    <TabsTrigger value="accommodation" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.accommodation')}</TabsTrigger>
-                    <TabsTrigger value="flight" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.flight')}</TabsTrigger>
-                    <TabsTrigger value="map" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.map')}</TabsTrigger>
-                    <TabsTrigger value="weather" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.weather')}</TabsTrigger>
-                    <TabsTrigger value="budget" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.budget')}</TabsTrigger>
-                    <TabsTrigger value="shopping" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.shopping')}</TabsTrigger>
-                    <TabsTrigger value="summary" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.summary')}</TabsTrigger>
-                    <TabsTrigger value="timeline" className="flex-shrink-0 sm:flex-shrink whitespace-nowrap px-4 sm:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.timeline')}</TabsTrigger>
+                    <TabsTrigger value="schedule" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
+                    <TabsTrigger value="accommodation" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.accommodation')}</TabsTrigger>
+                    <TabsTrigger value="flight" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.flight')}</TabsTrigger>
+                    <TabsTrigger value="map" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.map')}</TabsTrigger>
+                    <TabsTrigger value="weather" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.weather')}</TabsTrigger>
+                    <TabsTrigger value="budget" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.budget')}</TabsTrigger>
+                    <TabsTrigger value="shopping" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.shopping')}</TabsTrigger>
+                    <TabsTrigger value="summary" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.summary')}</TabsTrigger>
+                    <TabsTrigger value="timeline" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.timeline')}</TabsTrigger>
                   </TabsList>
 
                   {/* 일정 탭 */}
@@ -2759,6 +2759,7 @@ export default function Home() {
                                   {isDomestic ? (
                                     <MapView
                                       key="domestic"
+                                      className="h-[280px] sm:h-[500px]"
                                       markers={markers}
                                       fitToMarkers
                                       onMapReady={map => {
@@ -2767,9 +2768,10 @@ export default function Home() {
                                       onMarkerDelete={handleMarkerDelete}
                                     />
                                   ) : (
-                                    <Suspense fallback={<div className="relative w-full h-[500px] rounded-xl overflow-hidden bg-secondary flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+                                    <Suspense fallback={<div className="relative w-full h-[280px] sm:h-[500px] rounded-xl overflow-hidden bg-secondary flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
                                       <OverseasMapView
                                         key="overseas"
+                                        className="h-[280px] sm:h-[500px]"
                                         markers={markers}
                                         fitToMarkers
                                         onMapReady={map => {

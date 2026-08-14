@@ -787,7 +787,7 @@ export default function Community() {
 
           {/* Content */}
           <Card className="p-6 mb-6 bg-white border-border shadow-sm">
-            <div className="text-foreground leading-relaxed whitespace-pre-wrap text-[15px]">
+            <div className="text-foreground leading-relaxed whitespace-pre-wrap text-[15px] break-words">
               {diary.content}
             </div>
           </Card>
@@ -913,7 +913,7 @@ export default function Community() {
                               <span className="font-bold text-foreground text-sm">{comment.userName}</span>
                               <span className="text-xs text-muted-foreground">{timeAgo(comment.updatedAt || comment.createdAt)}{comment.updatedAt && comment.updatedAt !== comment.createdAt ? ` ${t('community.detail.edited')}` : ''}</span>
                             </div>
-                            <p className="text-foreground text-sm leading-relaxed">{comment.content}</p>
+                            <p className="text-foreground text-sm leading-relaxed break-words">{comment.content}</p>
                           </div>
                         )}
                         <div className="flex items-center gap-3 mt-1.5 px-2">

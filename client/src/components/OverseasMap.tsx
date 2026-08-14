@@ -435,6 +435,18 @@ export function OverseasMapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 컨테이너 크기가 바뀌어도(반응형 레이아웃, 탭 전환 등) MapLibre GL은 브라우저 resize
+  // 이벤트를 직접 받지 못하면 캔버스를 다시 그리지 않아 지도가 잘리거나 빈 타일로 보일 수 있음 →
+  // ResizeObserver로 감지해 명시적으로 resize()를 호출해줌
+  useEffect(() => {
+    if (!mapContainer.current) return;
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.resize();
+    });
+    observer.observe(mapContainer.current);
+    return () => observer.disconnect();
+  }, []);
+
   // markers prop과 실제 maplibregl.Marker 인스턴스 동기화 (추가/이동/삭제)
   useEffect(() => {
     const map = mapRef.current;

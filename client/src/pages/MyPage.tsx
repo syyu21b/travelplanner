@@ -400,7 +400,7 @@ export default function MyPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-4 text-sm font-bold whitespace-nowrap transition-all border-b-2 flex-1 justify-center",
+                  "flex items-center gap-2 px-5 py-4 text-sm font-bold whitespace-nowrap transition-all border-b-2 flex-shrink-0 sm:flex-1 justify-center",
                   i === 0 ? 'rounded-tl-xl' : '',
                   i === tabs.length - 1 ? 'rounded-tr-xl' : '',
                   activeTab === tab.id
@@ -744,7 +744,7 @@ export default function MyPage() {
                           ) : (
                             <p className="text-xs font-bold text-muted-foreground mb-1.5 italic">{t('mypage.activity.deletedPost')}</p>
                           )}
-                          <p className="text-sm text-foreground leading-relaxed">{c.content}</p>
+                          <p className="text-sm text-foreground leading-relaxed break-words">{c.content}</p>
                           <p className="text-xs text-muted-foreground mt-1.5">
                             {new Date(c.createdAt).toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>

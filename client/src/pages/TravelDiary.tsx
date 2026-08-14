@@ -1350,7 +1350,7 @@ export default function TravelDiary() {
       <div className="min-h-screen bg-background pb-16">
         {/* Hero section with first photo */}
         {heroPhoto ? (
-          <div className="relative h-[500px] w-full bg-slate-900 overflow-hidden">
+          <div className="relative h-[280px] sm:h-[380px] lg:h-[500px] w-full max-w-6xl mx-auto bg-slate-900 overflow-hidden sm:rounded-2xl sm:mt-4">
             {heroPhoto.type === 'video' ? (
               <video src={heroPhoto.url} controls className="w-full h-full object-contain" />
             ) : (
@@ -1389,7 +1389,7 @@ export default function TravelDiary() {
                   {diary.isPublic ? t('diary.common.public') : t('diary.common.private')}
                 </span>
               </div>
-              <h1 className="text-2xl font-black text-white drop-shadow">{diary.title}</h1>
+              <h1 className="text-2xl font-black text-white drop-shadow break-words line-clamp-2">{diary.title}</h1>
             </div>
           </div>
         ) : (
@@ -1402,7 +1402,7 @@ export default function TravelDiary() {
                 <ChevronLeft className="w-4 h-4" /> {t('diary.common.backToList')}
               </button>
               <div className="flex items-start justify-between">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-muted-foreground text-sm flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-primary" /> {diary.location}
@@ -1412,7 +1412,7 @@ export default function TravelDiary() {
                       {diary.isPublic ? t('diary.common.public') : t('diary.common.private')}
                     </span>
                   </div>
-                  <h1 className="text-3xl font-black text-foreground">{diary.title}</h1>
+                  <h1 className="text-3xl font-black text-foreground break-words">{diary.title}</h1>
                 </div>
                 {isOwner && (
                   <div className="flex gap-2">
@@ -1761,8 +1761,8 @@ export default function TravelDiary() {
               <ChevronLeft className="w-4 h-4" /> {t('diary.common.backToList')}
             </button>
             <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-black text-foreground">{album.title}</h1>
+              <div className="min-w-0">
+                <h1 className="text-3xl font-black text-foreground break-words">{album.title}</h1>
                 {album.linkedPlanTitle && (
                   <button
                     onClick={() => openPlanPreview(album.linkedPlanId, albumToPreviewSnapshot(album))}
@@ -1974,7 +1974,7 @@ export default function TravelDiary() {
           <TabsContent value="records">
             {/* Stats */}
             {myDiaries.length > 0 && (
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-orange-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-300/25 blur-2xl group-hover:bg-amber-300/40 transition-colors duration-500" />
