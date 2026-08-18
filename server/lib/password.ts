@@ -1,7 +1,8 @@
 // 비밀번호 해싱 (Web Crypto PBKDF2 — Workers 런타임에서 네이티브로 동작, bcrypt/argon2 불필요).
 // client/src/lib/passportCrypto.ts와 동일한 base64 인코딩 관례를 따른다.
 
-const ITERATIONS = 210_000;
+// Workers 런타임의 WebCrypto PBKDF2는 반복 횟수 상한이 100,000회 — 초과 시 NotSupportedError 발생.
+const ITERATIONS = 100_000;
 const HASH_BYTES = 32;
 
 function toBase64(bytes: Uint8Array): string {
