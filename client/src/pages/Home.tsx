@@ -34,6 +34,11 @@ import { WeatherWidget } from '@/components/WeatherWidget';
 import { useLanguage } from '@/contexts/LanguageContext';
 import NotificationBell from '@/components/NotificationBell';
 import HeaderSearch from '@/components/HeaderSearch';
+import { plansApi } from '@/lib/api/plans';
+import { uploadDataUrl } from '@/lib/api/media';
+import { diariesApi } from '@/lib/api/diaries';
+import { communityApi } from '@/lib/api/community';
+import type { DiaryEntry } from '@shared/types';
 
 interface ScheduleItem {
   id: string;
@@ -490,29 +495,43 @@ export default function Home() {
   };
 
   const { user, logout, getProfilePhoto } = useAuth();
-  const profilePhoto = user ? getProfilePhoto(user.id) : null;
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) { setProfilePhoto(null); return; }
+    let cancelled = false;
+    getProfilePhoto(user.id).then(photo => { if (!cancelled) setProfilePhoto(photo); });
+    return () => { cancelled = true; };
+  }, [user, getProfilePhoto]);
 
-  // 유저별 여행 계획 로드
-  const loadUserPlans = (): TravelPlan[] => {
-    const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
-    return all.filter(p => p.userId === user?.id).map(normalizePlan);
-  };
-
-  const [travelPlans, setTravelPlans] = useState<TravelPlan[]>(loadUserPlans);
-  
-  // 새로고침 시 현재 계획 유지
-  const loadCurrentPlan = (): TravelPlan | null => {
-    const savedId = localStorage.getItem('currentPlanId');
-    if (savedId) {
-      const all = loadUserPlans();
-      return all.find(p => p.id === savedId) || null;
-    }
-    return null;
-  };
-
-  const [currentPlan, setCurrentPlan] = useState<TravelPlan | null>(loadCurrentPlan);
+  const [travelPlans, setTravelPlans] = useState<TravelPlan[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<TravelPlan | null>(null);
   const [isPlanLoading, setIsPlanLoading] = useState(false);
-  
+
+  // 유저별 여행 계획 로드 (서버 D1에서)
+  useEffect(() => {
+    if (!user) { setTravelPlans([]); setCurrentPlan(null); return; }
+    let cancelled = false;
+    setIsPlanLoading(true);
+    plansApi.list()
+      .then(plans => {
+        if (cancelled) return;
+        const normalized = plans.map(normalizePlan);
+        setTravelPlans(normalized);
+        const savedId = localStorage.getItem('currentPlanId');
+        if (savedId) setCurrentPlan(normalized.find(p => p.id === savedId) || null);
+      })
+      .catch(() => { if (!cancelled) toast.error(t('home.toast.storageFull')); })
+      .finally(() => { if (!cancelled) setIsPlanLoading(false); });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // 스탯 바(여행 기록 수 등)에서 참조하는 내 여행 기록 목록 — 서버 D1에서 로드
+  const [myDiariesForStats, setMyDiariesForStats] = useState<DiaryEntry[]>([]);
+  useEffect(() => {
+    if (!user) { setMyDiariesForStats([]); return; }
+    diariesApi.list().then(setMyDiariesForStats).catch(() => {});
+  }, [user]);
+
   // 작성 중인 계획 로드
   const loadPlanDraft = () => {
     const draft = localStorage.getItem('planFormDraft');
@@ -608,20 +627,32 @@ export default function Home() {
   const scheduleOverseasMapRef = useRef<MapLibreMap | null>(null);
   const planPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // LocalStorage에 데이터 저장 (유저별)
-  const savePlans = (plans: TravelPlan[]) => {
-    const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
-    const otherUserPlans = all.filter(p => p.userId !== user?.id);
-    try {
-      localStorage.setItem('travelPlans', JSON.stringify([...otherUserPlans, ...plans]));
-    } catch {
-      toast.error(t('home.toast.storageFull'));
-    }
-  };
-
+  // 서버(D1)에 반영: 이전 상태와 diff해서 생성/수정/삭제 API 호출로 변환한다.
+  // 호출부가 "새 전체 배열"을 넘기는 기존 패턴을 그대로 유지하기 위한 어댑터.
   const updateTravelPlans = (plans: TravelPlan[]) => {
+    const prevPlans = travelPlans;
+    const nextIds = plans.map(p => p.id);
     setTravelPlans(plans);
-    savePlans(plans);
+
+    (async () => {
+      try {
+        for (const plan of plans) {
+          const prev = prevPlans.find(p => p.id === plan.id);
+          if (!prev) {
+            await plansApi.create(plan);
+          } else if (JSON.stringify(prev) !== JSON.stringify(plan)) {
+            await plansApi.update(plan.id, plan);
+          }
+        }
+        for (const prev of prevPlans) {
+          if (!nextIds.includes(prev.id)) {
+            await plansApi.remove(prev.id);
+          }
+        }
+      } catch {
+        toast.error(t('home.toast.storageFull'));
+      }
+    })();
   };
 
   // 계산기 키보드 이벤트
@@ -825,13 +856,6 @@ export default function Home() {
     }
   }, [currentPlan]);
 
-  // 로그인/로그아웃(계정 전환 포함) 시 메모리에 남아있는 이전 사용자의 여행 계획이 화면에
-  // 계속 노출되지 않도록, 로그인 사용자가 바뀔 때마다 항상 최신 사용자 기준으로 다시 불러옴
-  useEffect(() => {
-    setTravelPlans(loadUserPlans());
-    setCurrentPlan(loadCurrentPlan());
-  }, [user?.id]);
-
   // 작성 중인 계획 자동 저장
   useEffect(() => {
     if (showNewPlanDialog) {
@@ -908,7 +932,8 @@ export default function Home() {
       return;
     }
     const compressed = await compressPlanCoverPhoto(file);
-    updateCurrentPlan({ ...currentPlan, coverPhoto: compressed });
+    const uploaded = await uploadDataUrl('plan-cover', compressed);
+    updateCurrentPlan({ ...currentPlan, coverPhoto: uploaded.url });
     toast.success(t('home.toast.coverPhotoSet'));
   };
 
@@ -2181,13 +2206,13 @@ export default function Home() {
           <>
           {/* ── 스탯 바 ── */}
           {(() => {
-            const myDiaries = (() => { try { return JSON.parse(localStorage.getItem('travelDiaries') || '[]').filter((d: any) => d.userId === user?.id); } catch { return []; } })();
+            const myDiaries = myDiariesForStats;
             const thisMonth = new Date().toISOString().slice(0, 7);
             const thisMonthSchedules = travelPlans.reduce((s, p) => s + p.schedules.filter(sc => sc.date?.startsWith(thisMonth)).length, 0);
-            const thisMonthDiaries = myDiaries.filter((d: any) => d.createdAt?.startsWith(thisMonth)).length;
+            const thisMonthDiaries = myDiaries.filter(d => d.createdAt?.startsWith(thisMonth)).length;
             const activeCount = travelPlans.filter(p => getPlanStatus(p) === '진행 중').length;
             const totalSchedules = travelPlans.reduce((s, p) => s + p.schedules.length, 0);
-            const uniqueLocations = new Set(myDiaries.map((d: any) => d.location)).size;
+            const uniqueLocations = Array.from(new Set(myDiaries.map(d => d.location))).length;
             const statItems = [
               { label: t('home.stats.plansLabel'), value: travelPlans.length, sub: t('home.stats.plansSub', { n: activeCount }), icon: <Map className="w-5 h-5" />, bg: 'bg-blue-100', color: 'text-blue-600' },
               { label: t('home.stats.schedulesLabel'), value: totalSchedules, sub: t('home.stats.schedulesSub', { n: thisMonthSchedules }), icon: <Calendar className="w-5 h-5" />, bg: 'bg-emerald-100', color: 'text-emerald-600' },
@@ -4978,83 +5003,27 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
 
 // ===== 커뮤니티 인기 여행 섹션 =====
 
-interface TrendingPost {
-  id: string;
-  title: string;
-  location: string;
-  mainPhoto?: { url: string; type?: 'photo' | 'video' };
-  photos: { url: string; type?: 'photo' | 'video' }[];
-  likes: string[];
-  commentCount: number;
-  saveCount: number;
-  score: number;
-  createdAt: string;
-  userId: string;
-}
-
-interface TrendingLocation {
-  location: string;
-  score: number;
-  searchCount: number;
-  postCount: number;
-  posts: TrendingPost[];
-}
-
 function CommunityTrending() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
+  const [allTrendingPosts, setAllTrendingPosts] = useState<DiaryEntry[]>([]);
 
-  // 매 렌더마다 새로 계산 — 좋아요/댓글/저장은 커뮤니티 페이지 등 다른 화면에서 바뀌므로
-  // useMemo로 고정해두면 홈으로 돌아왔을 때 순위가 갱신되지 않는 것처럼 보일 수 있음
-  const allTrendingPosts = ((): TrendingPost[] => {
-    try {
-      const diaries: any[] = JSON.parse(localStorage.getItem('travelDiaries') || '[]').filter((d: any) => d.isPublic);
-      if (diaries.length === 0) return [];
-      const comments: any[] = JSON.parse(localStorage.getItem('diaryComments') || '[]');
-      const savedByUser: Record<string, string[]> = JSON.parse(localStorage.getItem('savedDiaries') || '{}');
-      const saveCounts = new globalThis.Map<string, number>();
-      Object.values(savedByUser).forEach(ids => {
-        (ids || []).forEach(id => saveCounts.set(id, (saveCounts.get(id) || 0) + 1));
-      });
-
-      return diaries
-        .map(d => {
-          const likeCount = d.likes?.length || 0;
-          const cmtCount = comments.filter((c: any) => c.diaryId === d.id).length;
-          const saveCount = saveCounts.get(d.id) || 0;
-          return {
-            id: d.id,
-            title: d.title,
-            location: d.location,
-            mainPhoto: d.mainPhoto,
-            photos: d.photos || [],
-            likes: d.likes || [],
-            commentCount: cmtCount,
-            saveCount,
-            // 좋아요+댓글+저장 수가 높을수록 상위 — 동점이면 최신 글이 상위
-            score: likeCount + cmtCount + saveCount,
-            createdAt: d.createdAt,
-            userId: d.userId,
-          };
-        })
-        .sort((a, b) =>
-          b.score - a.score || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-        .slice(0, 12);
-    } catch {
-      return [];
-    }
-  })();
+  // 좋아요/댓글/저장 수 기준 인기순 — 서버가 정렬해서 내려줌 (커뮤니티 페이지와 동일한 랭킹 로직)
+  useEffect(() => {
+    communityApi.listDiaries({ sort: 'popular', pageSize: 12 })
+      .then(res => setAllTrendingPosts(res.diaries))
+      .catch(() => setAllTrendingPosts([]));
+  }, []);
 
   if (allTrendingPosts.length === 0) return null;
 
   // 대표 사진(mainPhoto)으로 지정한 사진을 우선 사용하고, 없을 때만 게시글 사진 중 첫 번째(영상 제외)로 대체
-  const getTrendingThumbUrl = (post: TrendingPost): string | null => {
+  const getTrendingThumbUrl = (post: DiaryEntry): string | null => {
     if (post.mainPhoto && post.mainPhoto.type !== 'video' && post.mainPhoto.url) return post.mainPhoto.url;
     return post.photos.find(p => p.type !== 'video')?.url || null;
   };
 
-  const navigateToCommunity = (post?: TrendingPost) => {
+  const navigateToCommunity = (post?: DiaryEntry) => {
     if (post) { try { sessionStorage.setItem('trendingOpenDiaryId', post.id); } catch {} }
     setLocation('/community');
   };
@@ -5111,15 +5080,15 @@ function CommunityTrending() {
               <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/55 text-white text-xs px-2 py-0.5 rounded-full">
                 <span className="flex items-center gap-1">
                   <Bookmark className="w-3 h-3 text-amber-300 fill-amber-300" />
-                  {post.saveCount}
+                  {post.bookmarksCount}
                 </span>
                 <span className="flex items-center gap-1">
                   <MessageCircle className="w-3 h-3 text-sky-300 fill-sky-300" />
-                  {post.commentCount}
+                  {post.commentsCount}
                 </span>
                 <span className="flex items-center gap-1">
                   <Heart className="w-3 h-3 text-red-400 fill-red-400" />
-                  {post.likes.length}
+                  {post.likesCount}
                 </span>
               </div>
             </div>

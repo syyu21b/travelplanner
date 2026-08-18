@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, Link, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -26,7 +26,14 @@ function SharedNav() {
   const { user, logout, getProfilePhoto } = useAuth();
   const { t } = useLanguage();
   const [location, setLocation] = useLocation();
-  const profilePhoto = user ? getProfilePhoto(user.id) : null;
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) { setProfilePhoto(null); return; }
+    let cancelled = false;
+    getProfilePhoto(user.id).then(photo => { if (!cancelled) setProfilePhoto(photo); });
+    return () => { cancelled = true; };
+  }, [user, getProfilePhoto]);
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">

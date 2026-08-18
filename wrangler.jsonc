@@ -11,6 +11,20 @@
   "vars": {
     "PLAN_TRIP_PROXY_URL": "https://travelplanner-syyu21b.vercel.app/api/plan-trip"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "travelplanner-db",
+      "database_id": "7609bd67-fa4b-4cd5-a8c9-658c2d4c014a",
+      "migrations_dir": "server/db/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "travelplanner-media"
+    }
+  ],
   "assets": {
     "directory": "./dist/public",
     "not_found_handling": "single-page-application",

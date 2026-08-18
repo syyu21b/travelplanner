@@ -1,41 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useAuth } from "./AuthContext";
+import { notificationsApi } from "@/lib/api/notifications";
+import type { AppNotification, NotificationSettings, NotificationType } from "@shared/types";
 
-export type NotificationType =
-  | "like"
-  | "comment"
-  | "share"
-  | "popular"
-  | "trip-d3"
-  | "trip-dday"
-  | "inquiry-answer"
-  | "inquiry-new";
-
-export interface AppNotification {
-  id: string;
-  recipientId: string;
-  type: NotificationType;
-  actorName?: string;
-  diaryId?: string;
-  diaryTitle?: string;
-  planId?: string;
-  planTitle?: string;
-  inquiryId?: string;
-  inquiryTitle?: string;
-  isRead: boolean;
-  createdAt: string;
-}
-
-export interface NotificationSettings {
-  tripD3: boolean;
-  tripDDay: boolean;
-  likes: boolean;
-  comments: boolean;
-  shares: boolean;
-  popularPost: boolean;
-  inquiryAnswer: boolean;
-  inquiryNew: boolean;
-}
+export type { NotificationType, AppNotification, NotificationSettings };
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   tripD3: true,
@@ -48,69 +16,27 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   inquiryNew: true,
 };
 
-type NotifyPayload = Omit<AppNotification, "id" | "isRead" | "createdAt">;
-
 interface NotificationContextType {
   notifications: AppNotification[];
   unreadCount: number;
   settings: NotificationSettings;
   updateSettings: (updates: Partial<NotificationSettings>) => void;
-  notify: (payload: NotifyPayload) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
+  refresh: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-interface TravelPlan {
-  id: string;
-  userId: string;
-  title: string;
-  startDate: string;
-}
-
-function getAllNotifications(): AppNotification[] {
-  try {
-    return JSON.parse(localStorage.getItem("notifications") || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveAllNotifications(list: AppNotification[]) {
-  localStorage.setItem("notifications", JSON.stringify(list));
-}
-
-function getAllSettings(): Record<string, NotificationSettings> {
-  try {
-    return JSON.parse(localStorage.getItem("notificationSettings") || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveAllSettings(map: Record<string, NotificationSettings>) {
-  localStorage.setItem("notificationSettings", JSON.stringify(map));
-}
-
-// 저장된 설정에 새로 추가된 필드(예: inquiryNew)가 없을 수 있으므로
-// 항상 기본값과 병합해 누락된 필드가 false로 취급되는 것을 방지
-function getSettingsFor(userId: string): NotificationSettings {
-  return { ...DEFAULT_SETTINGS, ...(getAllSettings()[userId] || {}) };
-}
-
-function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr);
-  target.setHours(0, 0, 0, 0);
-  return Math.round((target.getTime() - today.getTime()) / 86400000);
-}
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
+
+  const refresh = useCallback(() => {
+    if (!user) { setNotifications([]); return; }
+    notificationsApi.list().then(setNotifications).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -118,94 +44,32 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setSettings(DEFAULT_SETTINGS);
       return;
     }
-    setNotifications(getAllNotifications().filter(n => n.recipientId === user.id));
-    setSettings(getSettingsFor(user.id));
+    notificationsApi.list().then(setNotifications).catch(() => {});
+    notificationsApi.getSettings().then(setSettings).catch(() => {});
   }, [user]);
-
-  const notify = useCallback((payload: NotifyPayload) => {
-    const recipientSettings = getSettingsFor(payload.recipientId);
-    const settingKeyMap: Record<NotificationType, keyof NotificationSettings> = {
-      like: "likes",
-      comment: "comments",
-      share: "shares",
-      popular: "popularPost",
-      "trip-d3": "tripD3",
-      "trip-dday": "tripDDay",
-      "inquiry-answer": "inquiryAnswer",
-      "inquiry-new": "inquiryNew",
-    };
-    if (!recipientSettings[settingKeyMap[payload.type]]) return;
-
-    const all = getAllNotifications();
-
-    // 인기글/여행 알림은 동일 대상에 중복 생성하지 않음
-    if (payload.type === "popular" && payload.diaryId) {
-      if (all.some(n => n.type === "popular" && n.diaryId === payload.diaryId)) return;
-    }
-    if ((payload.type === "trip-d3" || payload.type === "trip-dday") && payload.planId) {
-      if (all.some(n => n.type === payload.type && n.planId === payload.planId)) return;
-    }
-
-    const newNotification: AppNotification = {
-      ...payload,
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      isRead: false,
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [newNotification, ...all];
-    saveAllNotifications(updated);
-    if (user && payload.recipientId === user.id) {
-      setNotifications(updated.filter(n => n.recipientId === user.id));
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    let plans: TravelPlan[] = [];
-    try {
-      plans = JSON.parse(localStorage.getItem("travelPlans") || "[]");
-    } catch {
-      plans = [];
-    }
-    plans
-      .filter(p => p.userId === user.id && p.startDate)
-      .forEach(plan => {
-        const diff = daysUntil(plan.startDate);
-        if (diff === 3) {
-          notify({ recipientId: user.id, type: "trip-d3", planId: plan.id, planTitle: plan.title });
-        } else if (diff === 0) {
-          notify({ recipientId: user.id, type: "trip-dday", planId: plan.id, planTitle: plan.title });
-        }
-      });
-  }, [user, notify]);
 
   const updateSettings = (updates: Partial<NotificationSettings>) => {
     if (!user) return;
     const merged = { ...settings, ...updates };
     setSettings(merged);
-    const all = getAllSettings();
-    all[user.id] = merged;
-    saveAllSettings(all);
+    notificationsApi.updateSettings(updates).catch(() => setSettings(settings));
   };
 
   const markAsRead = (id: string) => {
-    const all = getAllNotifications().map(n => n.id === id ? { ...n, isRead: true } : n);
-    saveAllNotifications(all);
-    if (user) setNotifications(all.filter(n => n.recipientId === user.id));
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    notificationsApi.markAsRead(id).catch(() => {});
   };
 
   const markAllAsRead = () => {
-    if (!user) return;
-    const all = getAllNotifications().map(n => n.recipientId === user.id ? { ...n, isRead: true } : n);
-    saveAllNotifications(all);
-    setNotifications(all.filter(n => n.recipientId === user.id));
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    notificationsApi.markAllAsRead().catch(() => {});
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, settings, updateSettings, notify, markAsRead, markAllAsRead }}
+      value={{ notifications, unreadCount, settings, updateSettings, markAsRead, markAllAsRead, refresh }}
     >
       {children}
     </NotificationContext.Provider>

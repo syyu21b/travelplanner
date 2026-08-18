@@ -105,8 +105,8 @@ async function geocodeSearch(query: string, signal?: AbortSignal): Promise<OpenM
   if (!res.ok) {
     throw new Error(`위치 검색 요청이 실패했습니다. (status: ${res.status})`);
   }
-  const data = await res.json();
-  return (data.results ?? []) as OpenMeteoGeocodeResult[];
+  const data = (await res.json()) as { results?: OpenMeteoGeocodeResult[] };
+  return data.results ?? [];
 }
 
 async function searchDomesticGeocode(query: string, signal?: AbortSignal): Promise<GeoResult[]> {
@@ -158,10 +158,10 @@ async function fetchWeather(lat: number, lng: number, signal?: AbortSignal): Pro
   });
   const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { signal });
   if (!res.ok) {
-    const body = await res.json().catch(() => null);
+    const body = (await res.json().catch(() => null)) as { reason?: string } | null;
     throw new Error(body?.reason || `날씨 정보를 불러오지 못했습니다. (status: ${res.status})`);
   }
-  return res.json();
+  return res.json() as Promise<OpenMeteoResponse>;
 }
 
 function formatHour(iso: string): string {

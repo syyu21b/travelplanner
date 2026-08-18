@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNotifications } from '@/contexts/NotificationContext';
 import { addInquiry } from '@/lib/inquiries';
 
 const NOTICE_KEYS = ['n1', 'n2', 'n3', 'n4', 'n5'] as const;
@@ -15,9 +14,8 @@ const TERMS_SECTION_KEYS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'
 const PRIVACY_SECTION_KEYS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7'] as const;
 
 export default function Footer() {
-  const { user, getAllUsers } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
-  const { notify } = useNotifications();
   const [showInquiry, setShowInquiry] = useState(false);
   const [showNotice, setShowNotice] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -35,7 +33,7 @@ export default function Footer() {
     setShowInquiry(true);
   };
 
-  const handleSubmitInquiry = () => {
+  const handleSubmitInquiry = async () => {
     if (!name.trim() || !email.trim() || !title.trim() || !content.trim()) {
       toast.error(t('footer.inquiryDialog.errorRequired'));
       return;
@@ -44,7 +42,7 @@ export default function Footer() {
       toast.error(t('footer.inquiryDialog.errorInvalidEmail'));
       return;
     }
-    const inquiryId = addInquiry({
+    const inquiryId = await addInquiry({
       userId: user?.id || null,
       name: name.trim(),
       email: email.trim(),
@@ -55,9 +53,6 @@ export default function Footer() {
       toast.error(t('footer.inquiryDialog.errorStorageFull'));
       return;
     }
-    getAllUsers().filter(u => u.isAdmin).forEach(admin => {
-      notify({ recipientId: admin.id, type: 'inquiry-new', actorName: name.trim(), inquiryId, inquiryTitle: title.trim() });
-    });
     toast.success(t('footer.inquiryDialog.success'));
     setShowInquiry(false);
   };

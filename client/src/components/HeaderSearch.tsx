@@ -1,33 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Search, MapPin } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-interface DiaryPhoto {
-  id: string;
-  url: string;
-}
-
-interface SearchableDiary {
-  id: string;
-  title: string;
-  location: string;
-  content: string;
-  tags: string[];
-  isPublic: boolean;
-  mainPhoto?: DiaryPhoto;
-  photos: DiaryPhoto[];
-}
-
-function loadPublicDiaries(): SearchableDiary[] {
-  try {
-    return (JSON.parse(localStorage.getItem("travelDiaries") || "[]") as SearchableDiary[]).filter(d => d.isPublic);
-  } catch {
-    return [];
-  }
-}
+import { communityApi } from "@/lib/api/community";
+import type { DiaryEntry } from "@shared/types";
 
 const MAX_RESULTS = 6;
 
@@ -36,19 +14,24 @@ export default function HeaderSearch() {
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<DiaryEntry[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const allResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return loadPublicDiaries().filter(d =>
-      (d.location ?? "").toLowerCase().includes(q) ||
-      (d.title ?? "").toLowerCase().includes(q) ||
-      (d.tags ?? []).some(tag => tag.toLowerCase().includes(q)) ||
-      (d.content ?? "").toLowerCase().includes(q)
-    );
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setResults([]); setTotalCount(0); return; }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      communityApi.listDiaries({ search: q, pageSize: MAX_RESULTS })
+        .then(res => {
+          if (cancelled) return;
+          setResults(res.diaries);
+          setTotalCount(res.total);
+        })
+        .catch(() => { if (!cancelled) { setResults([]); setTotalCount(0); } });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [query]);
-
-  const results = allResults.slice(0, MAX_RESULTS);
 
   const goToCommunity = (diaryId?: string) => {
     try {
@@ -123,12 +106,12 @@ export default function HeaderSearch() {
           </div>
         )}
 
-        {query.trim() && allResults.length > 0 && (
+        {query.trim() && totalCount > 0 && (
           <button
             onClick={() => goToCommunity()}
             className="w-full px-4 py-2.5 text-center text-xs font-semibold text-primary hover:bg-secondary transition-colors border-t border-border"
           >
-            {t("home.header.searchViewAll", { query: query.trim(), n: allResults.length })}
+            {t("home.header.searchViewAll", { query: query.trim(), n: totalCount })}
           </button>
         )}
       </PopoverContent>

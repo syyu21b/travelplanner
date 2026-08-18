@@ -126,18 +126,18 @@ export default function AuthPage() {
     }
   }
 
-  function handleCheckNickname() {
+  async function handleCheckNickname() {
     if (!nickname.trim()) { toast.error(t('auth.errors.nicknameRequired')); return; }
     if (nickname.length < 2 || nickname.length > 10) { toast.error(t('auth.errors.nicknameLength')); return; }
-    const ok = checkNickname(nickname);
+    const ok = await checkNickname(nickname);
     setNicknameOk(ok);
     toast[ok ? 'success' : 'error'](ok ? t('auth.register.nicknameAvailable') : t('auth.register.nicknameTaken'));
   }
 
-  function handleCheckUsername() {
+  async function handleCheckUsername() {
     if (!username.trim()) { toast.error(t('auth.errors.usernameRequired')); return; }
     if (!/^[a-zA-Z0-9_]{4,20}$/.test(username)) { toast.error(t('auth.errors.usernameFormat')); return; }
-    const ok = checkUsername(username);
+    const ok = await checkUsername(username);
     setUsernameOk(ok);
     toast[ok ? 'success' : 'error'](ok ? t('auth.register.usernameAvailable') : t('auth.register.usernameTaken'));
   }
@@ -179,17 +179,17 @@ export default function AuthPage() {
     }
   }
 
-  function handleFindId() {
+  async function handleFindId() {
     if (!findEmail) { toast.error(t('auth.errors.emailRequired')); return; }
-    const id = findUsernameByEmail(findEmail);
+    const id = await findUsernameByEmail(findEmail);
     setFindIdSearched(true);
     setFoundId(id);
     if (!id) toast.error(t('auth.errors.emailNotFound'));
   }
 
-  function handleFpVerify() {
+  async function handleFpVerify() {
     if (!fpId || !fpEmail) { toast.error(t('auth.errors.findPwFieldsRequired')); return; }
-    const id = findUsernameByEmail(fpEmail);
+    const id = await findUsernameByEmail(fpEmail);
     if (id === fpId) {
       setFpVerified(true);
       toast.success(t('auth.errors.findPwVerifySuccess'));
@@ -198,11 +198,11 @@ export default function AuthPage() {
     }
   }
 
-  function handleFpReset() {
+  async function handleFpReset() {
     if (fpNewPw.length < 8) { toast.error(t('auth.errors.passwordTooShort')); return; }
     if (fpPwStrength.score < 3) { toast.error(t('auth.errors.passwordTooWeakShort')); return; }
     if (fpNewPw !== fpNewPwConfirm) { toast.error(t('auth.errors.passwordMismatch')); return; }
-    const result = resetPassword(fpId, fpEmail, fpNewPw);
+    const result = await resetPassword(fpId, fpEmail, fpNewPw);
     if (result.success) { toast.success(result.message); switchMode('login'); }
     else toast.error(result.message);
   }

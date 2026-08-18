@@ -101,7 +101,7 @@ export async function reverseGeocodeToAddressOSM(lat: number, lng: number): Prom
     const url = `${NOMINATIM_BASE}/reverse?format=jsonv2&accept-language=ko,en&lat=${lat}&lon=${lng}`;
     const res = await fetch(url);
     if (!res.ok) return null;
-    const data = await res.json();
+    const data = (await res.json()) as { display_name?: unknown };
     return typeof data?.display_name === "string" ? data.display_name : null;
   } catch {
     return null;

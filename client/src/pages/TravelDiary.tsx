@@ -20,6 +20,11 @@ import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { TripPlanPreviewDialog, type TripPlanPreviewData } from '@/components/TripPlanPreviewDialog';
 import { MapView, type MapMarker, reverseGeocodeToAddress } from '@/components/Map';
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import { diariesApi } from '@/lib/api/diaries';
+import { albumsApi } from '@/lib/api/albums';
+import { plansApi } from '@/lib/api/plans';
+import { uploadDataUrl } from '@/lib/api/media';
+import { communityApi } from '@/lib/api/community';
 
 // 해외 지도(MapLibre GL)는 용량이 커서, 실제로 해외 계획과 연결된 앨범을 볼 때만 불러오도록 지연 로딩
 const OverseasMapView = lazy(() =>
@@ -77,7 +82,8 @@ interface DiaryEntry {
   linkedPlanSchedules?: ScheduleItem[];
   createdAt: string;
   updatedAt: string;
-  likes: string[];
+  likesCount: number;
+  isLikedByMe?: boolean;
 }
 
 interface PlanAccommodation {
@@ -140,7 +146,7 @@ function normalizeDiary(d: DiaryEntry): DiaryEntry {
     content: d.content ?? '',
     photos: d.photos ?? [],
     tags: d.tags ?? [],
-    likes: d.likes ?? [],
+    likesCount: d.likesCount ?? 0,
   };
 }
 
@@ -173,23 +179,6 @@ export default function TravelDiary() {
   const mainFileInputRef = useRef<HTMLInputElement>(null);
   const mainEditFileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadDiaries = (): DiaryEntry[] => {
-    const raw = JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[];
-    return raw.map(normalizeDiary);
-  };
-
-  const loadUserPlans = (): TravelPlan[] => {
-    const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
-    return all.filter(p => p.userId === user?.id).map(p => ({
-      ...p,
-      schedules: p.schedules ?? [],
-      budgets: p.budgets ?? [],
-      shoppingList: p.shoppingList ?? [],
-      accommodations: p.accommodations ?? [],
-      preparationChecks: p.preparationChecks ?? {},
-    }));
-  };
-
   // 상태 복구 함수
   const loadDraftForm = () => {
     const draft = localStorage.getItem('diaryFormDraft');
@@ -203,46 +192,54 @@ export default function TravelDiary() {
     return null;
   };
 
-  const loadCurrentDiary = () => {
-    const saved = localStorage.getItem('currentDiaryId');
-    if (saved) {
-      const diaries = (JSON.parse(localStorage.getItem('travelDiaries') || '[]') as DiaryEntry[]).map(normalizeDiary);
-      return diaries.find(d => d.id === saved) || null;
-    }
-    return null;
-  };
-
-  const loadAlbums = (): Album[] => {
-    const raw = JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[];
-    return raw.map(normalizeAlbum);
-  };
-
-  const loadCurrentAlbum = () => {
-    const saved = localStorage.getItem('currentAlbumId');
-    if (saved) {
-      const albums = (JSON.parse(localStorage.getItem('travelAlbums') || '[]') as Album[]).map(normalizeAlbum);
-      return albums.find(a => a.id === saved) || null;
-    }
-    return null;
-  };
-
   const draft = loadDraftForm();
 
-  const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
-  const [userPlans, setUserPlans] = useState<TravelPlan[]>(loadUserPlans);
+  const [diaries, setDiaries] = useState<DiaryEntry[]>([]);
+  const [userPlans, setUserPlans] = useState<TravelPlan[]>([]);
+  const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(null);
+  const [slidePhotoIndex, setSlidePhotoIndex] = useState(0);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
+
+  // 여행 기록/앨범/연결 가능한 계획을 서버(D1)에서 로드
+  useEffect(() => {
+    if (!user) { setDiaries([]); setAlbums([]); setUserPlans([]); return; }
+    let cancelled = false;
+    diariesApi.list().then(list => {
+      if (cancelled) return;
+      const normalized = list.map(normalizeDiary);
+      setDiaries(normalized);
+      const savedId = localStorage.getItem('currentDiaryId');
+      if (savedId) setCurrentDiary(normalized.find(d => d.id === savedId) || null);
+    }).catch(() => toast.error(t('diary.errors.storageFull')));
+    albumsApi.list().then(list => {
+      if (cancelled) return;
+      const normalized = list.map(normalizeAlbum);
+      setAlbums(normalized);
+      const savedId = localStorage.getItem('currentAlbumId');
+      if (savedId) setCurrentAlbum(normalized.find(a => a.id === savedId) || null);
+    }).catch(() => toast.error(t('diary.errors.storageFull')));
+    plansApi.list().then(list => {
+      if (cancelled) return;
+      setUserPlans(list.map(p => ({
+        ...p,
+        schedules: p.schedules ?? [],
+        budgets: p.budgets ?? [],
+        shoppingList: p.shoppingList ?? [],
+        accommodations: p.accommodations ?? [],
+        preparationChecks: p.preparationChecks ?? {},
+      })));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user]);
 
   // 연결된 여행 계획의 "다른 회원 복제 허용" 여부를 토글 — 다이어리별 설정이 아니라 계획 자체의
-  // 속성이므로 travelPlans에 바로 반영하고, 드롭다운이 참조하는 userPlans 캐시도 함께 갱신해
+  // 속성이므로 서버에 바로 반영하고, 드롭다운이 참조하는 userPlans 캐시도 함께 갱신해
   // 체크 상태가 화면에 즉시 반영되도록 함
   const handleToggleLinkedPlanAllowClone = (planId: string, allowClone: boolean) => {
-    const all = JSON.parse(localStorage.getItem('travelPlans') || '[]') as TravelPlan[];
-    localStorage.setItem('travelPlans', JSON.stringify(all.map(p => p.id === planId ? { ...p, allowClone } : p)));
     setUserPlans(prev => prev.map(p => p.id === planId ? { ...p, allowClone } : p));
+    plansApi.setAllowClone(planId, allowClone).catch(() => toast.error(t('diary.errors.storageFull')));
   };
-  const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(loadCurrentDiary);
-  const [slidePhotoIndex, setSlidePhotoIndex] = useState(0);
-  const [albums, setAlbums] = useState<Album[]>(loadAlbums);
-  const [currentAlbum, setCurrentAlbum] = useState<Album | null>(loadCurrentAlbum);
   const [activeTab, setActiveTab] = useState<'records' | 'albums'>(() =>
     new URLSearchParams(window.location.search).get('tab') === 'albums' ? 'albums' : 'records'
   );
@@ -438,22 +435,46 @@ export default function TravelDiary() {
     return () => { cancelled = true; };
   }, [albumViewMode, currentAlbum, albums]);
 
+  // 서버(D1)에 반영: 이전 상태와 diff해서 생성/수정/삭제 API 호출로 변환한다.
+  // 호출부가 "새 전체 배열"을 넘기는 기존 패턴을 그대로 유지하기 위한 어댑터.
   const saveDiaries = (updated: DiaryEntry[]) => {
-    try {
-      localStorage.setItem('travelDiaries', JSON.stringify(updated));
-      setDiaries(updated);
-    } catch {
-      toast.error(t('diary.errors.storageFull'));
-    }
+    const prevDiaries = diaries;
+    const nextIds = updated.map(d => d.id);
+    setDiaries(updated);
+    (async () => {
+      try {
+        for (const diary of updated) {
+          const before = prevDiaries.find(d => d.id === diary.id);
+          if (!before) await diariesApi.create(diary);
+          else if (JSON.stringify(before) !== JSON.stringify(diary)) await diariesApi.update(diary.id, diary);
+        }
+        for (const before of prevDiaries) {
+          if (!nextIds.includes(before.id)) await diariesApi.remove(before.id);
+        }
+      } catch {
+        toast.error(t('diary.errors.storageFull'));
+      }
+    })();
   };
 
   const saveAlbums = (updated: Album[]) => {
-    try {
-      localStorage.setItem('travelAlbums', JSON.stringify(updated));
-      setAlbums(updated);
-    } catch {
-      toast.error(t('diary.errors.storageFull'));
-    }
+    const prevAlbums = albums;
+    const nextIds = updated.map(a => a.id);
+    setAlbums(updated);
+    (async () => {
+      try {
+        for (const album of updated) {
+          const before = prevAlbums.find(a => a.id === album.id);
+          if (!before) await albumsApi.create(album);
+          else if (JSON.stringify(before) !== JSON.stringify(album)) await albumsApi.update(album.id, album);
+        }
+        for (const before of prevAlbums) {
+          if (!nextIds.includes(before.id)) await albumsApi.remove(before.id);
+        }
+      } catch {
+        toast.error(t('diary.errors.storageFull'));
+      }
+    })();
   };
 
   const MAX_VIDEO_MB = 15;
@@ -519,7 +540,9 @@ export default function TravelDiary() {
         }
 
         const base64 = await readFileAsDataURL(file);
-        const finalUrl = isVideo ? base64 : await compressImage(base64);
+        const compressed = isVideo ? base64 : await compressImage(base64);
+        const uploaded = await uploadDataUrl('diary-photo', compressed);
+        const finalUrl = uploaded.url;
         const photo: DiaryPhoto = {
           id: Date.now().toString() + Math.random(),
           url: finalUrl,
@@ -580,7 +603,9 @@ export default function TravelDiary() {
         }
 
         const base64 = await readFileAsDataURL(file);
-        const finalUrl = isVideo ? base64 : await compressImage(base64);
+        const compressed = isVideo ? base64 : await compressImage(base64);
+        const uploaded = await uploadDataUrl('album-photo', compressed);
+        const finalUrl = uploaded.url;
         const photo: AlbumPhoto = {
           id: Date.now().toString() + Math.random(),
           url: finalUrl,
@@ -636,7 +661,9 @@ export default function TravelDiary() {
     const toastId = toast.loading(isVideo ? t('diary.toast.processingVideo') : t('diary.toast.processingImage'));
     try {
       const base64 = await readFileAsDataURL(file);
-      const finalUrl = isVideo ? base64 : await compressImage(base64);
+      const compressed = isVideo ? base64 : await compressImage(base64);
+      const uploaded = await uploadDataUrl('diary-block', compressed);
+      const finalUrl = uploaded.url;
 
       const photo: DiaryPhoto = {
         id: Date.now().toString() + Math.random(),
@@ -668,7 +695,9 @@ export default function TravelDiary() {
     const toastId = toast.loading(isVideo ? t('diary.toast.processingVideo') : t('diary.toast.processingImage'));
     try {
       const base64 = await readFileAsDataURL(file);
-      const finalUrl = isVideo ? base64 : await compressImage(base64);
+      const compressed = isVideo ? base64 : await compressImage(base64);
+      const uploaded = await uploadDataUrl('diary-block', compressed);
+      const finalUrl = uploaded.url;
 
       const photo: DiaryPhoto = {
         id: Date.now().toString() + Math.random(),
@@ -718,9 +747,10 @@ export default function TravelDiary() {
         reader.readAsDataURL(file);
       });
       const compressed = await compressImage(base64);
+      const uploaded = await uploadDataUrl('diary-photo', compressed);
       const photo: DiaryPhoto = {
         id: Date.now().toString(),
-        url: compressed,
+        url: uploaded.url,
       };
 
       if (isEdit && editData) {
@@ -768,7 +798,7 @@ export default function TravelDiary() {
       linkedPlanSchedules: linkedPlan?.schedules,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      likes: [],
+      likesCount: 0,
     };
 
     saveDiaries([diary, ...diaries]);
@@ -927,18 +957,19 @@ export default function TravelDiary() {
       toast.error(t('session.loginRequired'));
       return;
     }
-    const updated = diaries.map(d => {
-      if (d.id !== diaryId) return d;
-      const likes = d.likes.includes(user!.id)
-        ? d.likes.filter(id => id !== user!.id)
-        : [...d.likes, user!.id];
-      return { ...d, likes };
-    });
-    saveDiaries(updated);
+    const target = diaries.find(d => d.id === diaryId);
+    if (!target) return;
+    const wasLiked = target.isLikedByMe === true;
+    const updated = diaries.map(d =>
+      d.id !== diaryId ? d : { ...d, isLikedByMe: !wasLiked, likesCount: d.likesCount + (wasLiked ? -1 : 1) }
+    );
+    setDiaries(updated);
     if (currentDiary?.id === diaryId) {
       const found = updated.find(d => d.id === diaryId);
       if (found) setCurrentDiary(found);
     }
+    const apiCall = wasLiked ? communityApi.unlike(diaryId) : communityApi.like(diaryId);
+    apiCall.catch(() => toast.error(t('diary.errors.storageFull')));
   };
 
   // 여행 기록을 PDF로 저장 (브라우저 프린트 기능을 활용한 방식 — Home의 여행 계획 PDF 저장과 동일한 방식이라
@@ -1584,13 +1615,13 @@ export default function TravelDiary() {
               onClick={() => handleToggleLike(diary.id)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full border transition-all font-semibold text-sm",
-                !!user && diary.likes.includes(user.id)
+                diary.isLikedByMe
                   ? "bg-red-50 border-red-300 text-red-500"
                   : "bg-white border-border text-muted-foreground hover:border-red-300 hover:text-red-400"
               )}
             >
-              <Heart className={cn("w-4 h-4", !!user && diary.likes.includes(user.id) && "fill-red-500")} />
-              {t('diary.detail.like')} {diary.likes.length > 0 && diary.likes.length}
+              <Heart className={cn("w-4 h-4", diary.isLikedByMe && "fill-red-500")} />
+              {t('diary.detail.like')} {diary.likesCount > 0 && diary.likesCount}
             </button>
             <div className="flex items-center flex-wrap gap-2">
               <button
@@ -2099,7 +2130,7 @@ export default function TravelDiary() {
                             <Calendar className="w-3 h-3" /> {diary.startDate}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Heart className="w-3 h-3" /> {diary.likes.length}
+                            <Heart className="w-3 h-3" /> {diary.likesCount}
                           </span>
                         </div>
                         {diary.tags.length > 0 && (

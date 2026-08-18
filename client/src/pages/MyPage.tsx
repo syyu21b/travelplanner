@@ -17,7 +17,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useLocation } from 'wouter';
 import type { PassportInfo } from '@/lib/passportCrypto';
-import { getInquiries } from '@/lib/inquiries';
+import { getInquiries, type Inquiry } from '@/lib/inquiries';
+import { diariesApi } from '@/lib/api/diaries';
+import { albumsApi } from '@/lib/api/albums';
+import { plansApi } from '@/lib/api/plans';
+import { communityApi, type MyComment } from '@/lib/api/community';
+import { uploadDataUrl } from '@/lib/api/media';
+import type { DiaryEntry, Album, TravelPlan } from '@shared/types';
 
 const EMPTY_PASSPORT: PassportInfo = {
   passportNumber: '', fullNameEnglish: '', nationality: '',
@@ -73,7 +79,10 @@ export default function MyPage() {
   }, []);
 
   // 여권 정보
-  const [passportExists, setPassportExists] = useState(() => hasPassportInfo());
+  const [passportExists, setPassportExists] = useState(false);
+  useEffect(() => {
+    hasPassportInfo().then(setPassportExists);
+  }, [hasPassportInfo]);
   const [passportUnlocked, setPassportUnlocked] = useState(false);
   const [passportChecking, setPassportChecking] = useState(false);
   const [passportGatePw, setPassportGatePw] = useState('');
@@ -84,9 +93,13 @@ export default function MyPage() {
   const [showDeletePassport, setShowDeletePassport] = useState(false);
 
   // 프로필 사진
-  const [profilePhoto, setProfilePhotoState] = useState<string | null>(() =>
-    user ? getProfilePhoto(user.id) : null
-  );
+  const [profilePhoto, setProfilePhotoState] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) { setProfilePhotoState(null); return; }
+    let cancelled = false;
+    getProfilePhoto(user.id).then(photo => { if (!cancelled) setProfilePhotoState(photo); });
+    return () => { cancelled = true; };
+  }, [user, getProfilePhoto]);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // 내 정보 편집
@@ -109,58 +122,32 @@ export default function MyPage() {
   // 내 문의 내역 페이지네이션
   const [inquiryPage, setInquiryPage] = useState(1);
 
-  // 활동 데이터
-  const myDiaries = (() => {
-    try {
-      return (JSON.parse(localStorage.getItem('travelDiaries') || '[]') as any[])
-        .filter(d => d.userId === user?.id);
-    } catch { return []; }
-  })();
+  // 활동 데이터 (서버 D1에서 로드)
+  const [myDiaries, setMyDiaries] = useState<DiaryEntry[]>([]);
+  const [myAlbums, setMyAlbums] = useState<Album[]>([]);
+  const [myPlans, setMyPlans] = useState<TravelPlan[]>([]);
+  const [savedDiaries, setSavedDiaries] = useState<DiaryEntry[]>([]);
+  const [likedDiaries, setLikedDiaries] = useState<DiaryEntry[]>([]);
+  const [myComments, setMyComments] = useState<MyComment[]>([]);
+  const [myInquiries, setMyInquiries] = useState<Inquiry[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    diariesApi.list().then(setMyDiaries).catch(() => {});
+    albumsApi.list().then(setMyAlbums).catch(() => {});
+    plansApi.list().then(setMyPlans).catch(() => {});
+    communityApi.bookmarks().then(setSavedDiaries).catch(() => {});
+    communityApi.likes().then(setLikedDiaries).catch(() => {});
+    communityApi.myComments().then(setMyComments).catch(() => {});
+    getInquiries().then(setMyInquiries).catch(() => {});
+  }, [user]);
+
   const myPublicDiaries = myDiaries.filter(d => d.isPublic);
-  const myAlbums = (() => {
-    try {
-      return (JSON.parse(localStorage.getItem('travelAlbums') || '[]') as any[])
-        .filter(a => a.userId === user?.id);
-    } catch { return []; }
-  })();
-  const myPlans = (() => {
-    try {
-      return (JSON.parse(localStorage.getItem('travelPlans') || '[]') as any[])
-        .filter(p => p.userId === user?.id);
-    } catch { return []; }
-  })();
-  const savedIds: string[] = (() => {
-    try {
-      const all = JSON.parse(localStorage.getItem('savedDiaries') || '{}');
-      return all[user?.id || ''] || [];
-    } catch { return []; }
-  })();
-  const allDiaries = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('travelDiaries') || '[]') as any[];
-    } catch { return []; }
-  })();
-  const allPublicDiaries = allDiaries.filter(d => d.isPublic);
-  const savedDiaries = allPublicDiaries.filter((d: any) => savedIds.includes(d.id));
-  const likedDiaries = allPublicDiaries.filter((d: any) => d.likes?.includes(user?.id));
-  const myComments = (() => {
-    try {
-      return (JSON.parse(localStorage.getItem('diaryComments') || '[]') as any[])
-        .filter(c => c.userId === user?.id);
-    } catch { return []; }
-  })();
-  // 댓글을 단 게시글로 이동할 때 참조할 수 있도록, 공개 여부와 무관하게 전체 게시글에서 조회
-  const getCommentParentDiary = (diaryId: string) => allDiaries.find((d: any) => d.id === diaryId);
   // 커뮤니티의 해당 게시글로 이동 (Home 인기 여행/헤더 검색과 동일한 방식으로 자동 오픈 대상만 표시해 둠)
   const goToDiaryInCommunity = (diaryId: string) => {
     try { sessionStorage.setItem('trendingOpenDiaryId', diaryId); } catch {}
     setLocation('/community');
   };
-  const myInquiries = (() => {
-    try {
-      return getInquiries().filter(i => i.userId === user?.id);
-    } catch { return []; }
-  })();
   const sortedInquiries = [...myInquiries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const totalInquiryPages = Math.max(1, Math.ceil(sortedInquiries.length / INQUIRIES_PER_PAGE));
   const inquiryPageSafe = Math.min(inquiryPage, totalInquiryPages);
@@ -168,14 +155,13 @@ export default function MyPage() {
     (inquiryPageSafe - 1) * INQUIRIES_PER_PAGE,
     inquiryPageSafe * INQUIRIES_PER_PAGE
   );
-  const totalLikesReceived = myPublicDiaries.reduce((sum: number, d: any) =>
-    sum + (d.likes?.length || 0), 0);
+  const totalLikesReceived = myPublicDiaries.reduce((sum, d) => sum + d.likesCount, 0);
 
   // 여행 기록 목록의 썸네일 — 대표 사진(mainPhoto)으로 지정한 사진을 우선 사용하고,
   // 지정된 게 없을 때만 게시글에 첨부된 사진 중 첫 번째(영상 제외)로 대체
-  const getDiaryThumbnailUrl = (d: any): string | null => {
+  const getDiaryThumbnailUrl = (d: DiaryEntry): string | null => {
     if (d.mainPhoto && d.mainPhoto.type !== 'video' && d.mainPhoto.url) return d.mainPhoto.url;
-    return d.photos?.find((p: any) => p.type !== 'video')?.url || null;
+    return d.photos?.find(p => p.type !== 'video')?.url || null;
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,8 +170,9 @@ export default function MyPage() {
     if (file.size > 10 * 1024 * 1024) { toast.error(t('mypage.toast.photoTooLarge')); return; }
     try {
       const compressed = await compressProfilePhoto(file);
-      setProfilePhotoState(compressed);
-      setProfilePhoto(compressed);
+      const uploaded = await uploadDataUrl('profile-photo', compressed);
+      setProfilePhotoState(uploaded.url);
+      await setProfilePhoto(uploaded.key);
       toast.success(t('mypage.toast.photoUpdated'));
     } catch {
       toast.error(t('mypage.toast.photoError'));
@@ -198,12 +185,12 @@ export default function MyPage() {
     toast.success(t('mypage.toast.photoRemoved'));
   };
 
-  const handleSaveInfo = () => {
+  const handleSaveInfo = async () => {
     if (!editNickname.trim()) { toast.error(t('mypage.toast.nicknameRequired')); return; }
     if (!editEmail.trim()) { toast.error(t('mypage.toast.emailRequired')); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) { toast.error(t('mypage.toast.emailInvalid')); return; }
     setInfoSaving(true);
-    const result = updateProfile({ nickname: editNickname.trim(), email: editEmail.trim() });
+    const result = await updateProfile({ nickname: editNickname.trim(), email: editEmail.trim() });
     setInfoSaving(false);
     if (result.success) toast.success(result.message);
     else toast.error(result.message);
@@ -244,7 +231,7 @@ export default function MyPage() {
           toast.error(result.message);
         }
       } else {
-        if (!verifyPassword(passportGatePw)) {
+        if (!(await verifyPassword(passportGatePw))) {
           toast.error(t('mypage.toast.passportPasswordMismatch'));
         } else {
           setPassportForm(EMPTY_PASSPORT);
@@ -275,8 +262,8 @@ export default function MyPage() {
     }
   };
 
-  const handleDeletePassport = () => {
-    const result = deletePassportInfo(passportSessionPw);
+  const handleDeletePassport = async () => {
+    const result = await deletePassportInfo(passportSessionPw);
     setShowDeletePassport(false);
     if (result.success) {
       toast.success(result.message);
@@ -287,10 +274,10 @@ export default function MyPage() {
     }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const withdrawKeyword = t('mypage.account.withdrawKeyword');
     if (withdrawConfirm !== withdrawKeyword) { toast.error(t('mypage.toast.withdrawWordRequired', { word: withdrawKeyword })); return; }
-    const result = withdrawAccount();
+    const result = await withdrawAccount();
     if (result.success) toast.success(result.message);
     else toast.error(result.message);
     setShowWithdraw(false);
@@ -375,7 +362,7 @@ export default function MyPage() {
               {[
                 { label: t('mypage.stats.plans'), value: myPlans.length, icon: <Plane className="w-4 h-4" /> },
                 { label: t('mypage.stats.diaries'), value: myDiaries.length, icon: <BookOpen className="w-4 h-4" /> },
-                { label: t('mypage.stats.saved'), value: savedIds.length, icon: <Bookmark className="w-4 h-4" /> },
+                { label: t('mypage.stats.saved'), value: savedDiaries.length, icon: <Bookmark className="w-4 h-4" /> },
               ].map(stat => (
                 <div key={stat.label} className="bg-black/25 backdrop-blur-sm ring-1 ring-white/20 shadow-md rounded-xl px-4 py-3 min-w-[72px]">
                   <div className="flex items-center justify-center gap-1 text-white/90 text-xs mb-1">
@@ -591,7 +578,7 @@ export default function MyPage() {
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
-                              <Heart className="w-3 h-3" /> {d.likes?.length || 0}
+                              <Heart className="w-3 h-3" /> {d.likesCount}
                             </span>
                             {d.isPublic ? (
                               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">{t('mypage.activity.public')}</span>
@@ -703,7 +690,7 @@ export default function MyPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {d.likes?.length || 0}</span>
+                          <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {d.likesCount}</span>
                         </div>
                       </div>
                       );
@@ -723,34 +710,27 @@ export default function MyPage() {
                 ) : (
                   <div className="space-y-3">
                     {[...myComments]
-                      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                       .slice(0, 5)
-                      .map((c: any) => {
-                        const parentDiary = getCommentParentDiary(c.diaryId);
-                        return (
+                      .map((c) => (
                         <div key={c.id} className="p-3 bg-secondary rounded-lg border border-border">
-                          {parentDiary ? (
-                            <button
-                              type="button"
-                              onClick={() => goToDiaryInCommunity(parentDiary.id)}
-                              disabled={!parentDiary.isPublic}
-                              className={cn(
-                                'text-xs font-bold mb-1.5 truncate block w-full text-left',
-                                parentDiary.isPublic ? 'text-primary hover:underline' : 'text-muted-foreground cursor-default'
-                              )}
-                            >
-                              {parentDiary.title}
-                            </button>
-                          ) : (
-                            <p className="text-xs font-bold text-muted-foreground mb-1.5 italic">{t('mypage.activity.deletedPost')}</p>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => goToDiaryInCommunity(c.diaryId)}
+                            disabled={!c.diaryIsPublic}
+                            className={cn(
+                              'text-xs font-bold mb-1.5 truncate block w-full text-left',
+                              c.diaryIsPublic ? 'text-primary hover:underline' : 'text-muted-foreground cursor-default'
+                            )}
+                          >
+                            {c.diaryTitle}
+                          </button>
                           <p className="text-sm text-foreground leading-relaxed break-words">{c.content}</p>
                           <p className="text-xs text-muted-foreground mt-1.5">
                             {new Date(c.createdAt).toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
-                        );
-                      })}
+                      ))}
                   </div>
                 )}
               </Card>
@@ -802,7 +782,7 @@ export default function MyPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {d.likes?.length || 0}</span>
+                          <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {d.likesCount}</span>
                         </div>
                       </div>
                       );

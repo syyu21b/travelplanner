@@ -1,6 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth, type PublicUser } from '@/contexts/AuthContext';
-import { useNotifications } from '@/contexts/NotificationContext';
 import { useLocation } from 'wouter';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,7 +20,6 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AdminPage() {
   const { user, getAllUsers, adminUpdateUser, adminDeleteUser } = useAuth();
-  const { notify } = useNotifications();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState('');
   const [userPage, setUserPage] = useState(1);
@@ -38,9 +36,20 @@ export default function AdminPage() {
   const [deleteTarget, setDeleteTarget] = useState<PublicUser | null>(null);
 
   // 문의 내역
-  const [inquiries, setInquiries] = useState<Inquiry[]>(() => getInquiries());
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [inquiryTarget, setInquiryTarget] = useState<Inquiry | null>(null);
   const [answerText, setAnswerText] = useState('');
+  const refreshInquiries = useCallback(() => {
+    getInquiries().then(setInquiries);
+  }, []);
+
+  const [allUsers, setAllUsers] = useState<PublicUser[]>([]);
+  const refreshUsers = useCallback(() => {
+    getAllUsers().then(setAllUsers);
+  }, [getAllUsers]);
+  useEffect(() => {
+    if (user?.isAdmin) { refreshUsers(); refreshInquiries(); }
+  }, [user?.isAdmin, refreshUsers, refreshInquiries]);
 
   if (!user?.isAdmin) {
     return (
@@ -50,7 +59,6 @@ export default function AdminPage() {
     );
   }
 
-  const allUsers = getAllUsers();
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return allUsers;
@@ -85,7 +93,7 @@ export default function AdminPage() {
     setShowEditPw(false);
   }
 
-  function handleEditSave() {
+  async function handleEditSave() {
     if (!editTarget) return;
     if (!editNickname.trim()) { toast.error('닉네임을 입력해주세요.'); return; }
     if (!editEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) {
@@ -100,21 +108,23 @@ export default function AdminPage() {
     }
     if (Object.keys(updates).length === 0) { toast('변경된 내용이 없습니다.'); return; }
 
-    const result = adminUpdateUser(editTarget.id, updates);
+    const result = await adminUpdateUser(editTarget.id, updates);
     if (result.success) {
       toast.success(result.message);
       setEditTarget(null);
+      refreshUsers();
     } else {
       toast.error(result.message);
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTarget) return;
-    const result = adminDeleteUser(deleteTarget.id);
+    const result = await adminDeleteUser(deleteTarget.id);
     if (result.success) {
       toast.success(result.message);
       setDeleteTarget(null);
+      refreshUsers();
     } else {
       toast.error(result.message);
     }
@@ -131,19 +141,15 @@ export default function AdminPage() {
     setAnswerText(inquiry.answer || '');
   }
 
-  function handleSendAnswer() {
+  async function handleSendAnswer() {
     if (!inquiryTarget) return;
     if (!answerText.trim()) { toast.error('답변 내용을 입력해주세요.'); return; }
-    const success = answerInquiry(inquiryTarget.id, answerText.trim());
+    const success = await answerInquiry(inquiryTarget.id, answerText.trim());
     if (!success) {
-      toast.error('이 브라우저에서는 답변을 저장할 수 없습니다. 저장 공간을 확인해주세요.');
+      toast.error('답변을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.');
       return;
     }
-    // 문의를 남긴 사람이 가입 회원이면(비회원 문의는 앱 내 알림을 받을 계정이 없음) 답변 도착 알림을 보냄
-    if (inquiryTarget.userId) {
-      notify({ recipientId: inquiryTarget.userId, type: 'inquiry-answer', inquiryId: inquiryTarget.id });
-    }
-    setInquiries(getInquiries());
+    refreshInquiries();
     toast.success('답변이 등록되었습니다.');
     setInquiryTarget(null);
   }
