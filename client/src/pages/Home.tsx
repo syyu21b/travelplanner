@@ -2324,6 +2324,13 @@ export default function Home() {
                   '완료': 'bg-gray-100 text-gray-500 border-gray-200',
                 };
 
+                if (isPlanLoading && travelPlans.length === 0) {
+                  return (
+                    <div className="py-12 flex items-center justify-center text-muted-foreground">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  );
+                }
                 if (travelPlans.length === 0) {
                   return (
                     <Card className="p-12 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/60">

@@ -200,25 +200,31 @@ export default function TravelDiary() {
   const [slidePhotoIndex, setSlidePhotoIndex] = useState(0);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
+  const [isDiariesLoading, setIsDiariesLoading] = useState(false);
+  const [isAlbumsLoading, setIsAlbumsLoading] = useState(false);
 
   // 여행 기록/앨범/연결 가능한 계획을 서버(D1)에서 로드
   useEffect(() => {
     if (!user) { setDiaries([]); setAlbums([]); setUserPlans([]); return; }
     let cancelled = false;
+    setIsDiariesLoading(true);
+    setIsAlbumsLoading(true);
     diariesApi.list().then(list => {
       if (cancelled) return;
       const normalized = list.map(normalizeDiary);
       setDiaries(normalized);
       const savedId = localStorage.getItem('currentDiaryId');
       if (savedId) setCurrentDiary(normalized.find(d => d.id === savedId) || null);
-    }).catch(() => toast.error(t('diary.errors.storageFull')));
+    }).catch(() => toast.error(t('diary.errors.storageFull')))
+      .finally(() => { if (!cancelled) setIsDiariesLoading(false); });
     albumsApi.list().then(list => {
       if (cancelled) return;
       const normalized = list.map(normalizeAlbum);
       setAlbums(normalized);
       const savedId = localStorage.getItem('currentAlbumId');
       if (savedId) setCurrentAlbum(normalized.find(a => a.id === savedId) || null);
-    }).catch(() => toast.error(t('diary.errors.storageFull')));
+    }).catch(() => toast.error(t('diary.errors.storageFull')))
+      .finally(() => { if (!cancelled) setIsAlbumsLoading(false); });
     plansApi.list().then(list => {
       if (cancelled) return;
       setUserPlans(list.map(p => ({
@@ -2060,7 +2066,11 @@ export default function TravelDiary() {
             )}
 
             {/* Diaries list */}
-            {myDiaries.length === 0 ? (
+            {isDiariesLoading && myDiaries.length === 0 ? (
+              <div className="py-16 flex items-center justify-center text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : myDiaries.length === 0 ? (
               <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
                 <BookOpen className="w-16 h-16 text-border mb-4" />
                 <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.emptyState.title')}</h3>
@@ -2216,7 +2226,11 @@ export default function TravelDiary() {
             )}
 
             {/* Albums list */}
-            {myAlbums.length === 0 ? (
+            {isAlbumsLoading && myAlbums.length === 0 ? (
+              <div className="py-16 flex items-center justify-center text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : myAlbums.length === 0 ? (
               <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
                 <Camera className="w-16 h-16 text-border mb-4" />
                 <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.album.emptyState.title')}</h3>

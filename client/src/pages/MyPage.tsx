@@ -8,7 +8,7 @@ import {
   User, Mail, Lock, Trash2, Camera, Edit2, Check, X, Shield,
   BookOpen, Plane, Bookmark, MessageCircle, Heart, Calendar,
   KeyRound, UserX, ChevronLeft, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
-  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings
+  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -130,15 +130,19 @@ export default function MyPage() {
   const [likedDiaries, setLikedDiaries] = useState<DiaryEntry[]>([]);
   const [myComments, setMyComments] = useState<MyComment[]>([]);
   const [myInquiries, setMyInquiries] = useState<Inquiry[]>([]);
+  const [isActivityLoading, setIsActivityLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    diariesApi.list().then(setMyDiaries).catch(() => {});
-    albumsApi.list().then(setMyAlbums).catch(() => {});
-    plansApi.list().then(setMyPlans).catch(() => {});
-    communityApi.bookmarks().then(setSavedDiaries).catch(() => {});
-    communityApi.likes().then(setLikedDiaries).catch(() => {});
-    communityApi.myComments().then(setMyComments).catch(() => {});
+    setIsActivityLoading(true);
+    Promise.allSettled([
+      diariesApi.list().then(setMyDiaries),
+      albumsApi.list().then(setMyAlbums),
+      plansApi.list().then(setMyPlans),
+      communityApi.bookmarks().then(setSavedDiaries),
+      communityApi.likes().then(setLikedDiaries),
+      communityApi.myComments().then(setMyComments),
+    ]).finally(() => setIsActivityLoading(false));
     getInquiries().then(setMyInquiries).catch(() => {});
   }, [user]);
 
@@ -546,7 +550,11 @@ export default function MyPage() {
                     {t('mypage.activity.viewAll')} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                {myDiaries.length === 0 ? (
+                {isActivityLoading && myDiaries.length === 0 ? (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                ) : myDiaries.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
                     <BookOpen className="w-10 h-10 mx-auto mb-3 text-border" />
                     <p className="text-sm">{t('mypage.activity.noDiaries')}</p>
@@ -606,7 +614,11 @@ export default function MyPage() {
                     {t('mypage.activity.viewAll')} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                {myAlbums.length === 0 ? (
+                {isActivityLoading && myAlbums.length === 0 ? (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                ) : myAlbums.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
                     <Camera className="w-10 h-10 mx-auto mb-3 text-border" />
                     <p className="text-sm">{t('mypage.activity.noAlbums')}</p>
@@ -656,7 +668,11 @@ export default function MyPage() {
                     {t('mypage.activity.goCommunity')} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                {savedDiaries.length === 0 ? (
+                {isActivityLoading && savedDiaries.length === 0 ? (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                ) : savedDiaries.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
                     <Bookmark className="w-10 h-10 mx-auto mb-3 text-border" />
                     <p className="text-sm">{t('mypage.activity.noSaved')}</p>
@@ -705,7 +721,11 @@ export default function MyPage() {
                   <MessageCircle className="w-5 h-5 text-primary" /> {t('mypage.activity.commentsTitle')}
                   <span className="text-sm text-muted-foreground font-normal">{t('mypage.activity.commentsCount', { count: myComments.length })}</span>
                 </h3>
-                {myComments.length === 0 ? (
+                {isActivityLoading && myComments.length === 0 ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                ) : myComments.length === 0 ? (
                   <p className="text-center py-6 text-sm text-muted-foreground">{t('mypage.activity.noComments')}</p>
                 ) : (
                   <div className="space-y-3">
@@ -748,7 +768,11 @@ export default function MyPage() {
                     {t('mypage.activity.goCommunity')} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                {likedDiaries.length === 0 ? (
+                {isActivityLoading && likedDiaries.length === 0 ? (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                ) : likedDiaries.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
                     <Heart className="w-10 h-10 mx-auto mb-3 text-border" />
                     <p className="text-sm">{t('mypage.activity.noLiked')}</p>
