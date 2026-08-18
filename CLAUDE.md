@@ -64,7 +64,7 @@ DB 스키마를 바꿨다면: `pnpm db:generate` → `pnpm db:migrate:local` (�
   - 이미지/영상은 base64 대신 R2에 업로드하고 `/api/media/:key`로 서빙 (비공개 콘텐츠는 소유자 인증 필요)
   - 회원탈퇴 시 FK CASCADE로 해당 사용자의 계획/일기/댓글 등이 함께 삭제됨
   - 기존 localStorage 데이터는 마이그레이션하지 않음 — 사용자는 새 계정으로 다시 시작
-  - **미완료**: Cloudflare 계정에서 R2가 아직 활성화되지 않아 원격(prod) D1 마이그레이션 적용과 R2 버킷 원격 생성이 남아있음. 로컬 개발(`pnpm cf:dev`)은 D1/R2 에뮬레이션으로 정상 동작.
+- **2026-08-19**: R2 활성화, 원격 R2 버킷(`travelplanner-media`) 생성, 원격 D1 마이그레이션 적용, `pnpm run deploy`로 프로덕션 배포 완료 (https://travelplanner.syyu21b.workers.dev). `pnpm deploy`는 pnpm의 예약 명령어와 충돌하므로 반드시 `pnpm run deploy`로 실행할 것.
 
 ## 주의사항
 - `node_modules/`, `dist/` 폴더는 편집 대상에서 제외
