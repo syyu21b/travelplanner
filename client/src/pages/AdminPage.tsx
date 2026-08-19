@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { NaverMapsUsagePanel } from '@/components/NaverMapsUsagePanel';
 import { GeminiUsagePanel } from '@/components/GeminiUsagePanel';
+import { R2UsagePanel } from '@/components/R2UsagePanel';
 import NotificationBell from '@/components/NotificationBell';
 import { getInquiries, answerInquiry, type Inquiry } from '@/lib/inquiries';
 
@@ -234,6 +235,8 @@ export default function AdminPage() {
         <NaverMapsUsagePanel />
 
         <GeminiUsagePanel />
+
+        <R2UsagePanel />
 
         {/* 문의 내역 */}
         <Card className="bg-white border-[#DED6CC] mb-8">

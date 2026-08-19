@@ -3,7 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDb } from "../db/client";
 import { travelDiaries } from "../db/schema";
-import { attachUser, requireAuth, type AppEnv } from "../lib/middleware";
+import { attachUser, requireAuth, requireAdmin, type AppEnv } from "../lib/middleware";
 
 const ALLOWED_KINDS = ["diary-photo", "diary-block", "plan-cover", "album-photo", "profile-photo"] as const;
 type MediaKind = (typeof ALLOWED_KINDS)[number];
@@ -63,6 +63,37 @@ media.post("/upload", requireAuth, async (c) => {
   const key = `${kind}/${user.id}/${nanoid(16)}.${ext}`;
   await c.env.MEDIA.put(key, bytes, { httpMetadata: { contentType } });
   return c.json({ key, url: `/api/media/${key}` });
+});
+
+// R2 버킷의 전체 객체를 실제로 나열해 집계한 실측 사용량 (별도 Cloudflare API 토큰 없이
+// 이미 바인딩된 MEDIA를 사용). list()는 페이지당 최대 1000개라 커서로 반복 조회한다.
+media.get("/admin/usage", requireAdmin, async (c) => {
+  if (!c.env.MEDIA) return c.json({ error: "미디어 저장소가 아직 설정되지 않았습니다." }, 503);
+
+  const byKind: Record<string, { count: number; bytes: number }> = {};
+  let totalCount = 0;
+  let totalBytes = 0;
+  let cursor: string | undefined;
+  let truncated = true;
+  let pages = 0;
+  const MAX_PAGES = 50; // 최대 5만 개 객체까지 집계 (그 이상이면 truncated로 표시)
+
+  while (truncated && pages < MAX_PAGES) {
+    const listing = await c.env.MEDIA.list({ cursor, limit: 1000 });
+    for (const obj of listing.objects) {
+      totalCount++;
+      totalBytes += obj.size;
+      const kind = obj.key.split("/")[0] || "기타";
+      if (!byKind[kind]) byKind[kind] = { count: 0, bytes: 0 };
+      byKind[kind].count++;
+      byKind[kind].bytes += obj.size;
+    }
+    truncated = listing.truncated;
+    cursor = listing.truncated ? listing.cursor : undefined;
+    pages++;
+  }
+
+  return c.json({ totalCount, totalBytes, byKind, truncated: truncated && pages >= MAX_PAGES });
 });
 
 media.get("/:kind/:userId/:filename", async (c) => {

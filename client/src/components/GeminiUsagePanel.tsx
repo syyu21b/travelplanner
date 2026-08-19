@@ -19,7 +19,17 @@ export function GeminiUsagePanel() {
 
   return (
     <Card className="p-5 bg-white border-[#DED6CC] mb-8">
-      <h2 className="text-base font-bold text-[#7D6B5D] mb-1">AI 여행 일정(Gemini API) 사용량</h2>
+      <div className="flex items-center gap-2 mb-1">
+        <h2 className="text-base font-bold text-[#7D6B5D]">AI 여행 일정(Gemini API) 사용량</h2>
+        <a
+          href="https://aistudio.google.com/usage"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-blue-500 hover:text-blue-600 hover:underline"
+        >
+          Google AI Studio에서 보기 ↗
+        </a>
+      </div>
       <p className="text-xs text-[#A68B77] flex items-start gap-1 mb-4">
         <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
         Google AI Studio는 사용량 통계를 조회하는 공개 API를 제공하지 않아, 이 브라우저에서 실제로 호출한 횟수를 자체 집계한 값입니다. 요청 1건당 서버에서 Gemini API를 2회(생성 + 구조화) 호출합니다.

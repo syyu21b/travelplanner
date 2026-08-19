@@ -19,7 +19,17 @@ export function NaverMapsUsagePanel() {
 
   return (
     <Card className="p-5 bg-white border-[#DED6CC] mb-8">
-      <h2 className="text-base font-bold text-[#7D6B5D] mb-1">네이버 지도(NCP Maps) 사용량</h2>
+      <div className="flex items-center gap-2 mb-1">
+        <h2 className="text-base font-bold text-[#7D6B5D]">네이버 지도(NCP Maps) 사용량</h2>
+        <a
+          href="https://console.ncloud.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-blue-500 hover:text-blue-600 hover:underline"
+        >
+          NCP 콘솔에서 보기 ↗
+        </a>
+      </div>
       <p className="text-xs text-[#A68B77] flex items-start gap-1 mb-4">
         <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
         NCP 콘솔은 사용량 통계를 조회하는 공개 API를 제공하지 않아, 이 앱에서 실제로 호출한 횟수를 자체 집계한 값입니다. NCP 콘솔의 공식 과금 수치와 다를 수 있습니다.

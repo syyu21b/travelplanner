@@ -1,4 +1,4 @@
-import { ApiError } from "../api";
+import { api, ApiError } from "../api";
 
 export type MediaKind = "diary-photo" | "diary-block" | "plan-cover" | "album-photo" | "profile-photo";
 
@@ -41,4 +41,16 @@ export function mediaUrl(key: string | null | undefined): string | undefined {
 
 export async function deleteMedia(key: string): Promise<void> {
   await fetch(`/api/media/${key}`, { method: "DELETE", credentials: "include" });
+}
+
+export interface R2UsageSummary {
+  totalCount: number;
+  totalBytes: number;
+  byKind: Record<string, { count: number; bytes: number }>;
+  truncated: boolean;
+}
+
+// 관리자 전용: R2 버킷의 실제 객체를 나열해 집계한 실측 스토리지 사용량
+export async function getR2Usage(): Promise<R2UsageSummary> {
+  return api.get<R2UsageSummary>("/media/admin/usage");
 }
