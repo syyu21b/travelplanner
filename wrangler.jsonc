@@ -14,8 +14,8 @@
     "PLAN_TRIP_PROXY_URL": "https://travelplanner-syyu21b.vercel.app/api/plan-trip",
     "NAVER_CLIENT_ID": "oIprsolL0m8giBgq629e",
     "KAKAO_CLIENT_ID": "9fab0a92f782b05f60392f79960378e9",
-    "PORTONE_STORE_ID": "",
-    "PORTONE_CHANNEL_KEY": ""
+    "PORTONE_STORE_ID": "store-d41d91c3-962b-45a0-8c45-27cc675d3fd0",
+    "PORTONE_CHANNEL_KEY": "channel-key-8f27aa92-60c7-433e-9ded-2aa3d0376fee"
   },
   "d1_databases": [
     {
