@@ -61,12 +61,18 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
         },
       });
 
-      if (!response || response.code !== undefined) {
-        toast.error(response?.message || '결제가 취소되었습니다.');
+      if (!response) {
+        toast.error('결제가 취소되었습니다.');
         return;
       }
 
+      // 성공/실패(취소 포함) 관계없이 서버에 항상 확정 요청 — 실패 사유까지 저장돼야
+      // 관리자 결제 내역에서 "결제 시도" 기록으로 정확히 남는다(그렇지 않으면 pending에 머무름).
       const result = await paymentsApi.completePayment(req.paymentId);
+      if (response.code !== undefined) {
+        toast.error(result.message || response.message || '결제가 취소되었습니다.');
+        return;
+      }
       if (result.success) {
         toast.success(result.message);
         onPurchased();

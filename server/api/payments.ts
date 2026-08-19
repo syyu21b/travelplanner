@@ -76,13 +76,26 @@ async function confirmPayment(db: ReturnType<typeof getDb>, env: AppEnv["Binding
   if (record.status === "paid") return { success: true, message: "이미 처리된 결제입니다." };
 
   const info = await fetchPortOnePayment(env, paymentId);
-  if (!info || info.status !== "PAID" || info.amountTotal !== record.amountKrw) {
+  if (!info) {
     await db.update(payments).set({ status: "failed" }).where(eq(payments.id, paymentId));
     return { success: false, message: "결제 확인에 실패했습니다." };
   }
 
+  // PG/채널/실패 사유 등 상세 정보는 성공/실패 관계없이 항상 기록 — 관리자 결제 내역 상세보기용
+  const detailFields = {
+    pgProvider: info.pgProvider,
+    channelName: info.channelName,
+    payMethod: info.payMethod,
+    failureReason: info.failureReason,
+  };
+
+  if (info.status !== "PAID" || info.amountTotal !== record.amountKrw) {
+    await db.update(payments).set({ status: "failed", ...detailFields }).where(eq(payments.id, paymentId));
+    return { success: false, message: info.failureReason || "결제 확인에 실패했습니다." };
+  }
+
   const paidAt = new Date().toISOString();
-  await db.update(payments).set({ status: "paid", paidAt }).where(eq(payments.id, paymentId));
+  await db.update(payments).set({ status: "paid", paidAt, ...detailFields }).where(eq(payments.id, paymentId));
   await getOrInitCredits(db, record.userId); // 행이 없으면 먼저 만들어둠(가입 첫 1회 무료 케이스)
   await addCredits(db, record.userId, record.credits);
 
@@ -118,6 +131,10 @@ paymentsApi.get("/admin/all", requireAdmin, async (c) => {
       status: payments.status,
       createdAt: payments.createdAt,
       paidAt: payments.paidAt,
+      pgProvider: payments.pgProvider,
+      channelName: payments.channelName,
+      payMethod: payments.payMethod,
+      failureReason: payments.failureReason,
     })
     .from(payments)
     .innerJoin(users, eq(payments.userId, users.id))

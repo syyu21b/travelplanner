@@ -30,6 +30,10 @@ export interface AdminPaymentRecord {
   status: "pending" | "paid" | "failed";
   createdAt: string;
   paidAt: string | null;
+  pgProvider: string | null;
+  channelName: string | null;
+  payMethod: string | null;
+  failureReason: string | null;
 }
 
 export const paymentsApi = {

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   Users, Search, Edit2, Trash2, Shield, ChevronLeft, ChevronRight, Crown,
   Eye, EyeOff, X, CheckCircle, MessageCircle, Mail, Receipt, DollarSign, Wallet, TrendingUp,
+  Clock, CreditCard, Building2, AlertCircle, Hash,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NaverMapsUsagePanel } from '@/components/NaverMapsUsagePanel';
@@ -47,6 +48,8 @@ export default function AdminPage() {
 
   // 회원별 결제 내역 모달
   const [paymentUserTarget, setPaymentUserTarget] = useState<PublicUser | null>(null);
+  // 결제 건 상세 모달 (결제 내역 테이블 / 회원별 결제 내역 모달 양쪽에서 공용으로 사용)
+  const [paymentDetailTarget, setPaymentDetailTarget] = useState<AdminPaymentRecord | null>(null);
 
   // 문의 내역
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -173,6 +176,18 @@ export default function AdminPage() {
   function formatKrw(amount: number) {
     return `${amount.toLocaleString()}원`;
   }
+
+  function formatDateTime(iso: string) {
+    return new Date(iso).toLocaleString('ko-KR', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+  }
+
+  const PAY_METHOD_LABEL: Record<string, string> = {
+    CARD: '신용/체크카드', TRANSFER: '계좌이체', VIRTUAL_ACCOUNT: '가상계좌',
+    MOBILE: '휴대폰 소액결제', GIFT_CERTIFICATE: '상품권', EASY_PAY: '간편결제', CONVENIENCE_STORE: '편의점 결제',
+  };
 
   const pendingInquiries = inquiries.filter(i => i.status === 'pending').length;
 
@@ -334,7 +349,11 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ) : pagedPayments.map((p, i) => (
-                  <tr key={p.id} className={`border-b border-[#F9F7F2] hover:bg-[#FDFCFA] transition-colors ${i % 2 === 0 ? '' : 'bg-[#FDFCFA]'}`}>
+                  <tr
+                    key={p.id}
+                    onClick={() => setPaymentDetailTarget(p)}
+                    className={`border-b border-[#F9F7F2] hover:bg-[#FDFCFA] cursor-pointer transition-colors ${i % 2 === 0 ? '' : 'bg-[#FDFCFA]'}`}
+                  >
                     <td className="px-4 py-3">
                       <p className="font-semibold text-[#7D6B5D]">{p.nickname}</p>
                       <p className="text-[#A68B77] text-xs font-mono">{p.username}</p>
@@ -763,7 +782,11 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-2">
                   {paymentUserHistory.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#E8E2D9] bg-white">
+                    <div
+                      key={p.id}
+                      onClick={() => setPaymentDetailTarget(p)}
+                      className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#E8E2D9] bg-white hover:bg-[#F9F7F2] cursor-pointer transition-colors"
+                    >
                       <div className="min-w-0">
                         <p className="font-semibold text-[#7D6B5D] text-sm">{PACKAGE_LABEL[p.packageId] ?? p.packageId} ({p.credits}회)</p>
                         <p className="text-xs text-[#A68B77]">{formatDate(p.paidAt || p.createdAt)}</p>
@@ -778,6 +801,92 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 결제 건 상세 모달 */}
+      <Dialog open={!!paymentDetailTarget} onOpenChange={(o) => { if (!o) setPaymentDetailTarget(null); }}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#7D6B5D] flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-[#A68B77]" /> 결제 상세
+            </DialogTitle>
+          </DialogHeader>
+          {paymentDetailTarget && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${PAYMENT_STATUS_LABEL[paymentDetailTarget.status].className}`}>
+                  {PAYMENT_STATUS_LABEL[paymentDetailTarget.status].label}
+                </span>
+                <span className="font-extrabold text-xl text-[#7D6B5D]">{formatKrw(paymentDetailTarget.amountKrw)}</span>
+              </div>
+
+              <div className="bg-[#F9F7F2] rounded-lg p-3 text-xs text-[#A68B77] space-y-1.5">
+                <p>회원: <span className="font-semibold text-[#7D6B5D]">{paymentDetailTarget.nickname}</span> ({paymentDetailTarget.username})</p>
+                <p>이메일: <span className="font-semibold text-[#7D6B5D]">{paymentDetailTarget.email}</span></p>
+                <p>상품: <span className="font-semibold text-[#7D6B5D]">{PACKAGE_LABEL[paymentDetailTarget.packageId] ?? paymentDetailTarget.packageId} ({paymentDetailTarget.credits}회)</span></p>
+              </div>
+
+              <div className="space-y-2.5 text-sm">
+                <div className="flex items-start gap-2.5">
+                  <Hash className="w-4 h-4 text-[#A68B77] mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-[#A68B77]">결제 ID</p>
+                    <p className="font-mono text-xs text-[#7D6B5D] break-all">{paymentDetailTarget.id}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Clock className="w-4 h-4 text-[#A68B77] mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-[#A68B77]">결제 시도 시각</p>
+                    <p className="font-semibold text-[#7D6B5D]">{formatDateTime(paymentDetailTarget.createdAt)}</p>
+                  </div>
+                </div>
+                {paymentDetailTarget.paidAt && (
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-[#A68B77]">결제 완료 시각</p>
+                      <p className="font-semibold text-[#7D6B5D]">{formatDateTime(paymentDetailTarget.paidAt)}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-start gap-2.5">
+                  <Building2 className="w-4 h-4 text-[#A68B77] mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-[#A68B77]">결제 시스템(PG사)</p>
+                    <p className="font-semibold text-[#7D6B5D]">
+                      {paymentDetailTarget.channelName || paymentDetailTarget.pgProvider || '확인되지 않음 (결제 시도 미완료)'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CreditCard className="w-4 h-4 text-[#A68B77] mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-[#A68B77]">결제 수단</p>
+                    <p className="font-semibold text-[#7D6B5D]">
+                      {paymentDetailTarget.payMethod ? (PAY_METHOD_LABEL[paymentDetailTarget.payMethod] ?? paymentDetailTarget.payMethod) : '확인되지 않음'}
+                    </p>
+                  </div>
+                </div>
+                {paymentDetailTarget.failureReason && (
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-[#A68B77]">실패/취소 사유</p>
+                      <p className="font-semibold text-red-600 break-words">{paymentDetailTarget.failureReason}</p>
+                    </div>
+                  </div>
+                )}
+                {paymentDetailTarget.status === 'pending' && (
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-600">결제를 시도했지만 아직 최종 확정되지 않았습니다(사용자가 결제창을 닫았을 가능성).</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>

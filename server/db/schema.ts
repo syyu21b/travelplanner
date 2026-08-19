@@ -63,6 +63,11 @@ export const payments = sqliteTable(
     status: text("status", { enum: ["pending", "paid", "failed"] }).notNull().default("pending"),
     createdAt: text("created_at").notNull(),
     paidAt: text("paid_at"),
+    // 포트원 결제 단건 조회 응답에서 채워지는 상세 정보 — 확정 시도(성공/실패 모두) 후에만 값이 있음
+    pgProvider: text("pg_provider"), // 예: "INICIS_V2"
+    channelName: text("channel_name"), // 예: "이니시스 결제창 일반결제 및 API 일반결제"
+    payMethod: text("pay_method"), // 예: "CARD"
+    failureReason: text("failure_reason"),
   },
   (t) => [index("payments_user_id_idx").on(t.userId)],
 );

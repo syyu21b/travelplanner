@@ -3,6 +3,10 @@ import type { Env } from "../env";
 export interface PortOnePaymentInfo {
   status: string;
   amountTotal: number;
+  pgProvider: string | null;
+  channelName: string | null;
+  payMethod: string | null;
+  failureReason: string | null;
 }
 
 // 브라우저가 보낸 결제 완료 신호는 위변조될 수 있으므로, 서버가 포트원 API로 결제 건을 직접
@@ -22,11 +26,24 @@ export async function fetchPortOnePayment(env: Env, paymentId: string): Promise<
     return null;
   }
 
-  const body = JSON.parse(text) as { status?: string; amount?: { total?: number } };
+  const body = JSON.parse(text) as {
+    status?: string;
+    amount?: { total?: number };
+    channel?: { pgProvider?: string; name?: string };
+    payMethod?: { type?: string };
+    failure?: { reason?: string };
+  };
   if (!body.status || typeof body.amount?.total !== "number") {
     console.error("[portone] unexpected payment lookup response", body);
     return null;
   }
 
-  return { status: body.status, amountTotal: body.amount.total };
+  return {
+    status: body.status,
+    amountTotal: body.amount.total,
+    pgProvider: body.channel?.pgProvider ?? null,
+    channelName: body.channel?.name ?? null,
+    payMethod: body.payMethod?.type ?? null,
+    failureReason: body.failure?.reason ?? null,
+  };
 }
