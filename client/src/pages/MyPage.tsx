@@ -8,7 +8,7 @@ import {
   User, Mail, Lock, Trash2, Camera, Edit2, Check, X, Shield,
   BookOpen, Plane, Bookmark, MessageCircle, Heart, Calendar,
   KeyRound, UserX, ChevronLeft, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
-  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings, Loader2
+  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings, Loader2, Phone
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -105,6 +105,7 @@ export default function MyPage() {
   // 내 정보 편집
   const [editNickname, setEditNickname] = useState(user?.nickname || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
+  const [editPhoneNumber, setEditPhoneNumber] = useState(user?.phoneNumber || '');
   const [infoSaving, setInfoSaving] = useState(false);
 
   // 비밀번호 변경
@@ -193,8 +194,10 @@ export default function MyPage() {
     if (!editNickname.trim()) { toast.error(t('mypage.toast.nicknameRequired')); return; }
     if (!editEmail.trim()) { toast.error(t('mypage.toast.emailRequired')); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) { toast.error(t('mypage.toast.emailInvalid')); return; }
+    const normalizedPhone = editPhoneNumber.replace(/-/g, '');
+    if (normalizedPhone && !/^01[0-9]{8,9}$/.test(normalizedPhone)) { toast.error(t('mypage.toast.phoneInvalid')); return; }
     setInfoSaving(true);
-    const result = await updateProfile({ nickname: editNickname.trim(), email: editEmail.trim() });
+    const result = await updateProfile({ nickname: editNickname.trim(), email: editEmail.trim(), phoneNumber: normalizedPhone });
     setInfoSaving(false);
     if (result.success) toast.success(result.message);
     else toast.error(result.message);
@@ -505,6 +508,20 @@ export default function MyPage() {
                         className="h-11 pl-9"
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">{t('mypage.info.phoneLabel')}</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="tel"
+                        value={editPhoneNumber}
+                        onChange={e => setEditPhoneNumber(e.target.value)}
+                        placeholder={t('mypage.info.phonePlaceholder')}
+                        className="h-11 pl-9"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{t('mypage.info.phoneHint')}</p>
                   </div>
                 </div>
                 <Button

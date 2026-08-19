@@ -30,7 +30,7 @@ interface AuthContextType {
   sendEmailCode: (email: string) => Promise<{ success: boolean; message: string }>;
   verifyEmailCode: (email: string, code: string) => Promise<{ success: boolean; message: string }>;
   withdrawAccount: () => Promise<{ success: boolean; message: string }>;
-  updateProfile: (updates: { nickname?: string; email?: string }) => Promise<{ success: boolean; message: string }>;
+  updateProfile: (updates: { nickname?: string; email?: string; phoneNumber?: string }) => Promise<{ success: boolean; message: string }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   getProfilePhoto: (userId: string) => Promise<string | null>;
   setProfilePhoto: (photoKey: string | null) => Promise<void>;
@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (updates: { nickname?: string; email?: string }): Promise<{ success: boolean; message: string }> => {
+  const updateProfile = async (updates: { nickname?: string; email?: string; phoneNumber?: string }): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: '로그인 상태가 아닙니다.' };
     try {
       const res = await authApi.updateProfile(updates);

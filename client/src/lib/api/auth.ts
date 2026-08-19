@@ -44,7 +44,7 @@ export const authApi = {
 
   withdrawAccount: () => api.post<Result>("/auth/withdraw"),
 
-  updateProfile: (updates: { nickname?: string; email?: string }) =>
+  updateProfile: (updates: { nickname?: string; email?: string; phoneNumber?: string }) =>
     api.patch<Result & { user?: User }>("/auth/profile", updates),
 
   changePassword: (currentPassword: string, newPassword: string) =>

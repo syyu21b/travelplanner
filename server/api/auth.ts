@@ -205,7 +205,7 @@ auth.post("/verify-password", requireAuth, async (c) => {
 auth.patch("/profile", requireAuth, async (c) => {
   const user = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
-  const { nickname, email } = body as { nickname?: string; email?: string };
+  const { nickname, email, phoneNumber } = body as { nickname?: string; email?: string; phoneNumber?: string };
   const db = getDb(c.env);
 
   const updates: Partial<typeof users.$inferInsert> = {};
@@ -218,6 +218,12 @@ auth.patch("/profile", requireAuth, async (c) => {
     if ((await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)).length > 0)
       return c.json({ success: false, message: "이미 사용 중인 이메일입니다." }, 409);
     updates.email = email;
+  }
+  if (phoneNumber !== undefined) {
+    const normalized = phoneNumber.replace(/-/g, "");
+    if (normalized && !/^01[0-9]{8,9}$/.test(normalized))
+      return c.json({ success: false, message: "올바른 휴대전화번호를 입력해주세요." }, 400);
+    updates.phoneNumber = normalized || null;
   }
   if (Object.keys(updates).length > 0) {
     await db.update(users).set(updates).where(eq(users.id, user.id));
