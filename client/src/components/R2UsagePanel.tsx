@@ -43,17 +43,18 @@ export function R2UsagePanel() {
       <div className="flex items-center gap-2 mb-1">
         <h2 className="text-base font-bold text-[#7D6B5D]">R2 스토리지 사용량</h2>
         <a
-          href="https://dash.cloudflare.com/"
+          href="https://dash.cloudflare.com/f545225d9fa9224b8af3fffc70c5f5c5/r2/default/buckets/travelplanner/metrics"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs font-semibold text-blue-500 hover:text-blue-600 hover:underline"
         >
-          Cloudflare 대시보드에서 보기 ↗
+          Cloudflare 대시보드에서 Class A/B 사용량 보기 ↗
         </a>
       </div>
       <p className="text-xs text-[#A68B77] flex items-start gap-1 mb-4">
         <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
         업로드된 전체 이미지/영상 파일을 직접 조회해 집계한 실측 값입니다. 무료 티어는 월 10GB 저장까지 무료입니다.
+        Class A/B 오퍼레이션 사용량은 위 대시보드 링크에서 확인할 수 있습니다.
       </p>
 
       {error ? (
