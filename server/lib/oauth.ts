@@ -51,7 +51,10 @@ export async function fetchOAuthProfile(
 }
 
 async function fetchNaverProfile(code: string, env: Env, redirectUri: string): Promise<OAuthProfile | null> {
-  if (!env.NAVER_CLIENT_ID || !env.NAVER_CLIENT_SECRET) return null;
+  if (!env.NAVER_CLIENT_ID || !env.NAVER_CLIENT_SECRET) {
+    console.error("[oauth:naver] missing NAVER_CLIENT_ID/NAVER_CLIENT_SECRET");
+    return null;
+  }
 
   const tokenUrl = new URL("https://nid.naver.com/oauth2.0/token");
   tokenUrl.searchParams.set("grant_type", "authorization_code");
@@ -61,20 +64,35 @@ async function fetchNaverProfile(code: string, env: Env, redirectUri: string): P
   tokenUrl.searchParams.set("redirect_uri", redirectUri);
 
   const tokenRes = await fetch(tokenUrl.toString());
-  if (!tokenRes.ok) return null;
-  const tokenBody = (await tokenRes.json()) as { access_token?: string };
-  if (!tokenBody.access_token) return null;
+  const tokenText = await tokenRes.text();
+  if (!tokenRes.ok) {
+    console.error(`[oauth:naver] token exchange failed (${tokenRes.status})`, tokenText);
+    return null;
+  }
+  const tokenBody = JSON.parse(tokenText) as { access_token?: string; error?: string; error_description?: string };
+  if (!tokenBody.access_token) {
+    console.error("[oauth:naver] token response missing access_token", tokenBody);
+    return null;
+  }
 
   const profileRes = await fetch("https://openapi.naver.com/v1/nid/me", {
     headers: { Authorization: `Bearer ${tokenBody.access_token}` },
   });
-  if (!profileRes.ok) return null;
-  const profileBody = (await profileRes.json()) as {
+  const profileText = await profileRes.text();
+  if (!profileRes.ok) {
+    console.error(`[oauth:naver] profile fetch failed (${profileRes.status})`, profileText);
+    return null;
+  }
+  const profileBody = JSON.parse(profileText) as {
     resultcode?: string;
+    message?: string;
     response?: { id?: string; email?: string; nickname?: string; name?: string };
   };
   const info = profileBody.response;
-  if (profileBody.resultcode !== "00" || !info?.id) return null;
+  if (profileBody.resultcode !== "00" || !info?.id) {
+    console.error("[oauth:naver] profile response not ok", profileBody);
+    return null;
+  }
 
   return {
     providerUserId: info.id,
@@ -84,7 +102,10 @@ async function fetchNaverProfile(code: string, env: Env, redirectUri: string): P
 }
 
 async function fetchKakaoProfile(code: string, env: Env, redirectUri: string): Promise<OAuthProfile | null> {
-  if (!env.KAKAO_CLIENT_ID) return null;
+  if (!env.KAKAO_CLIENT_ID) {
+    console.error("[oauth:kakao] missing KAKAO_CLIENT_ID");
+    return null;
+  }
 
   const form = new URLSearchParams();
   form.set("grant_type", "authorization_code");
@@ -98,9 +119,16 @@ async function fetchKakaoProfile(code: string, env: Env, redirectUri: string): P
     headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
     body: form.toString(),
   });
-  if (!tokenRes.ok) return null;
-  const tokenBody = (await tokenRes.json()) as { access_token?: string };
-  if (!tokenBody.access_token) return null;
+  const tokenText = await tokenRes.text();
+  if (!tokenRes.ok) {
+    console.error(`[oauth:kakao] token exchange failed (${tokenRes.status})`, tokenText);
+    return null;
+  }
+  const tokenBody = JSON.parse(tokenText) as { access_token?: string; error?: string; error_description?: string };
+  if (!tokenBody.access_token) {
+    console.error("[oauth:kakao] token response missing access_token", tokenBody);
+    return null;
+  }
 
   const profileRes = await fetch("https://kapi.kakao.com/v2/user/me", {
     headers: {
@@ -108,12 +136,19 @@ async function fetchKakaoProfile(code: string, env: Env, redirectUri: string): P
       "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
     },
   });
-  if (!profileRes.ok) return null;
-  const profileBody = (await profileRes.json()) as {
+  const profileText = await profileRes.text();
+  if (!profileRes.ok) {
+    console.error(`[oauth:kakao] profile fetch failed (${profileRes.status})`, profileText);
+    return null;
+  }
+  const profileBody = JSON.parse(profileText) as {
     id?: number;
     kakao_account?: { email?: string; profile?: { nickname?: string } };
   };
-  if (profileBody.id === undefined) return null;
+  if (profileBody.id === undefined) {
+    console.error("[oauth:kakao] profile response missing id", profileBody);
+    return null;
+  }
 
   return {
     providerUserId: String(profileBody.id),

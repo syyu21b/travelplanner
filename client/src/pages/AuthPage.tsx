@@ -420,22 +420,24 @@ export default function AuthPage() {
           </div>
 
           {/* 소셜 간편 로그인 */}
-          <div className="mb-6 space-y-2.5">
-            <a
-              href="/api/auth/oauth/naver/start"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-full font-bold text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: '#03C75A' }}
-            >
-              N {t('auth.social.naver')}
-            </a>
-            <a
-              href="/api/auth/oauth/kakao/start"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-full font-bold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: '#FEE500', color: '#3C1E1E' }}
-            >
-              K {t('auth.social.kakao')}
-            </a>
-            <div className="relative py-1">
+          <div className="mb-4 space-y-2">
+            <div className="flex gap-2">
+              <a
+                href="/api/auth/oauth/naver/start"
+                className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#03C75A' }}
+              >
+                N {t('auth.social.naver')}
+              </a>
+              <a
+                href="/api/auth/oauth/kakao/start"
+                className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#FEE500', color: '#3C1E1E' }}
+              >
+                K {t('auth.social.kakao')}
+              </a>
+            </div>
+            <div className="relative py-0.5">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[#DED6CC]" />
               </div>

@@ -304,6 +304,10 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: "/index.html",
+        // /api/*로의 전체 페이지 이동(예: 소셜 로그인 <a href> 클릭)까지 navigateFallback이
+        // 가로채 SPA 셸을 대신 띄우면, 서버가 실제로 302 리다이렉트해야 할 요청이 클라이언트
+        // 라우터로 넘어가 존재하지 않는 경로라며 404가 떠버린다 — /api/*는 항상 네트워크로.
+        navigateFallbackDenylist: [/^\/api\//],
         // 배포 시 이전 버전의 서비스 워커/캐시가 남아 사용자가 계속 옛 버전(버그가 있던 화면)을
         // 보게 되는 문제를 방지 — 새 버전이 감지되면 바로 활성화하고 캐시를 정리
         cleanupOutdatedCaches: true,
