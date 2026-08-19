@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plane, Mail, Lock, User, Eye, EyeOff, AtSign, CheckCircle, XCircle, Shield, ChevronLeft } from 'lucide-react';
+import { Plane, Mail, Lock, User, Eye, EyeOff, AtSign, CheckCircle, XCircle, Shield, ChevronLeft, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
@@ -77,6 +77,7 @@ export default function AuthPage() {
   const [regPw, setRegPw] = useState('');
   const [regPwConfirm, setRegPwConfirm] = useState('');
   const [showRegPw, setShowRegPw] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [inputCode, setInputCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
@@ -115,7 +116,7 @@ export default function AuthPage() {
     setLoginId(''); setLoginPw(''); setLoginError(''); setShowLoginPw(false);
     setNickname(''); setNicknameOk(null);
     setUsername(''); setUsernameOk(null);
-    setRegPw(''); setRegPwConfirm(''); setShowRegPw(false);
+    setRegPw(''); setRegPwConfirm(''); setShowRegPw(false); setPhoneNumber('');
     setEmail(''); setInputCode(''); setCodeSent(false); setSendingCode(false); setVerifyingCode(false); setEmailVerified(false);
     setFindEmail(''); setFindIdSearched(false); setFoundId(null);
     setFpId(''); setFpEmail(''); setFpVerified(false); setFpNewPw(''); setFpNewPwConfirm(''); setShowFpPw(false);
@@ -195,9 +196,14 @@ export default function AuthPage() {
     if (pwStrength.score < 3) { toast.error(t('auth.errors.passwordTooWeak')); return; }
     if (regPw !== regPwConfirm) { toast.error(t('auth.errors.passwordMismatch')); return; }
     if (!emailVerified) { toast.error(t('auth.errors.emailVerifyRequired')); return; }
+    const normalizedPhone = phoneNumber.replace(/-/g, '');
+    if (normalizedPhone && !/^01[0-9]{8,9}$/.test(normalizedPhone)) {
+      toast.error(t('auth.errors.phoneInvalid'));
+      return;
+    }
     setIsLoading(true);
     try {
-      const result = await register({ username, nickname, email, password: regPw });
+      const result = await register({ username, nickname, email, password: regPw, phoneNumber: normalizedPhone || undefined });
       if (result.success) toast.success(result.message);
       else toast.error(result.message);
     } finally {
@@ -644,6 +650,24 @@ export default function AuthPage() {
                     </span>
                   )}
                 </div>
+              </div>
+
+              {/* 휴대전화번호 (선택) */}
+              <div>
+                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">
+                  {t('auth.register.phoneLabel')} <span className="text-xs font-normal text-[#A68B77]">{t('auth.register.phoneOptional')}</span>
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                  <Input
+                    type="tel"
+                    placeholder={t('auth.register.phonePlaceholder')}
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                  />
+                </div>
+                <p className="text-xs text-[#A68B77] mt-1">{t('auth.register.phoneHint')}</p>
               </div>
 
               {/* 이메일 */}

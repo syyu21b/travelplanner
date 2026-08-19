@@ -12,6 +12,7 @@ export interface RegisterData {
   nickname: string;
   email: string;
   password: string;
+  phoneNumber?: string;
 }
 
 export type { PublicUser };

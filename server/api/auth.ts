@@ -22,6 +22,7 @@ function toPublicUser(row: typeof users.$inferSelect): User {
     nickname: row.nickname,
     name: row.nickname,
     email: row.email,
+    phoneNumber: row.phoneNumber,
     isAdmin: row.isAdmin,
     createdAt: row.createdAt,
   };
@@ -48,6 +49,7 @@ const registerSchema = z.object({
   nickname: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
+  phoneNumber: z.string().optional().refine((v) => !v || /^01[0-9]{8,9}$/.test(v), "올바른 휴대전화번호를 입력해주세요."),
 });
 
 const EMAIL_CODE_TTL_MS = 10 * 60 * 1000;
@@ -131,7 +133,7 @@ auth.post("/email/verify-code", async (c) => {
 auth.post("/register", async (c) => {
   const body = registerSchema.safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ success: false, message: "입력값이 올바르지 않습니다." }, 400);
-  const { username, nickname, email, password } = body.data;
+  const { username, nickname, email, password, phoneNumber } = body.data;
 
   const db = getDb(c.env);
   if ((await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1)).length > 0)
@@ -147,12 +149,13 @@ auth.post("/register", async (c) => {
   const id = nanoid();
   const passwordHash = await hashPassword(password);
   const createdAt = new Date().toISOString();
-  await db.insert(users).values({ id, username, nickname, email, passwordHash, isAdmin: false, createdAt });
+  const newUser = { id, username, nickname, email, passwordHash, phoneNumber: phoneNumber ?? null, isAdmin: false, createdAt };
+  await db.insert(users).values(newUser);
   await db.delete(emailVerifications).where(eq(emailVerifications.email, email));
 
   const sessionId = await createSession(c.env, id);
   setSessionCookie(c, sessionId);
-  return c.json({ success: true, message: "회원가입이 완료되었습니다!", user: toPublicUser({ id, username, nickname, email, passwordHash, isAdmin: false, createdAt }) });
+  return c.json({ success: true, message: "회원가입이 완료되었습니다!", user: toPublicUser(newUser) });
 });
 
 auth.post("/login", async (c) => {

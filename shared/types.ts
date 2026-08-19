@@ -192,6 +192,7 @@ export interface User {
   nickname: string;
   name: string; // nickname 별칭 (기존 코드 호환)
   email: string;
+  phoneNumber?: string | null;
   isAdmin: boolean;
   createdAt: string;
 }

@@ -31,11 +31,19 @@ const PACKAGE_THEME: Record<PackageId, {
   },
 };
 
+function maskPhone(digits: string): string {
+  if (digits.length < 7) return digits;
+  return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
+}
+
 export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCreditsPaywallModalProps) {
   const { user } = useAuth();
   const [packages, setPackages] = useState<CreditPackage[]>([]);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [payingId, setPayingId] = useState<PackageId | null>(null);
+
+  // 가입 시 저장해둔 번호가 있으면 그대로 재사용 — 결제 때마다 다시 입력할 필요 없음
+  const savedPhone = user?.phoneNumber?.replace(/-/g, '') || '';
 
   useEffect(() => {
     if (open) paymentsApi.getPackages().then((r) => setPackages(r.packages)).catch(() => setPackages([]));
@@ -47,8 +55,9 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
   async function handleBuy(packageId: PackageId) {
     if (payingId) return;
     // KG이니시스 결제창은 구매자 휴대전화번호가 없으면 "결제 창 호출에 실패했습니다" 오류로
-    // 열리지 않는 경우가 있어 필수로 받는다.
-    if (!/^01[0-9]{8,9}$/.test(phoneNumber.replace(/-/g, ''))) {
+    // 열리지 않는 경우가 있어 필수로 받는다 — 가입 시 저장해둔 번호가 있으면 그걸 그대로 쓴다.
+    const effectivePhone = savedPhone || phoneNumber.replace(/-/g, '');
+    if (!/^01[0-9]{8,9}$/.test(effectivePhone)) {
       toast.error('휴대전화번호를 올바르게 입력해주세요. (- 없이 숫자만)');
       return;
     }
@@ -68,7 +77,7 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
         currency: req.currency,
         payMethod: 'CARD',
         customer: {
-          phoneNumber: phoneNumber.replace(/-/g, ''),
+          phoneNumber: effectivePhone,
           email: user?.email,
           fullName: user?.nickname,
         },
@@ -111,20 +120,26 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
           <p className="text-sm text-muted-foreground">
             첫 1회는 무료로 제공되며, 이후에는 크레딧을 구매해 AI로 여행 일정을 생성할 수 있습니다.
           </p>
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-foreground">휴대전화번호</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="tel"
-                placeholder="01012345678"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                disabled={payingId !== null}
-                className="pl-9 h-10"
-              />
+          {savedPhone ? (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5" /> 가입 시 등록한 번호({maskPhone(savedPhone)})로 결제가 진행됩니다.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">휴대전화번호</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="tel"
+                  placeholder="01012345678"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  disabled={payingId !== null}
+                  className="pl-9 h-10"
+                />
+              </div>
             </div>
-          </div>
+          )}
           {packages.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
               <Loader2 className="w-4 h-4 animate-spin" /> 불러오는 중...

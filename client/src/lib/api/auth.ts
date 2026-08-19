@@ -28,7 +28,7 @@ export const authApi = {
   checkNickname: (value: string) => api.get<{ available: boolean }>(`/auth/check-nickname?value=${encodeURIComponent(value)}`),
   findUsernameByEmail: (email: string) => api.get<{ username: string | null }>(`/auth/find-username?email=${encodeURIComponent(email)}`),
 
-  register: (data: { username: string; nickname: string; email: string; password: string }) =>
+  register: (data: { username: string; nickname: string; email: string; password: string; phoneNumber?: string }) =>
     api.post<Result & { user?: User }>("/auth/register", data),
 
   login: (username: string, password: string) =>

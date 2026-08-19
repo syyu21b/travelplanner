@@ -7,6 +7,8 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+  // 가입 시 등록해두면 AI 일정 생성 결제 시 다시 입력할 필요 없이 재사용됨 (숫자만, 하이픈 없음)
+  phoneNumber: text("phone_number"),
   createdAt: text("created_at").notNull(),
 });
 
