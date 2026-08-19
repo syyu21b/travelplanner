@@ -3,10 +3,11 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDb } from "../db/client";
-import { users, passportVault, userProfiles } from "../db/schema";
+import { users, passportVault, userProfiles, emailVerifications } from "../db/schema";
 import { hashPassword, verifyPassword as verifyPasswordHash } from "../lib/password";
 import { createSession, destroySession, setSessionCookie, clearSessionCookie } from "../lib/session";
 import { attachUser, requireAuth, requireAdmin, type AppEnv } from "../lib/middleware";
+import { sendVerificationEmail } from "../lib/email";
 import { getCookie } from "hono/cookie";
 import { COOKIE_NAME } from "../../shared/const";
 import type { User } from "../../shared/types";
@@ -49,6 +50,9 @@ const registerSchema = z.object({
   password: z.string().min(6),
 });
 
+const EMAIL_CODE_TTL_MS = 10 * 60 * 1000;
+const EMAIL_CODE_RESEND_COOLDOWN_MS = 60 * 1000;
+
 const auth = new Hono<AppEnv>();
 
 auth.use("*", async (c, next) => {
@@ -83,6 +87,47 @@ auth.get("/find-username", async (c) => {
   return c.json({ username: found[0]?.username ?? null });
 });
 
+auth.post("/email/send-code", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const email = typeof body.email === "string" ? body.email : "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return c.json({ success: false, message: "올바른 이메일을 입력해주세요." }, 400);
+
+  const db = getDb(c.env);
+  if ((await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)).length > 0)
+    return c.json({ success: false, message: "이미 사용 중인 이메일입니다." }, 409);
+
+  const existing = (await db.select().from(emailVerifications).where(eq(emailVerifications.email, email)).limit(1))[0];
+  const now = Date.now();
+  if (existing && now - new Date(existing.createdAt).getTime() < EMAIL_CODE_RESEND_COOLDOWN_MS)
+    return c.json({ success: false, message: "잠시 후 다시 시도해주세요." }, 429);
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const createdAt = new Date(now).toISOString();
+  const expiresAt = new Date(now + EMAIL_CODE_TTL_MS).toISOString();
+  await db
+    .insert(emailVerifications)
+    .values({ email, code, verified: false, expiresAt, createdAt })
+    .onConflictDoUpdate({ target: emailVerifications.email, set: { code, verified: false, expiresAt, createdAt } });
+
+  const sent = await sendVerificationEmail(c.env, email, code);
+  if (!sent) return c.json({ success: false, message: "이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요." }, 502);
+  return c.json({ success: true, message: "인증코드가 발송되었습니다." });
+});
+
+auth.post("/email/verify-code", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const email = typeof body.email === "string" ? body.email : "";
+  const code = typeof body.code === "string" ? body.code : "";
+
+  const db = getDb(c.env);
+  const found = (await db.select().from(emailVerifications).where(eq(emailVerifications.email, email)).limit(1))[0];
+  if (!found || found.code !== code || new Date(found.expiresAt).getTime() < Date.now())
+    return c.json({ success: false, message: "인증코드가 올바르지 않거나 만료되었습니다." }, 400);
+
+  await db.update(emailVerifications).set({ verified: true }).where(eq(emailVerifications.email, email));
+  return c.json({ success: true, message: "이메일 인증이 완료되었습니다!" });
+});
+
 auth.post("/register", async (c) => {
   const body = registerSchema.safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ success: false, message: "입력값이 올바르지 않습니다." }, 400);
@@ -96,10 +141,14 @@ auth.post("/register", async (c) => {
   if ((await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)).length > 0)
     return c.json({ success: false, message: "이미 사용 중인 이메일입니다." }, 409);
 
+  const verification = (await db.select().from(emailVerifications).where(eq(emailVerifications.email, email)).limit(1))[0];
+  if (!verification?.verified) return c.json({ success: false, message: "이메일 인증을 완료해주세요." }, 400);
+
   const id = nanoid();
   const passwordHash = await hashPassword(password);
   const createdAt = new Date().toISOString();
   await db.insert(users).values({ id, username, nickname, email, passwordHash, isAdmin: false, createdAt });
+  await db.delete(emailVerifications).where(eq(emailVerifications.email, email));
 
   const sessionId = await createSession(c.env, id);
   setSessionCookie(c, sessionId);

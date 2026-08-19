@@ -15,6 +15,13 @@
       "when": 1787098864472,
       "tag": "0001_perpetual_exiles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787103228814,
+      "tag": "0002_thin_eternity",
+      "breakpoints": true
     }
   ]
 }

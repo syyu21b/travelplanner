@@ -10,6 +10,16 @@ export const users = sqliteTable("users", {
   createdAt: text("created_at").notNull(),
 });
 
+// 회원가입 이메일 인증코드. 아직 계정이 없는 상태에서 이메일 하나로 여러 번 재발송할 수 있으므로
+// email을 PK로 두고 재발송 시 덮어쓴다(가장 최근 코드만 유효).
+export const emailVerifications = sqliteTable("email_verifications", {
+  email: text("email").primaryKey(),
+  code: text("code").notNull(),
+  verified: integer("verified", { mode: "boolean" }).notNull().default(false),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
 export const sessions = sqliteTable(
   "sessions",
   {

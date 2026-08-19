@@ -58,7 +58,7 @@ function Footer({ t }: { t: (key: string) => string }) {
 }
 
 export default function AuthPage() {
-  const { login, register, checkUsername, checkNickname, findUsernameByEmail, resetPassword } = useAuth();
+  const { login, register, checkUsername, checkNickname, findUsernameByEmail, resetPassword, sendEmailCode, verifyEmailCode } = useAuth();
   const { t } = useLanguage();
   const [mode, setMode] = useState<Mode>('login');
 
@@ -78,9 +78,10 @@ export default function AuthPage() {
   const [regPwConfirm, setRegPwConfirm] = useState('');
   const [showRegPw, setShowRegPw] = useState(false);
   const [email, setEmail] = useState('');
-  const [sentCode, setSentCode] = useState('');
   const [inputCode, setInputCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
 
   // ── Find ID
@@ -115,7 +116,7 @@ export default function AuthPage() {
     setNickname(''); setNicknameOk(null);
     setUsername(''); setUsernameOk(null);
     setRegPw(''); setRegPwConfirm(''); setShowRegPw(false);
-    setEmail(''); setSentCode(''); setInputCode(''); setCodeSent(false); setEmailVerified(false);
+    setEmail(''); setInputCode(''); setCodeSent(false); setSendingCode(false); setVerifyingCode(false); setEmailVerified(false);
     setFindEmail(''); setFindIdSearched(false); setFoundId(null);
     setFpId(''); setFpEmail(''); setFpVerified(false); setFpNewPw(''); setFpNewPwConfirm(''); setShowFpPw(false);
     setIsLoading(false);
@@ -153,22 +154,36 @@ export default function AuthPage() {
     toast[ok ? 'success' : 'error'](ok ? t('auth.register.usernameAvailable') : t('auth.register.usernameTaken'));
   }
 
-  function handleSendCode() {
+  async function handleSendCode() {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error(t('auth.errors.emailInvalid')); return; }
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setSentCode(code);
-    setCodeSent(true);
-    setEmailVerified(false);
-    setInputCode('');
-    toast.success(t('auth.errors.codeSent', { code }));
+    setSendingCode(true);
+    try {
+      const result = await sendEmailCode(email);
+      if (result.success) {
+        setCodeSent(true);
+        setEmailVerified(false);
+        setInputCode('');
+        toast.success(t('auth.errors.codeSent'));
+      } else {
+        toast.error(result.message);
+      }
+    } finally {
+      setSendingCode(false);
+    }
   }
 
-  function handleVerifyCode() {
-    if (inputCode === sentCode) {
-      setEmailVerified(true);
-      toast.success(t('auth.errors.emailVerifySuccess'));
-    } else {
-      toast.error(t('auth.errors.codeInvalid'));
+  async function handleVerifyCode() {
+    setVerifyingCode(true);
+    try {
+      const result = await verifyEmailCode(email, inputCode);
+      if (result.success) {
+        setEmailVerified(true);
+        toast.success(t('auth.errors.emailVerifySuccess'));
+      } else {
+        toast.error(t('auth.errors.codeInvalid'));
+      }
+    } finally {
+      setVerifyingCode(false);
     }
   }
 
@@ -649,11 +664,11 @@ export default function AuthPage() {
                   <Button
                     type="button"
                     onClick={handleSendCode}
-                    disabled={emailVerified}
+                    disabled={emailVerified || sendingCode}
                     variant="outline"
                     className="px-3 text-xs font-bold whitespace-nowrap border-[#DED6CC] text-[#7D6B5D] hover:bg-[#E8E2D9] disabled:opacity-50"
                   >
-                    {codeSent ? t('auth.register.emailResend') : t('auth.register.emailSendCode')}
+                    {sendingCode ? t('auth.register.emailSending') : codeSent ? t('auth.register.emailResend') : t('auth.register.emailSendCode')}
                   </Button>
                 </div>
                 {emailVerified && (
@@ -679,7 +694,8 @@ export default function AuthPage() {
                     <Button
                       type="button"
                       onClick={handleVerifyCode}
-                      className="px-4 bg-[#A68B77] hover:bg-[#8B7355] text-white text-xs font-bold whitespace-nowrap"
+                      disabled={verifyingCode || inputCode.length !== 6}
+                      className="px-4 bg-[#A68B77] hover:bg-[#8B7355] text-white text-xs font-bold whitespace-nowrap disabled:opacity-50"
                     >
                       {t('auth.register.codeVerify')}
                     </Button>

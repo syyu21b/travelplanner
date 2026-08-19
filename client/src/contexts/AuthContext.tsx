@@ -26,6 +26,8 @@ interface AuthContextType {
   checkNickname: (nickname: string) => Promise<boolean>;
   findUsernameByEmail: (email: string) => Promise<string | null>;
   resetPassword: (username: string, email: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  sendEmailCode: (email: string) => Promise<{ success: boolean; message: string }>;
+  verifyEmailCode: (email: string, code: string) => Promise<{ success: boolean; message: string }>;
   withdrawAccount: () => Promise<{ success: boolean; message: string }>;
   updateProfile: (updates: { nickname?: string; email?: string }) => Promise<{ success: boolean; message: string }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
@@ -113,6 +115,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (username: string, email: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
     try {
       return await authApi.resetPassword(username, email, newPassword);
+    } catch (err) {
+      return { success: false, message: errorMessage(err) };
+    }
+  };
+
+  const sendEmailCode = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      return await authApi.sendEmailCode(email);
+    } catch (err) {
+      return { success: false, message: errorMessage(err) };
+    }
+  };
+
+  const verifyEmailCode = async (email: string, code: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      return await authApi.verifyEmailCode(email, code);
     } catch (err) {
       return { success: false, message: errorMessage(err) };
     }
@@ -266,6 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login, register, logout,
       checkUsername, checkNickname,
       findUsernameByEmail, resetPassword,
+      sendEmailCode, verifyEmailCode,
       withdrawAccount,
       updateProfile, changePassword, getProfilePhoto, setProfilePhoto,
       verifyPassword, hasPassportInfo, savePassportInfo, loadPassportInfo, deletePassportInfo,

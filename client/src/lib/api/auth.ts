@@ -39,6 +39,9 @@ export const authApi = {
   resetPassword: (username: string, email: string, newPassword: string) =>
     api.post<Result>("/auth/reset-password", { username, email, newPassword }),
 
+  sendEmailCode: (email: string) => api.post<Result>("/auth/email/send-code", { email }),
+  verifyEmailCode: (email: string, code: string) => api.post<Result>("/auth/email/verify-code", { email, code }),
+
   withdrawAccount: () => api.post<Result>("/auth/withdraw"),
 
   updateProfile: (updates: { nickname?: string; email?: string }) =>

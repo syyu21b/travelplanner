@@ -10,4 +10,6 @@ export interface Env {
   NAVER_CLIENT_SECRET?: string;
   KAKAO_CLIENT_ID?: string;
   KAKAO_CLIENT_SECRET?: string;
+  // 회원가입 이메일 인증코드 발송 (Resend REST API, 진짜 비밀값 — .dev.vars / wrangler secret)
+  RESEND_API_KEY?: string;
 }
