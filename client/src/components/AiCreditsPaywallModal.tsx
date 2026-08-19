@@ -31,6 +31,9 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
       return;
     }
     setPayingId(packageId);
+    // 결제창(IFRAME/팝업)이 이 모달(Dialog)의 오버레이 뒤/아래에 겹쳐서 클릭이 안 먹히는 문제가
+    // 있어, PortOne을 호출하기 전에 우리 모달부터 먼저 닫는다 — 결제 UI가 화면을 온전히 차지함.
+    onOpenChange(false);
     try {
       const req = await paymentsApi.requestPayment(packageId);
       const PortOne = await import('@portone/browser-sdk/v2');
@@ -42,10 +45,6 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
         totalAmount: req.totalAmount,
         currency: req.currency,
         payMethod: 'CARD',
-        // 결제창이 IFRAME으로 뜨면 이 모달(Dialog)의 오버레이가 위에 겹쳐서 클릭이 안 먹히는
-        // 문제가 있어, PC에서는 우리 페이지와 완전히 분리된 별도 팝업 창으로 강제한다.
-        // (모바일은 redirectUrl 없이 REDIRECTION을 강제하면 오히려 깨질 수 있어 PG 기본값 유지)
-        windowType: { pc: 'POPUP' },
         customer: {
           phoneNumber: phoneNumber.replace(/-/g, ''),
           email: user?.email,
@@ -61,7 +60,6 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
       const result = await paymentsApi.completePayment(req.paymentId);
       if (result.success) {
         toast.success(result.message);
-        onOpenChange(false);
         onPurchased();
       } else {
         toast.error(result.message);
