@@ -8,7 +8,7 @@ import {
   User, Mail, Lock, Trash2, Camera, Edit2, Check, X, Shield,
   BookOpen, Plane, Bookmark, MessageCircle, Heart, Calendar,
   KeyRound, UserX, ChevronLeft, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
-  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings, Loader2, Phone
+  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings, Loader2, Phone, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ import { albumsApi } from '@/lib/api/albums';
 import { plansApi } from '@/lib/api/plans';
 import { communityApi, type MyComment } from '@/lib/api/community';
 import { uploadDataUrl } from '@/lib/api/media';
+import { paymentsApi } from '@/lib/api/payments';
 import type { DiaryEntry, Album, TravelPlan } from '@shared/types';
 
 const EMPTY_PASSPORT: PassportInfo = {
@@ -132,6 +133,13 @@ export default function MyPage() {
   const [myComments, setMyComments] = useState<MyComment[]>([]);
   const [myInquiries, setMyInquiries] = useState<Inquiry[]>([]);
   const [isActivityLoading, setIsActivityLoading] = useState(false);
+
+  // AI 일정 생성 크레딧 (결제/무료 1회 포함) — 서버가 유일한 소스
+  const [aiCredits, setAiCredits] = useState<number | null>(null);
+  useEffect(() => {
+    if (!user) { setAiCredits(null); return; }
+    paymentsApi.getCredits().then(r => setAiCredits(r.remainingCredits)).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -474,6 +482,28 @@ export default function MyPage() {
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-secondary border border-border text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4 flex-shrink-0" />
                       {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                      {t('mypage.info.aiCreditsLabel')}
+                    </label>
+                    <div className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                        <Sparkles className="w-4 h-4 flex-shrink-0" />
+                        {aiCredits === null ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          t('mypage.info.aiCreditsCount', { count: aiCredits })
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setLocation('/')}
+                        className="text-xs font-semibold text-primary hover:underline"
+                      >
+                        {t('mypage.info.aiCreditsCharge')}
+                      </button>
                     </div>
                   </div>
                 </div>

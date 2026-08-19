@@ -39,6 +39,9 @@ export const mypage = {
       phonePlaceholder: '01012345678',
       phoneHint: '등록해두면 AI 일정 생성 결제 시 다시 입력하지 않아도 됩니다.',
       saveButton: '변경 사항 저장',
+      aiCreditsLabel: 'AI 일정 생성 크레딧',
+      aiCreditsCount: '{{count}}회 사용 가능',
+      aiCreditsCharge: '충전하기',
     },
     activity: {
       diariesTitle: '내 여행 기록',
@@ -217,6 +220,9 @@ export const mypage = {
       phonePlaceholder: '01012345678',
       phoneHint: "Save it here and you won't need to re-enter it when purchasing AI plan credits.",
       saveButton: 'Save Changes',
+      aiCreditsLabel: 'AI Itinerary Credits',
+      aiCreditsCount: '{{count}} uses available',
+      aiCreditsCharge: 'Buy more',
     },
     activity: {
       diariesTitle: 'My Travel Diaries',
