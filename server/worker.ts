@@ -45,9 +45,11 @@ app.post("/api/plan-trip", async (c) => {
   if (!user) return c.json({ error: "로그인이 필요합니다." }, 401);
 
   const db = getDb(c.env);
-  const remainingCredits = await getOrInitCredits(db, user.id);
-  if (remainingCredits <= 0) {
-    return c.json({ error: "AI 일정 생성 크레딧이 없습니다.", code: "no_credits" }, 402);
+  if (!user.isAdmin) {
+    const remainingCredits = await getOrInitCredits(db, user.id);
+    if (remainingCredits <= 0) {
+      return c.json({ error: "AI 일정 생성 크레딧이 없습니다.", code: "no_credits" }, 402);
+    }
   }
 
   let body: unknown;
@@ -72,8 +74,9 @@ app.post("/api/plan-trip", async (c) => {
   }
 
   const responseText = await proxyResponse.text();
-  // 실제로 일정 생성에 성공했을 때만 크레딧을 차감 — 실패한 시도는 사용자가 손해 보지 않게 함
-  if (proxyResponse.ok) {
+  // 실제로 일정 생성에 성공했을 때만 크레딧을 차감 — 실패한 시도는 사용자가 손해 보지 않게 함.
+  // 관리자 계정은 크레딧을 아예 소모하지 않음(무제한).
+  if (proxyResponse.ok && !user.isAdmin) {
     let parsed: unknown = null;
     try {
       parsed = JSON.parse(responseText);

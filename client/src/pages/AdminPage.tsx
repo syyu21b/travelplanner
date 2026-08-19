@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Users, Search, Edit2, Trash2, Shield, ChevronLeft, ChevronRight, Crown,
-  Eye, EyeOff, X, CheckCircle, MessageCircle, Mail,
+  Eye, EyeOff, X, CheckCircle, MessageCircle, Mail, Receipt, DollarSign, Wallet, TrendingUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NaverMapsUsagePanel } from '@/components/NaverMapsUsagePanel';
@@ -16,6 +16,14 @@ import { GeminiUsagePanel } from '@/components/GeminiUsagePanel';
 import { R2UsagePanel } from '@/components/R2UsagePanel';
 import NotificationBell from '@/components/NotificationBell';
 import { getInquiries, answerInquiry, type Inquiry } from '@/lib/inquiries';
+import { paymentsApi, type AdminPaymentRecord } from '@/lib/api/payments';
+
+const PACKAGE_LABEL: Record<string, string> = { '1': '1회권', '5': '5회권', '10': '10회권' };
+const PAYMENT_STATUS_LABEL: Record<AdminPaymentRecord['status'], { label: string; className: string }> = {
+  paid: { label: '결제완료', className: 'bg-emerald-100 text-emerald-700' },
+  pending: { label: '대기중', className: 'bg-amber-100 text-amber-700' },
+  failed: { label: '실패', className: 'bg-red-100 text-red-600' },
+};
 
 const ITEMS_PER_PAGE = 10;
 
@@ -25,6 +33,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState('');
   const [userPage, setUserPage] = useState(1);
   const [inquiryPage, setInquiryPage] = useState(1);
+  const [paymentPage, setPaymentPage] = useState(1);
 
   // 수정 모달
   const [editTarget, setEditTarget] = useState<PublicUser | null>(null);
@@ -35,6 +44,9 @@ export default function AdminPage() {
 
   // 삭제 확인 모달
   const [deleteTarget, setDeleteTarget] = useState<PublicUser | null>(null);
+
+  // 회원별 결제 내역 모달
+  const [paymentUserTarget, setPaymentUserTarget] = useState<PublicUser | null>(null);
 
   // 문의 내역
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -48,9 +60,16 @@ export default function AdminPage() {
   const refreshUsers = useCallback(() => {
     getAllUsers().then(setAllUsers);
   }, [getAllUsers]);
+
+  // 결제 내역 / 정산
+  const [allPayments, setAllPayments] = useState<AdminPaymentRecord[]>([]);
+  const refreshPayments = useCallback(() => {
+    paymentsApi.getAllPayments().then(r => setAllPayments(r.payments)).catch(() => setAllPayments([]));
+  }, []);
+
   useEffect(() => {
-    if (user?.isAdmin) { refreshUsers(); refreshInquiries(); }
-  }, [user?.isAdmin, refreshUsers, refreshInquiries]);
+    if (user?.isAdmin) { refreshUsers(); refreshInquiries(); refreshPayments(); }
+  }, [user?.isAdmin, refreshUsers, refreshInquiries, refreshPayments]);
 
   if (!user?.isAdmin) {
     return (
@@ -80,6 +99,22 @@ export default function AdminPage() {
   const totalInquiryPages = Math.max(1, Math.ceil(inquiries.length / ITEMS_PER_PAGE));
   const inquiryPageSafe = Math.min(inquiryPage, totalInquiryPages);
   const pagedInquiries = inquiries.slice((inquiryPageSafe - 1) * ITEMS_PER_PAGE, inquiryPageSafe * ITEMS_PER_PAGE);
+
+  const paidPayments = useMemo(() => allPayments.filter(p => p.status === 'paid'), [allPayments]);
+  const totalRevenue = useMemo(() => paidPayments.reduce((sum, p) => sum + p.amountKrw, 0), [paidPayments]);
+  const thisMonthRevenue = useMemo(() => {
+    const ym = new Date().toISOString().slice(0, 7);
+    return paidPayments.filter(p => (p.paidAt || p.createdAt).slice(0, 7) === ym).reduce((sum, p) => sum + p.amountKrw, 0);
+  }, [paidPayments]);
+
+  const totalPaymentPages = Math.max(1, Math.ceil(allPayments.length / ITEMS_PER_PAGE));
+  const paymentPageSafe = Math.min(paymentPage, totalPaymentPages);
+  const pagedPayments = allPayments.slice((paymentPageSafe - 1) * ITEMS_PER_PAGE, paymentPageSafe * ITEMS_PER_PAGE);
+
+  const paymentUserHistory = useMemo(
+    () => (paymentUserTarget ? allPayments.filter(p => p.userId === paymentUserTarget.id) : []),
+    [allPayments, paymentUserTarget],
+  );
 
   function handleSearchChange(value: string) {
     setSearch(value);
@@ -133,6 +168,10 @@ export default function AdminPage() {
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+
+  function formatKrw(amount: number) {
+    return `${amount.toLocaleString()}원`;
   }
 
   const pendingInquiries = inquiries.filter(i => i.status === 'pending').length;
@@ -237,6 +276,122 @@ export default function AdminPage() {
         <GeminiUsagePanel />
 
         <R2UsagePanel />
+
+        {/* 결제 내역 / 정산 */}
+        <Card className="bg-white border-[#DED6CC] mb-8">
+          <div className="p-5 border-b border-[#E8E2D9]">
+            <h2 className="text-base font-bold text-[#7D6B5D] flex items-center gap-2 mb-4">
+              <Receipt className="w-4 h-4 text-[#A68B77]" /> 결제 내역 / 정산
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="flex items-center gap-3 bg-emerald-50 rounded-xl p-3.5 border border-emerald-100">
+                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Wallet className="w-4.5 h-4.5 text-emerald-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-emerald-700 font-medium">누적 매출</p>
+                  <p className="text-lg font-bold text-emerald-800 truncate">{formatKrw(totalRevenue)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-3.5 border border-blue-100">
+                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <TrendingUp className="w-4.5 h-4.5 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-blue-700 font-medium">이번 달 매출</p>
+                  <p className="text-lg font-bold text-blue-800 truncate">{formatKrw(thisMonthRevenue)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-[#F9F7F2] rounded-xl p-3.5 border border-[#E8E2D9]">
+                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <DollarSign className="w-4.5 h-4.5 text-[#A68B77]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-[#A68B77] font-medium">결제 완료 건수</p>
+                  <p className="text-lg font-bold text-[#7D6B5D]">{paidPayments.length}건</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#F9F7F2] border-b border-[#E8E2D9]">
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">회원</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide hidden md:table-cell">이메일</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">상품</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">금액</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">상태</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide hidden lg:table-cell">결제일</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-[#A68B77]">
+                      결제 내역이 없습니다.
+                    </td>
+                  </tr>
+                ) : pagedPayments.map((p, i) => (
+                  <tr key={p.id} className={`border-b border-[#F9F7F2] hover:bg-[#FDFCFA] transition-colors ${i % 2 === 0 ? '' : 'bg-[#FDFCFA]'}`}>
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-[#7D6B5D]">{p.nickname}</p>
+                      <p className="text-[#A68B77] text-xs font-mono">{p.username}</p>
+                    </td>
+                    <td className="px-4 py-3 text-[#A68B77] hidden md:table-cell text-xs">{p.email}</td>
+                    <td className="px-4 py-3 text-[#7D6B5D] text-xs">{PACKAGE_LABEL[p.packageId] ?? p.packageId} ({p.credits}회)</td>
+                    <td className="px-4 py-3 text-[#7D6B5D] font-semibold text-xs">{formatKrw(p.amountKrw)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${PAYMENT_STATUS_LABEL[p.status].className}`}>
+                        {PAYMENT_STATUS_LABEL[p.status].label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[#A68B77] hidden lg:table-cell text-xs">{formatDate(p.paidAt || p.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {allPayments.length > 0 && (
+            <div className="px-4 py-3 border-t border-[#E8E2D9] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-[#A68B77]">총 {allPayments.length}건</span>
+              {totalPaymentPages > 1 && (
+                <div className="flex items-center flex-wrap justify-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentPage(p => Math.max(1, p - 1))}
+                    disabled={paymentPageSafe === 1}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-[#DED6CC] text-[#A68B77] hover:bg-[#E8E2D9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  {Array.from({ length: totalPaymentPages }, (_, idx) => idx + 1).map(page => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setPaymentPage(page)}
+                      className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                        page === paymentPageSafe ? 'bg-[#A68B77] text-white' : 'text-[#A68B77] hover:bg-[#E8E2D9]'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentPage(p => Math.min(totalPaymentPages, p + 1))}
+                    disabled={paymentPageSafe === totalPaymentPages}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-[#DED6CC] text-[#A68B77] hover:bg-[#E8E2D9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
 
         {/* 문의 내역 */}
         <Card className="bg-white border-[#DED6CC] mb-8">
@@ -364,13 +519,14 @@ export default function AdminPage() {
                   <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide hidden md:table-cell">이메일</th>
                   <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide hidden lg:table-cell">가입일</th>
                   <th className="text-left px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">등급</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">결제정보</th>
                   <th className="text-center px-4 py-3 text-xs font-bold text-[#A68B77] uppercase tracking-wide">관리</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12 text-[#A68B77]">
+                    <td colSpan={7} className="text-center py-12 text-[#A68B77]">
                       검색 결과가 없습니다.
                     </td>
                   </tr>
@@ -394,6 +550,17 @@ export default function AdminPage() {
                           일반
                         </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => setPaymentUserTarget(u)}
+                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#E8E2D9] text-[#A68B77] hover:text-[#7D6B5D] transition-colors font-bold text-sm"
+                          title="결제 내역 보기"
+                        >
+                          $
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1.5">
@@ -571,6 +738,46 @@ export default function AdminPage() {
                   <Trash2 className="w-4 h-4 mr-1" />삭제
                 </Button>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 회원별 결제 내역 모달 */}
+      <Dialog open={!!paymentUserTarget} onOpenChange={(o) => { if (!o) setPaymentUserTarget(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#7D6B5D] flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-[#A68B77]" />
+              {paymentUserTarget?.nickname}님의 결제 내역
+            </DialogTitle>
+          </DialogHeader>
+          {paymentUserTarget && (
+            <div className="space-y-3 pt-2">
+              <div className="bg-[#F9F7F2] rounded-lg px-3 py-2 text-xs text-[#A68B77] flex flex-wrap gap-x-4 gap-y-1">
+                <span>아이디: <span className="font-mono font-semibold text-[#7D6B5D]">{paymentUserTarget.username}</span></span>
+                <span>이메일: <span className="font-semibold text-[#7D6B5D]">{paymentUserTarget.email}</span></span>
+              </div>
+              {paymentUserHistory.length === 0 ? (
+                <p className="text-center py-8 text-[#A68B77] text-sm">결제 내역이 없습니다.</p>
+              ) : (
+                <div className="space-y-2">
+                  {paymentUserHistory.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#E8E2D9] bg-white">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#7D6B5D] text-sm">{PACKAGE_LABEL[p.packageId] ?? p.packageId} ({p.credits}회)</p>
+                        <p className="text-xs text-[#A68B77]">{formatDate(p.paidAt || p.createdAt)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="font-bold text-[#7D6B5D] text-sm">{formatKrw(p.amountKrw)}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${PAYMENT_STATUS_LABEL[p.status].className}`}>
+                          {PAYMENT_STATUS_LABEL[p.status].label}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

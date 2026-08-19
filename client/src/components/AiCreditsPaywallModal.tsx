@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Loader2, CreditCard, Phone } from 'lucide-react';
+import { Sparkles, Loader2, Phone, Zap, Crown, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { paymentsApi, type CreditPackage, type PackageId } from '@/lib/api/payments';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,12 @@ interface AiCreditsPaywallModalProps {
   onPurchased: () => void;
 }
 
+const PACKAGE_THEME: Record<PackageId, { gradient: string; ring: string; icon: typeof Sparkles; badge?: string }> = {
+  "1": { gradient: 'from-slate-500 to-slate-600', ring: 'hover:ring-slate-300', icon: Sparkles },
+  "5": { gradient: 'from-violet-500 to-fuchsia-600', ring: 'hover:ring-violet-300', icon: Zap, badge: '인기' },
+  "10": { gradient: 'from-amber-500 to-orange-600', ring: 'hover:ring-amber-300', icon: Crown, badge: '최고 혜택' },
+};
+
 export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCreditsPaywallModalProps) {
   const { user } = useAuth();
   const [packages, setPackages] = useState<CreditPackage[]>([]);
@@ -21,6 +27,9 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
   useEffect(() => {
     if (open) paymentsApi.getPackages().then((r) => setPackages(r.packages)).catch(() => setPackages([]));
   }, [open]);
+
+  const basePkg = packages.find((p) => p.credits === 1);
+  const basePerCredit = basePkg ? basePkg.amountKrw / basePkg.credits : 0;
 
   async function handleBuy(packageId: PackageId) {
     if (payingId) return;
@@ -102,29 +111,43 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
               <Loader2 className="w-4 h-4 animate-spin" /> 불러오는 중...
             </div>
           ) : (
-            packages.map((pkg) => (
-              <button
-                key={pkg.id}
-                type="button"
-                onClick={() => handleBuy(pkg.id)}
-                disabled={payingId !== null}
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:border-primary hover:bg-secondary/50 transition-colors disabled:opacity-50 text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                    <CreditCard className="w-5 h-5 text-primary" />
+            packages.map((pkg) => {
+              const theme = PACKAGE_THEME[pkg.id];
+              const Icon = theme.icon;
+              const perCredit = pkg.amountKrw / pkg.credits;
+              const discountPct = basePerCredit > 0 ? Math.round((1 - perCredit / basePerCredit) * 100) : 0;
+              return (
+                <button
+                  key={pkg.id}
+                  type="button"
+                  onClick={() => handleBuy(pkg.id)}
+                  disabled={payingId !== null}
+                  className={`relative w-full flex items-center justify-between gap-3 p-4 rounded-2xl text-left text-white bg-gradient-to-br ${theme.gradient} shadow-md hover:shadow-lg ring-2 ring-transparent ${theme.ring} transition-all disabled:opacity-50 overflow-hidden`}
+                >
+                  {theme.badge && (
+                    <span className="absolute top-2 right-2 flex items-center gap-1 bg-white/25 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      <Star className="w-2.5 h-2.5 fill-current" /> {theme.badge}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5.5 h-5.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold">{pkg.label}</p>
+                      <p className="text-xs text-white/80">
+                        {pkg.credits}회 · 회당 {Math.round(perCredit).toLocaleString()}원
+                        {discountPct > 0 && <span className="ml-1 font-semibold">({discountPct}% 할인)</span>}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-foreground">{pkg.label}</p>
-                    <p className="text-xs text-muted-foreground">{pkg.credits}회 사용 가능</p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-extrabold text-xl">{pkg.amountKrw.toLocaleString()}원</span>
+                    {payingId === pkg.id && <Loader2 className="w-4 h-4 animate-spin" />}
                   </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="font-bold text-lg text-foreground">{pkg.amountKrw.toLocaleString()}원</span>
-                  {payingId === pkg.id && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </div>
       </DialogContent>

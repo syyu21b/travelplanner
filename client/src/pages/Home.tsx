@@ -2188,7 +2188,7 @@ export default function Home() {
                     toast.error(t('session.loginRequired'));
                     return;
                   }
-                  if (aiCredits === 0) {
+                  if (!user.isAdmin && aiCredits === 0) {
                     setShowAiCreditsPaywall(true);
                     return;
                   }

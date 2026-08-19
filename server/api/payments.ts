@@ -1,17 +1,17 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDb } from "../db/client";
-import { payments } from "../db/schema";
-import { attachUser, requireAuth, type AppEnv } from "../lib/middleware";
+import { payments, users } from "../db/schema";
+import { attachUser, requireAuth, requireAdmin, type AppEnv } from "../lib/middleware";
 import { getOrInitCredits, addCredits } from "../lib/credits";
 import { fetchPortOnePayment } from "../lib/portone";
 
 // 서버가 유일한 가격 소스 — 클라이언트가 보낸 금액은 절대 신뢰하지 않는다.
 const CREDIT_PACKAGES = {
   "1": { credits: 1, amountKrw: 4900, label: "AI 일정 생성 1회권" },
-  "5": { credits: 5, amountKrw: 20000, label: "AI 일정 생성 5회권" },
-  "10": { credits: 10, amountKrw: 45000, label: "AI 일정 생성 10회권" },
+  "5": { credits: 5, amountKrw: 21900, label: "AI 일정 생성 5회권" },
+  "10": { credits: 10, amountKrw: 42900, label: "AI 일정 생성 10회권" },
 } as const;
 type PackageId = keyof typeof CREDIT_PACKAGES;
 
@@ -100,6 +100,29 @@ paymentsApi.post("/complete", requireAuth, async (c) => {
 
   const result = await confirmPayment(db, c.env, paymentId);
   return c.json(result, result.success ? 200 : 400);
+});
+
+// ── 관리자 전용: 결제 내역 / 정산 ──
+paymentsApi.get("/admin/all", requireAdmin, async (c) => {
+  const db = getDb(c.env);
+  const rows = await db
+    .select({
+      id: payments.id,
+      userId: payments.userId,
+      username: users.username,
+      nickname: users.nickname,
+      email: users.email,
+      packageId: payments.packageId,
+      credits: payments.credits,
+      amountKrw: payments.amountKrw,
+      status: payments.status,
+      createdAt: payments.createdAt,
+      paidAt: payments.paidAt,
+    })
+    .from(payments)
+    .innerJoin(users, eq(payments.userId, users.id))
+    .orderBy(desc(payments.createdAt));
+  return c.json({ payments: rows });
 });
 
 paymentsApi.post("/webhook", async (c) => {
