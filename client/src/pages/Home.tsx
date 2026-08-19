@@ -1974,6 +1974,13 @@ export default function Home() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
+            <div className="flex items-start gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2.5 text-xs text-primary">
+              <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+              <span>
+                {t('home.aiPlanDialog.pricingNotice')}
+                {!user?.isAdmin && aiCredits !== null && ` ${t('home.aiPlanDialog.pricingNoticeCredits', { count: aiCredits })}`}
+              </span>
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold">{t('home.aiPlanDialog.destinationLabel')}</label>
               <Input

@@ -24,6 +24,7 @@ import { plansApi } from '@/lib/api/plans';
 import { communityApi, type MyComment } from '@/lib/api/community';
 import { uploadDataUrl } from '@/lib/api/media';
 import { paymentsApi } from '@/lib/api/payments';
+import { AiCreditsPaywallModal } from '@/components/AiCreditsPaywallModal';
 import type { DiaryEntry, Album, TravelPlan } from '@shared/types';
 
 const EMPTY_PASSPORT: PassportInfo = {
@@ -136,10 +137,12 @@ export default function MyPage() {
 
   // AI 일정 생성 크레딧 (결제/무료 1회 포함) — 서버가 유일한 소스
   const [aiCredits, setAiCredits] = useState<number | null>(null);
-  useEffect(() => {
+  const [showAiCreditsPaywall, setShowAiCreditsPaywall] = useState(false);
+  const refreshAiCredits = () => {
     if (!user) { setAiCredits(null); return; }
     paymentsApi.getCredits().then(r => setAiCredits(r.remainingCredits)).catch(() => {});
-  }, [user]);
+  };
+  useEffect(refreshAiCredits, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -499,7 +502,7 @@ export default function MyPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setLocation('/')}
+                        onClick={() => setShowAiCreditsPaywall(true)}
                         className="text-xs font-semibold text-primary hover:underline"
                       >
                         {t('mypage.info.aiCreditsCharge')}
@@ -1376,6 +1379,12 @@ export default function MyPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AiCreditsPaywallModal
+        open={showAiCreditsPaywall}
+        onOpenChange={setShowAiCreditsPaywall}
+        onPurchased={refreshAiCredits}
+      />
     </div>
   );
 }

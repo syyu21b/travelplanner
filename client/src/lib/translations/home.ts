@@ -92,6 +92,8 @@ export const home = {
     },
     aiPlanDialog: {
       title: "AI로 여행 계획 세우기",
+      pricingNotice: "첫 1회는 무료로 제공되며, 이후에는 크레딧 구매가 필요합니다.",
+      pricingNoticeCredits: "(현재 남은 크레딧: {{count}}회)",
       destinationLabel: "여행지",
       destinationPlaceholder: "예: 부산, 도쿄, 방콕",
       travelersLabel: "인원수 (최대 10명)",
@@ -526,6 +528,8 @@ export const home = {
     },
     aiPlanDialog: {
       title: "Plan a Trip with AI",
+      pricingNotice: "Your first generation is free; after that, you'll need to purchase credits.",
+      pricingNoticeCredits: "(credits remaining: {{count}})",
       destinationLabel: "Destination",
       destinationPlaceholder: "e.g. Busan, Tokyo, Bangkok",
       travelersLabel: "Travelers (up to 10)",
