@@ -403,7 +403,7 @@ export default function AuthPage() {
 
         <Card className="p-5 sm:p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
           {/* 탭 */}
-          <div className="mb-3">
+          <div className="mb-2">
             <div className="flex bg-[#E8E2D9] rounded-xl p-1 gap-1">
               {(['login', 'register'] as const).map((m) => (
                 <button
@@ -420,7 +420,7 @@ export default function AuthPage() {
           </div>
 
           {/* 소셜 간편 로그인 */}
-          <div className="mb-2 space-y-1.5">
+          <div className="mb-1 space-y-1">
             <div className="flex gap-2">
               <a
                 href="/api/auth/oauth/naver/start"
