@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, CreditCard } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Sparkles, Loader2, CreditCard, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { paymentsApi, type CreditPackage, type PackageId } from '@/lib/api/payments';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AiCreditsPaywallModalProps {
   open: boolean;
@@ -12,7 +13,9 @@ interface AiCreditsPaywallModalProps {
 }
 
 export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCreditsPaywallModalProps) {
+  const { user } = useAuth();
   const [packages, setPackages] = useState<CreditPackage[]>([]);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [payingId, setPayingId] = useState<PackageId | null>(null);
 
   useEffect(() => {
@@ -21,6 +24,12 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
 
   async function handleBuy(packageId: PackageId) {
     if (payingId) return;
+    // KG이니시스 결제창은 구매자 휴대전화번호가 없으면 "결제 창 호출에 실패했습니다" 오류로
+    // 열리지 않는 경우가 있어 필수로 받는다.
+    if (!/^01[0-9]{8,9}$/.test(phoneNumber.replace(/-/g, ''))) {
+      toast.error('휴대전화번호를 올바르게 입력해주세요. (- 없이 숫자만)');
+      return;
+    }
     setPayingId(packageId);
     try {
       const req = await paymentsApi.requestPayment(packageId);
@@ -33,6 +42,11 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
         totalAmount: req.totalAmount,
         currency: req.currency,
         payMethod: 'CARD',
+        customer: {
+          phoneNumber: phoneNumber.replace(/-/g, ''),
+          email: user?.email,
+          fullName: user?.nickname,
+        },
       });
 
       if (!response || response.code !== undefined) {
@@ -67,6 +81,20 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
           <p className="text-sm text-muted-foreground">
             첫 1회는 무료로 제공되며, 이후에는 크레딧을 구매해 AI로 여행 일정을 생성할 수 있습니다.
           </p>
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground">휴대전화번호</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="tel"
+                placeholder="01012345678"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={payingId !== null}
+                className="pl-9 h-10"
+              />
+            </div>
+          </div>
           {packages.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
               <Loader2 className="w-4 h-4 animate-spin" /> 불러오는 중...
