@@ -13,7 +13,7 @@
   "vars": {
     "PLAN_TRIP_PROXY_URL": "https://travelplanner-syyu21b.vercel.app/api/plan-trip",
     "NAVER_CLIENT_ID": "oIprsolL0m8giBgq629e",
-    "KAKAO_CLIENT_ID": ""
+    "KAKAO_CLIENT_ID": "9fab0a92f782b05f60392f79960378e9"
   },
   "d1_databases": [
     {
