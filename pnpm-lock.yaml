@@ -19,6 +19,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.64.0(react@19.2.1))
+      '@portone/browser-sdk':
+        specifier: ^0.1.9
+        version: 0.1.9
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -2050,6 +2053,9 @@ packages:
 
   '@poppinss/exception@1.2.3':
     resolution: {integrity: sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==}
+
+  '@portone/browser-sdk@0.1.9':
+    resolution: {integrity: sha512-GiLziqmKKSrorjWDvWjPhtD1nBd4zlY1crIPX5Kisx797MQYveqhtSMYwuyjRgwgInfEWonXjXWkHd5bTFUiWQ==}
 
   '@quansync/fs@1.0.0':
     resolution: {integrity: sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ==}
@@ -7731,6 +7737,8 @@ snapshots:
       supports-color: 10.2.2
 
   '@poppinss/exception@1.2.3': {}
+
+  '@portone/browser-sdk@0.1.9': {}
 
   '@quansync/fs@1.0.0':
     dependencies:

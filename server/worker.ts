@@ -9,6 +9,10 @@ import albumsApi from "./api/albums";
 import communityApi from "./api/community";
 import notificationsApi from "./api/notifications";
 import inquiriesApi from "./api/inquiries";
+import paymentsApi from "./api/payments";
+import { getUserFromRequest } from "./lib/session";
+import { getDb } from "./db/client";
+import { getOrInitCredits, consumeCredit } from "./lib/credits";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -23,6 +27,7 @@ app.route("/api/albums", albumsApi);
 app.route("/api/community", communityApi);
 app.route("/api/notifications", notificationsApi);
 app.route("/api/inquiries", inquiriesApi);
+app.route("/api/payments", paymentsApi);
 
 // Gemini API를 이 Worker에서 직접 호출하지 않는 이유: Cloudflare Worker는 요청을 받은 곳과
 // 가까운 전 세계 엣지 지점 아무 데서나 실행되는데, 가끔 그 지점이 Google이 Gemini API(무료
@@ -34,6 +39,15 @@ app.route("/api/inquiries", inquiriesApi);
 app.post("/api/plan-trip", async (c) => {
   if (!c.env.PLAN_TRIP_PROXY_URL) {
     return c.json({ error: "서버에 PLAN_TRIP_PROXY_URL이 설정되어 있지 않습니다." }, 500);
+  }
+
+  const user = await getUserFromRequest(c);
+  if (!user) return c.json({ error: "로그인이 필요합니다." }, 401);
+
+  const db = getDb(c.env);
+  const remainingCredits = await getOrInitCredits(db, user.id);
+  if (remainingCredits <= 0) {
+    return c.json({ error: "AI 일정 생성 크레딧이 없습니다.", code: "no_credits" }, 402);
   }
 
   let body: unknown;
@@ -57,8 +71,21 @@ app.post("/api/plan-trip", async (c) => {
     );
   }
 
-  const responseBody = await proxyResponse.text();
-  return new Response(responseBody, {
+  const responseText = await proxyResponse.text();
+  // 실제로 일정 생성에 성공했을 때만 크레딧을 차감 — 실패한 시도는 사용자가 손해 보지 않게 함
+  if (proxyResponse.ok) {
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(responseText);
+    } catch {
+      parsed = null;
+    }
+    if (parsed && typeof parsed === "object" && "itinerary" in parsed) {
+      await consumeCredit(db, user.id);
+    }
+  }
+
+  return new Response(responseText, {
     status: proxyResponse.status,
     headers: { "Content-Type": "application/json" },
   });

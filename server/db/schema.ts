@@ -44,6 +44,29 @@ export const userProfiles = sqliteTable("user_profiles", {
   photoKey: text("photo_key"),
 });
 
+// AI 일정 생성 크레딧. 행이 없는 사용자를 처음 만나면 1(첫 1회 무료)로 lazy 초기화한다
+// (server/api/auth.ts의 seedAdmin과 동일한 lazy-init 패턴).
+export const userCredits = sqliteTable("user_credits", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  remainingCredits: integer("remaining_credits").notNull().default(0),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const payments = sqliteTable(
+  "payments",
+  {
+    id: text("id").primaryKey(), // = PortOne paymentId
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    packageId: text("package_id", { enum: ["1", "5", "10"] }).notNull(),
+    credits: integer("credits").notNull(),
+    amountKrw: integer("amount_krw").notNull(),
+    status: text("status", { enum: ["pending", "paid", "failed"] }).notNull().default("pending"),
+    createdAt: text("created_at").notNull(),
+    paidAt: text("paid_at"),
+  },
+  (t) => [index("payments_user_id_idx").on(t.userId)],
+);
+
 // 네이버/카카오 간편 로그인 연동 정보. users.passwordHash는 소셜 전용 계정도 NOT NULL을
 // 유지하기 위해 사용 불가능한 무작위 해시로 채운다(hashPassword(nanoid(32)))
 // — 일반 로그인/비밀번호 검증 로직을 그대로 재사용할 수 있게 하기 위함.

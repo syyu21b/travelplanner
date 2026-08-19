@@ -22,6 +22,13 @@
       "when": 1787103228814,
       "tag": "0002_thin_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787104301000,
+      "tag": "0003_cynical_peter_quill",
+      "breakpoints": true
     }
   ]
 }

@@ -12,4 +12,10 @@ export interface Env {
   KAKAO_CLIENT_SECRET?: string;
   // 회원가입 이메일 인증코드 발송 (Resend REST API, 진짜 비밀값 — .dev.vars / wrangler secret)
   RESEND_API_KEY?: string;
+  // port.one(포트원) 결제 — storeId/channelKey는 클라이언트에도 그대로 노출되는 공개값(vars),
+  // API Secret/Webhook Secret은 진짜 비밀값(.dev.vars / wrangler secret)
+  PORTONE_STORE_ID?: string;
+  PORTONE_CHANNEL_KEY?: string;
+  PORTONE_API_SECRET?: string;
+  PORTONE_WEBHOOK_SECRET?: string;
 }

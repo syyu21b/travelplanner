@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,8 @@ import { Link, useLocation } from 'wouter';
 import { MapView, type MapMarker, geocodeAddress } from '@/components/Map';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { recordGeminiUsage } from '@/lib/geminiUsage';
+import { paymentsApi } from '@/lib/api/payments';
+import { AiCreditsPaywallModal } from '@/components/AiCreditsPaywallModal';
 
 // 해외 지도(MapLibre GL)는 용량이 커서, 실제로 "해외" 모드를 선택했을 때만 불러오도록 지연 로딩
 const OverseasMapView = lazy(() =>
@@ -532,6 +534,13 @@ export default function Home() {
     diariesApi.list().then(setMyDiariesForStats).catch(() => {});
   }, [user]);
 
+  // AI 일정 생성 크레딧 — 서버가 유일한 소스이며 여기선 결제창 vs 생성 다이얼로그 분기에만 씀
+  const refreshAiCredits = useCallback(() => {
+    if (!user) { setAiCredits(null); return; }
+    paymentsApi.getCredits().then(r => setAiCredits(r.remainingCredits)).catch(() => {});
+  }, [user]);
+  useEffect(() => { refreshAiCredits(); }, [refreshAiCredits]);
+
   // 작성 중인 계획 로드
   const loadPlanDraft = () => {
     const draft = localStorage.getItem('planFormDraft');
@@ -557,6 +566,8 @@ export default function Home() {
 
   // AI로 계획세우기
   const [showAiPlanDialog, setShowAiPlanDialog] = useState(false);
+  const [showAiCreditsPaywall, setShowAiCreditsPaywall] = useState(false);
+  const [aiCredits, setAiCredits] = useState<number | null>(null);
   const [aiPlanDestination, setAiPlanDestination] = useState('');
   const [aiPlanStartDate, setAiPlanStartDate] = useState('');
   const [aiPlanEndDate, setAiPlanEndDate] = useState('');
@@ -818,6 +829,7 @@ export default function Home() {
       setAiPlanPreferences('');
       recordGeminiUsage('generations');
       toast.success(t('home.toast.aiPlanSuccess'));
+      setAiCredits(c => (c === null ? c : Math.max(0, c - 1)));
     } catch (err) {
       // 서버 프록시가 없는 환경(로컬 Node 배포 등)이거나 네트워크가 끊긴 경우 등 어떤 실패든
       // 화면이 깨지지 않고 항상 토스트 메시지로만 안내되도록 함
@@ -830,6 +842,10 @@ export default function Home() {
         toast.error(t('home.toast.aiPlanOverloaded'));
       } else if (err instanceof AiPlanRequestError && err.code === 'unsupported_location') {
         toast.error(t('home.toast.aiPlanUnsupportedLocation'));
+      } else if (err instanceof AiPlanRequestError && err.code === 'no_credits') {
+        setAiCredits(0);
+        setShowAiPlanDialog(false);
+        setShowAiCreditsPaywall(true);
       } else {
         toast.error(t('home.toast.aiPlanError'));
       }
@@ -2033,6 +2049,12 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
+      <AiCreditsPaywallModal
+        open={showAiCreditsPaywall}
+        onOpenChange={setShowAiCreditsPaywall}
+        onPurchased={() => { refreshAiCredits(); setShowAiPlanDialog(true); }}
+      />
+
       {/* ── 헤더 ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
@@ -2164,6 +2186,10 @@ export default function Home() {
                 onClick={() => {
                   if (!user) {
                     toast.error(t('session.loginRequired'));
+                    return;
+                  }
+                  if (aiCredits === 0) {
+                    setShowAiCreditsPaywall(true);
                     return;
                   }
                   setShowAiPlanDialog(true);
