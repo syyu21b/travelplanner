@@ -12,10 +12,23 @@ interface AiCreditsPaywallModalProps {
   onPurchased: () => void;
 }
 
-const PACKAGE_THEME: Record<PackageId, { gradient: string; ring: string; icon: typeof Sparkles; badge?: string }> = {
-  "1": { gradient: 'from-slate-500 to-slate-600', ring: 'hover:ring-slate-300', icon: Sparkles },
-  "5": { gradient: 'from-violet-500 to-fuchsia-600', ring: 'hover:ring-violet-300', icon: Zap, badge: '인기' },
-  "10": { gradient: 'from-amber-500 to-orange-600', ring: 'hover:ring-amber-300', icon: Crown, badge: '최고 혜택' },
+const PACKAGE_THEME: Record<PackageId, {
+  border: string; iconBg: string; iconText: string; accentText: string; badgeClass: string; icon: typeof Sparkles; badge?: string;
+}> = {
+  "1": {
+    border: 'border-border hover:border-slate-300',
+    iconBg: 'bg-slate-100', iconText: 'text-slate-600', accentText: 'text-slate-600', badgeClass: '', icon: Sparkles,
+  },
+  "5": {
+    border: 'border-violet-200 hover:border-violet-300',
+    iconBg: 'bg-violet-100', iconText: 'text-violet-600', accentText: 'text-violet-600',
+    badgeClass: 'bg-violet-100 text-violet-700', icon: Zap, badge: '인기',
+  },
+  "10": {
+    border: 'border-amber-200 hover:border-amber-300',
+    iconBg: 'bg-amber-100', iconText: 'text-amber-600', accentText: 'text-amber-700',
+    badgeClass: 'bg-amber-100 text-amber-700', icon: Crown, badge: '최고 혜택',
+  },
 };
 
 export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCreditsPaywallModalProps) {
@@ -128,28 +141,28 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
                   type="button"
                   onClick={() => handleBuy(pkg.id)}
                   disabled={payingId !== null}
-                  className={`relative w-full flex items-center justify-between gap-3 p-4 rounded-2xl text-left text-white bg-gradient-to-br ${theme.gradient} shadow-md hover:shadow-lg ring-2 ring-transparent ${theme.ring} transition-all disabled:opacity-50 overflow-hidden`}
+                  className={`relative w-full flex items-center justify-between gap-3 p-4 rounded-2xl text-left bg-white border ${theme.border} shadow-sm hover:shadow-md transition-all disabled:opacity-50`}
                 >
                   {theme.badge && (
-                    <span className="absolute top-2 right-2 flex items-center gap-1 bg-white/25 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold">
+                    <span className={`absolute -top-2 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${theme.badgeClass}`}>
                       <Star className="w-2.5 h-2.5 fill-current" /> {theme.badge}
                     </span>
                   )}
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5.5 h-5.5" />
+                    <div className={`w-11 h-11 rounded-full ${theme.iconBg} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-5.5 h-5.5 ${theme.iconText}`} />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold">{pkg.label}</p>
-                      <p className="text-xs text-white/80">
+                      <p className="font-bold text-foreground">{pkg.label}</p>
+                      <p className="text-xs text-muted-foreground">
                         {pkg.credits}회 · 회당 {Math.round(perCredit).toLocaleString()}원
-                        {discountPct > 0 && <span className="ml-1 font-semibold">({discountPct}% 할인)</span>}
+                        {discountPct > 0 && <span className={`ml-1 font-semibold ${theme.accentText}`}>({discountPct}% 할인)</span>}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-extrabold text-xl">{pkg.amountKrw.toLocaleString()}원</span>
-                    {payingId === pkg.id && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <span className="font-extrabold text-xl text-foreground">{pkg.amountKrw.toLocaleString()}원</span>
+                    {payingId === pkg.id && <Loader2 className={`w-4 h-4 animate-spin ${theme.iconText}`} />}
                   </div>
                 </button>
               );
