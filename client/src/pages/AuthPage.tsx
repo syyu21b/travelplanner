@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -98,6 +98,17 @@ export default function AuthPage() {
 
   const pwStrength = getPasswordStrength(regPw);
   const fpPwStrength = getPasswordStrength(fpNewPw);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('social_error')) {
+      toast.error(t('auth.social.loginFailed'));
+      params.delete('social_error');
+      const query = params.toString();
+      window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : ''));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function resetAll() {
     setLoginId(''); setLoginPw(''); setLoginError(''); setShowLoginPw(false);
@@ -405,6 +416,32 @@ export default function AuthPage() {
                   {m === 'login' ? t('auth.tabs.login') : t('auth.tabs.register')}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* 소셜 간편 로그인 */}
+          <div className="mb-6 space-y-2.5">
+            <a
+              href="/api/auth/oauth/naver/start"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-full font-bold text-white transition-opacity hover:opacity-90"
+              style={{ backgroundColor: '#03C75A' }}
+            >
+              N {t('auth.social.naver')}
+            </a>
+            <a
+              href="/api/auth/oauth/kakao/start"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-full font-bold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: '#FEE500', color: '#3C1E1E' }}
+            >
+              K {t('auth.social.kakao')}
+            </a>
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#DED6CC]" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-3 text-xs text-[#A68B77]">{t('auth.social.divider')}</span>
+              </div>
             </div>
           </div>
 

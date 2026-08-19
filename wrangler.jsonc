@@ -8,8 +8,12 @@
     "enabled": true
   },
   // Vercel에 배포한 api/plan-trip.ts 함수 URL (지역 차단 우회용 프록시)
+  // NAVER_CLIENT_ID/KAKAO_CLIENT_ID는 공개 가능한 OAuth Client ID — 실제 값을 발급받으면 채울 것.
+  // Client Secret은 절대 여기 넣지 말 것: 로컬은 .dev.vars, 배포본은 `wrangler secret put`으로 등록.
   "vars": {
-    "PLAN_TRIP_PROXY_URL": "https://travelplanner-syyu21b.vercel.app/api/plan-trip"
+    "PLAN_TRIP_PROXY_URL": "https://travelplanner-syyu21b.vercel.app/api/plan-trip",
+    "NAVER_CLIENT_ID": "oIprsolL0m8giBgq629e",
+    "KAKAO_CLIENT_ID": ""
   },
   "d1_databases": [
     {

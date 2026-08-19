@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -33,6 +33,24 @@ export const userProfiles = sqliteTable("user_profiles", {
   userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   photoKey: text("photo_key"),
 });
+
+// 네이버/카카오 간편 로그인 연동 정보. users.passwordHash는 소셜 전용 계정도 NOT NULL을
+// 유지하기 위해 사용 불가능한 무작위 해시로 채운다(hashPassword(nanoid(32)))
+// — 일반 로그인/비밀번호 검증 로직을 그대로 재사용할 수 있게 하기 위함.
+export const oauthAccounts = sqliteTable(
+  "oauth_accounts",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider", { enum: ["naver", "kakao"] }).notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [
+    index("oauth_accounts_user_id_idx").on(t.userId),
+    uniqueIndex("oauth_accounts_provider_uid_idx").on(t.provider, t.providerUserId),
+  ],
+);
 
 export const travelPlans = sqliteTable(
   "travel_plans",

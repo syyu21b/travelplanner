@@ -24,6 +24,12 @@ export const auth = {
       findId: "아이디 찾기",
       findPassword: "비밀번호 찾기",
     },
+    social: {
+      naver: "네이버로 시작하기",
+      kakao: "카카오로 시작하기",
+      divider: "또는",
+      loginFailed: "간편 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.",
+    },
     register: {
       nicknameLabel: "닉네임",
       nicknamePlaceholder: "2~10자",
@@ -114,6 +120,12 @@ export const auth = {
       submitting: "Logging in...",
       findId: "Find username",
       findPassword: "Find password",
+    },
+    social: {
+      naver: "Continue with Naver",
+      kakao: "Continue with Kakao",
+      divider: "or",
+      loginFailed: "Social login failed. Please try again in a moment.",
     },
     register: {
       nicknameLabel: "Nickname",

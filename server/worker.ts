@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "./env";
 import authApi from "./api/auth";
+import oauthApi from "./api/oauth";
 import mediaApi from "./api/media";
 import plansApi from "./api/plans";
 import diariesApi from "./api/diaries";
@@ -14,6 +15,7 @@ const app = new Hono<{ Bindings: Env }>();
 // wrangler.jsonc의 assets.run_worker_first가 "/api/*"로 한정되어 있으므로
 // 이 Worker는 API 요청만 받는다 (정적 자산 요청은 Worker에 도달하지 않음).
 app.route("/api/auth", authApi);
+app.route("/api/auth/oauth", oauthApi);
 app.route("/api/media", mediaApi);
 app.route("/api/plans", plansApi);
 app.route("/api/diaries", diariesApi);
