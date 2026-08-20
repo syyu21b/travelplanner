@@ -10,8 +10,12 @@ export interface Env {
   NAVER_CLIENT_SECRET?: string;
   KAKAO_CLIENT_ID?: string;
   KAKAO_CLIENT_SECRET?: string;
-  // 회원가입 이메일 인증코드 발송 (Resend REST API, 진짜 비밀값 — .dev.vars / wrangler secret)
-  RESEND_API_KEY?: string;
+  // 회원가입 이메일 인증코드 발송 (Brevo REST API, 진짜 비밀값 — .dev.vars / wrangler secret)
+  // Resend는 도메인 인증 전에는 발신 계정 소유자 본인에게만 보낼 수 있어(onboarding@resend.dev
+  // 샌드박스 제한) 실사용자에게 발송이 막혔었다 — Brevo는 이메일 주소 하나만 검증하면 임의
+  // 수신자에게 보낼 수 있어 도메인 없이도 실사용 가능해 이걸로 교체함.
+  BREVO_API_KEY?: string;
+  BREVO_SENDER_EMAIL?: string;
   // port.one(포트원) 결제 — storeId/channelKey는 클라이언트에도 그대로 노출되는 공개값(vars),
   // API Secret/Webhook Secret은 진짜 비밀값(.dev.vars / wrangler secret)
   PORTONE_STORE_ID?: string;
