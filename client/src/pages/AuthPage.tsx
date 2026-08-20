@@ -103,8 +103,12 @@ export default function AuthPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('social_error')) {
-      toast.error(t('auth.social.loginFailed'));
+    const socialError = params.get('social_error');
+    if (socialError) {
+      const message = socialError === 'cancelled' ? t('auth.social.loginCancelled')
+        : socialError === 'state_mismatch' ? t('auth.social.loginStateMismatch')
+        : t('auth.social.loginFailed');
+      toast.error(message);
       params.delete('social_error');
       const query = params.toString();
       window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : ''));

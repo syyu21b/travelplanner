@@ -48,7 +48,7 @@ function SharedNav() {
           <span className="text-base sm:text-xl font-extrabold text-foreground tracking-tight whitespace-nowrap">Travel Planner</span>
         </button>
 
-        <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+        <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           <Link href="/">
             <button className={cn(
               "flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap",

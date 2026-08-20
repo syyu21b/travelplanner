@@ -16,9 +16,12 @@ function redirectUriFor(c: Context<AppEnv>, provider: OAuthProvider): string {
   return `${new URL(c.req.url).origin}${BASE_PATH}/${provider}/callback`;
 }
 
-function loginErrorRedirect(c: Context<AppEnv>) {
+// reason을 쿼리에 실어 보내는 이유: 안드로이드 등 특정 환경에서만 실패할 때, 사용자가 어느
+// 단계(동의 거부/취소인지, state 쿠키 유실인지, 프로필 조회 실패인지)에서 막혔는지를 서버 로그
+// 없이도 클라이언트 토스트만으로 구분할 수 있게 하기 위함.
+function loginErrorRedirect(c: Context<AppEnv>, reason: string = "unknown") {
   const origin = new URL(c.req.url).origin;
-  return c.redirect(`${origin}/login?social_error=1`, 302);
+  return c.redirect(`${origin}/login?social_error=${reason}`, 302);
 }
 
 async function ensureUniqueValue(
@@ -57,19 +60,27 @@ oauth.get("/:provider/start", async (c) => {
 
 oauth.get("/:provider/callback", async (c) => {
   const provider = c.req.param("provider");
-  if (!isOAuthProvider(provider)) return loginErrorRedirect(c);
+  if (!isOAuthProvider(provider)) return loginErrorRedirect(c, "invalid_provider");
 
   const code = c.req.query("code");
   const state = c.req.query("state");
   const stateCookie = getCookie(c, STATE_COOKIE);
   deleteCookie(c, STATE_COOKIE, { path: BASE_PATH });
 
-  if (!code || !state || !stateCookie || stateCookie !== `${provider}:${state}`) {
-    return loginErrorRedirect(c);
+  // provider가 code 없이 error 쿼리만 주는 경우(사용자가 동의 화면에서 취소/거부)를 별도로 구분
+  if (!code) {
+    console.warn(`[oauth:${provider}] no code in callback`, { error: c.req.query("error"), errorDescription: c.req.query("error_description") });
+    return loginErrorRedirect(c, "cancelled");
+  }
+  // state 쿠키가 없거나 불일치 — 안드로이드 인앱 브라우저(카카오톡/네이버 앱 내장 브라우저 등)처럼
+  // /start에서 쿠키를 심은 컨텍스트와 콜백을 받는 컨텍스트가 분리되는 환경에서 특히 발생하기 쉬움
+  if (!state || !stateCookie || stateCookie !== `${provider}:${state}`) {
+    console.warn(`[oauth:${provider}] state mismatch`, { hasState: !!state, hasStateCookie: !!stateCookie });
+    return loginErrorRedirect(c, "state_mismatch");
   }
 
   const profile = await fetchOAuthProfile(provider, code, c.env, redirectUriFor(c, provider));
-  if (!profile) return loginErrorRedirect(c);
+  if (!profile) return loginErrorRedirect(c, "profile_fetch_failed");
 
   const db = getDb(c.env);
   const createdAt = new Date().toISOString();

@@ -29,6 +29,8 @@ export const auth = {
       kakao: "카카오로 시작하기",
       divider: "또는",
       loginFailed: "간편 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.",
+      loginCancelled: "로그인이 취소되었습니다.",
+      loginStateMismatch: "로그인 세션이 만료되었습니다. 인앱 브라우저(카카오톡/네이버 앱 등)가 아닌 기본 브라우저에서 다시 시도해주세요.",
     },
     register: {
       nicknameLabel: "닉네임",
@@ -132,6 +134,8 @@ export const auth = {
       kakao: "Continue with Kakao",
       divider: "or",
       loginFailed: "Social login failed. Please try again in a moment.",
+      loginCancelled: "Login was cancelled.",
+      loginStateMismatch: "Your login session expired. Please retry from your default browser instead of an in-app browser (e.g. KakaoTalk, Naver app).",
     },
     register: {
       nicknameLabel: "Nickname",

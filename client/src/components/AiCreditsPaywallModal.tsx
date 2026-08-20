@@ -49,6 +49,27 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
     if (open) paymentsApi.getPackages().then((r) => setPackages(r.packages)).catch(() => setPackages([]));
   }, [open]);
 
+  // 모바일 환경은 PortOne이 결제창 대신 PG 페이지로 풀페이지 리디렉션하는 방식을 기본으로 쓴다.
+  // 이 경우 handleBuy의 `await PortOne.requestPayment(...)`는 응답을 받지 못한 채 페이지가
+  // 이탈했다가 redirectUrl로 돌아오므로, 결제 확정은 그때 붙는 쿼리 파라미터로 여기서 이어받는다.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const returnedPaymentId = params.get('paymentId');
+    if (!returnedPaymentId || params.get('transactionType') !== 'PAYMENT') return;
+    const returnedMessage = params.get('message');
+    ['transactionType', 'txId', 'paymentId', 'code', 'message', 'pgCode', 'pgMessage'].forEach((key) => params.delete(key));
+    const query = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : ''));
+
+    paymentsApi.completePayment(returnedPaymentId)
+      .then((result) => {
+        if (result.success) { toast.success(result.message); onPurchased(); }
+        else toast.error(result.message || returnedMessage || '결제가 취소되었습니다.');
+      })
+      .catch((err) => toast.error(err instanceof Error ? err.message : '결제 확인 중 오류가 발생했습니다.'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const basePkg = packages.find((p) => p.credits === 1);
   const basePerCredit = basePkg ? basePkg.amountKrw / basePkg.credits : 0;
 
@@ -81,6 +102,9 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
           email: user?.email,
           fullName: user?.nickname,
         },
+        // 안드로이드 등 모바일 브라우저는 대부분 PG 페이지로 리디렉션하는 방식으로 동작하는데,
+        // 이 값이 없으면 결제창 자체가 뜨지 않거나 결제 후 돌아올 곳이 없어 완료 처리가 안 된다.
+        redirectUrl: `${window.location.origin}${window.location.pathname}`,
       });
 
       if (!response) {

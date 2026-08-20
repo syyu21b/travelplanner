@@ -2075,7 +2075,7 @@ export default function Home() {
             <h1 className="text-base sm:text-xl font-extrabold text-foreground tracking-tight whitespace-nowrap">Travel Planner</h1>
           </button>
 
-          <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+          <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
             <Link href="/">
               <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-sm whitespace-nowrap">
                 <Plane className="w-4 h-4" />
@@ -2313,7 +2313,7 @@ export default function Home() {
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
                 <h2 className="text-xl font-black text-foreground">{t('home.planList.title')}</h2>
-                <div className="flex gap-1 bg-secondary p-1 rounded-xl overflow-x-auto max-w-full [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                <div className="flex gap-1 bg-secondary p-1 rounded-xl overflow-x-auto max-w-full touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                   {(['all', '진행 중', '예정', '완료'] as const).map(f => (
                     <button
                       key={f}

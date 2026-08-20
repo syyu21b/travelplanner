@@ -399,7 +399,7 @@ export default function MyPage() {
       <div className="container mx-auto px-4 max-w-4xl mt-6">
         {/* 탭 바 */}
         <Card className="shadow-lg mb-6">
-          <div className="flex overflow-x-auto">
+          <div className="flex overflow-x-auto touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
             {tabs.map((tab, i) => (
               <button
                 key={tab.id}
