@@ -318,6 +318,21 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}"],
         // 지도 라이브러리(maplibre-gl 등) 포함 시 메인 번들이 기본 2MiB 한도를 넘을 수 있어 여유를 둠
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        // 여행 계획 목록을 한 번이라도 불러온 적이 있으면, 이후 오프라인 상태에서도
+        // "여행 요약"에서 마지막으로 성공한 응답을 그대로 볼 수 있도록 캐싱 (계정 전환 시
+        // 캐시가 섞이지 않도록 AuthContext.logout()에서 이 캐시를 함께 비움)
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, request }) => request.method === "GET" && url.pathname === "/api/plans",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-plans-cache",
+              networkTimeoutSeconds: 5,
+              cacheableResponse: { statuses: [200] },
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,

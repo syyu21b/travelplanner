@@ -103,6 +103,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null);
     authApi.logout().catch(() => { /* 로컬 세션은 이미 정리됨 — 서버 세션은 만료되면 자연 정리 */ });
+    // 오프라인 캐시(api-plans-cache)에 남아있는 이전 계정의 여행 계획이 같은 기기의
+    // 다음 로그인 사용자에게 보이지 않도록 정리
+    if ("caches" in window) {
+      caches.delete("api-plans-cache").catch(() => {});
+    }
   };
 
   const findUsernameByEmail = async (email: string): Promise<string | null> => {

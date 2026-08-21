@@ -522,7 +522,10 @@ export default function Home() {
         const savedId = localStorage.getItem('currentPlanId');
         if (savedId) setCurrentPlan(normalized.find(p => p.id === savedId) || null);
       })
-      .catch(() => { if (!cancelled) toast.error(t('home.toast.storageFull')); })
+      .catch(() => {
+        if (cancelled) return;
+        toast.error(navigator.onLine ? t('home.toast.plansLoadFailed') : t('home.toast.plansLoadFailedOffline'));
+      })
       .finally(() => { if (!cancelled) setIsPlanLoading(false); });
     return () => { cancelled = true; };
   }, [user]);
