@@ -363,13 +363,13 @@ export default function MyPage() {
             </div>
 
             {/* 이름 & 정보 */}
-            <div className="text-center sm:text-left text-white flex-1 drop-shadow-md">
+            <div className="text-center sm:text-left text-white flex-1 min-w-0 max-w-full drop-shadow-md">
               <div className="flex items-center gap-2 justify-center sm:justify-start">
-                <h1 className="text-2xl font-black">{user?.nickname}</h1>
-                {user?.isAdmin && <Crown className="w-5 h-5 text-amber-300" />}
+                <h1 className="text-2xl font-black break-words">{user?.nickname}</h1>
+                {user?.isAdmin && <Crown className="w-5 h-5 text-amber-300 flex-shrink-0" />}
               </div>
-              <p className="text-white/90 text-sm mt-1">@{user?.username}</p>
-              <p className="text-white/80 text-xs mt-0.5">{user?.email}</p>
+              <p className="text-white/90 text-sm mt-1 break-words">@{user?.username}</p>
+              <p className="text-white/80 text-xs mt-0.5 break-all">{user?.email}</p>
               <p className="text-white/70 text-xs mt-0.5">
                 {t('mypage.header.joinedOn')} {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(dateLocale) : ''}
               </p>
@@ -1212,17 +1212,17 @@ export default function MyPage() {
                   <User className="w-5 h-5 text-primary" /> {t('mypage.account.infoTitle')}
                 </h3>
                 <div className="space-y-3 mt-4">
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-sm text-muted-foreground">{t('mypage.account.usernameLabel')}</span>
-                    <span className="text-sm font-semibold text-foreground">{user?.username}</span>
+                  <div className="flex items-center justify-between gap-3 py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground flex-shrink-0">{t('mypage.account.usernameLabel')}</span>
+                    <span className="text-sm font-semibold text-foreground text-right break-all">{user?.username}</span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-sm text-muted-foreground">{t('mypage.account.nicknameLabel')}</span>
-                    <span className="text-sm font-semibold text-foreground">{user?.nickname}</span>
+                  <div className="flex items-center justify-between gap-3 py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground flex-shrink-0">{t('mypage.account.nicknameLabel')}</span>
+                    <span className="text-sm font-semibold text-foreground text-right break-all">{user?.nickname}</span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-sm text-muted-foreground">{t('mypage.account.emailLabel')}</span>
-                    <span className="text-sm font-semibold text-foreground">{user?.email}</span>
+                  <div className="flex items-center justify-between gap-3 py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground flex-shrink-0">{t('mypage.account.emailLabel')}</span>
+                    <span className="text-sm font-semibold text-foreground text-right break-all">{user?.email}</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
                     <span className="text-sm text-muted-foreground">{t('mypage.account.accountTypeLabel')}</span>
