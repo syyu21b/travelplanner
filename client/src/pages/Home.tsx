@@ -1505,7 +1505,7 @@ export default function Home() {
     if (plan.schedules.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
-          <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
+          <p className="text-muted-foreground">{t('home.timeline.emptyState')}</p>
         </div>
       );
     }
@@ -1583,7 +1583,7 @@ export default function Home() {
     if (withPreps.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
-          <p className="text-slate-400">{t('home.summary.emptyState')}</p>
+          <p className="text-muted-foreground">{t('home.summary.emptyState')}</p>
         </div>
       );
     }
@@ -1642,7 +1642,7 @@ export default function Home() {
         </div>
         {totalCount === 0 ? (
           <div className="text-center py-12 bg-secondary rounded-2xl">
-            <p className="text-slate-400">{t('home.summary.allEmptyState')}</p>
+            <p className="text-muted-foreground">{t('home.summary.allEmptyState')}</p>
           </div>
         ) : (
           <div className="relative pl-6 border-l-2 border-border space-y-3">
@@ -1680,7 +1680,7 @@ export default function Home() {
     if (plan.schedules.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
-          <p className="text-slate-400">{t('home.timeline.emptyState')}</p>
+          <p className="text-muted-foreground">{t('home.timeline.emptyState')}</p>
         </div>
       );
     }
@@ -1714,7 +1714,7 @@ export default function Home() {
     if (list.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
-          <p className="text-slate-400">{t('home.accommodation.emptyState')}</p>
+          <p className="text-muted-foreground">{t('home.accommodation.emptyState')}</p>
         </div>
       );
     }
@@ -1745,7 +1745,7 @@ export default function Home() {
     if (list.length === 0) {
       return (
         <div className="text-center py-12 bg-secondary rounded-2xl">
-          <p className="text-slate-400">{t('home.flight.emptyState')}</p>
+          <p className="text-muted-foreground">{t('home.flight.emptyState')}</p>
         </div>
       );
     }
@@ -2257,13 +2257,13 @@ export default function Home() {
             ];
             return (
               <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10">
-                <div className="bg-card rounded-2xl shadow-xl border border-gray-100 grid grid-cols-2 lg:grid-cols-4">
+                <div className="bg-card rounded-2xl shadow-xl border border-border grid grid-cols-2 lg:grid-cols-4">
                   {statItems.map((s, i) => (
                     <div key={s.label} className={cn(
                       "p-5 flex items-center gap-4",
-                      i === 0 ? "border-b lg:border-b-0 lg:border-r border-gray-100" : "",
-                      i === 1 ? "border-b lg:border-b-0 lg:border-r border-gray-100" : "",
-                      i === 2 ? "lg:border-r border-gray-100" : "",
+                      i === 0 ? "border-b lg:border-b-0 lg:border-r border-border" : "",
+                      i === 1 ? "border-b lg:border-b-0 lg:border-r border-border" : "",
+                      i === 2 ? "lg:border-r border-border" : "",
                     )}>
                       <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", s.bg)}>
                         <span className={s.color}>{s.icon}</span>
@@ -2441,13 +2441,13 @@ export default function Home() {
                             <button
                               onClick={e => { e.stopPropagation(); setDuplicatePlanId(plan.id); }}
                               title={t('home.planList.duplicateButton')}
-                              className="text-slate-200 hover:text-primary transition-colors"
+                              className="text-muted-foreground hover:text-primary transition-colors"
                             >
                               <Copy className="w-4 h-4" />
                             </button>
                             <button
                               onClick={e => { e.stopPropagation(); setDeletePlanId(plan.id); }}
-                              className="text-slate-200 hover:text-red-400 transition-colors"
+                              className="text-muted-foreground hover:text-red-400 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -2539,7 +2539,7 @@ export default function Home() {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           onClick={handleStartEditTitle}
-                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-secondary flex-shrink-0"
+                          className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary flex-shrink-0"
                           title={t('home.planDetail.editTitleTooltip')}
                         >
                           <Edit2 className="w-5 h-5" />
@@ -2580,7 +2580,7 @@ export default function Home() {
                       <Calendar className="w-4 h-4" /> {currentPlan.startDate} ~ {currentPlan.endDate}
                       <button
                         onClick={handleStartEditDates}
-                        className="p-1 text-slate-400 hover:text-primary transition-colors rounded hover:bg-secondary"
+                        className="p-1 text-muted-foreground hover:text-primary transition-colors rounded hover:bg-secondary"
                         title={t('home.planDetail.editDatesTooltip')}
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -2663,7 +2663,7 @@ export default function Home() {
 
                       {filteredSchedules.length === 0 ? (
                         <div className="text-center py-12 bg-card rounded-2xl border border-border">
-                          <p className="text-slate-400">{t('home.schedule.emptyState')}</p>
+                          <p className="text-muted-foreground">{t('home.schedule.emptyState')}</p>
                         </div>
                       ) : (
                         filteredSchedules
@@ -2698,7 +2698,7 @@ export default function Home() {
                       <h3 className="text-xl font-bold text-foreground">{t('home.accommodation.listTitle')}</h3>
                       {(currentPlan.accommodations || []).length === 0 ? (
                         <div className="text-center py-12 bg-card rounded-2xl border border-border">
-                          <p className="text-slate-400">{t('home.accommodation.emptyState')}</p>
+                          <p className="text-muted-foreground">{t('home.accommodation.emptyState')}</p>
                         </div>
                       ) : (
                         [...(currentPlan.accommodations || [])]
@@ -2730,7 +2730,7 @@ export default function Home() {
                       <h3 className="text-xl font-bold text-foreground">{t('home.flight.listTitle')}</h3>
                       {(currentPlan.flights || []).length === 0 ? (
                         <div className="text-center py-12 bg-card rounded-2xl border border-border">
-                          <p className="text-slate-400">{t('home.flight.emptyState')}</p>
+                          <p className="text-muted-foreground">{t('home.flight.emptyState')}</p>
                         </div>
                       ) : (
                         [...(currentPlan.flights || [])]
@@ -3118,7 +3118,7 @@ export default function Home() {
                       <h3 className="text-lg font-bold text-foreground mb-4">{t('home.budget.categoryChartTitle')}</h3>
                       {categorySpending.length === 0 ? (
                         <div className="text-center py-12 bg-secondary rounded-2xl">
-                          <p className="text-slate-400">{t('home.budget.categoryChartEmptyState')}</p>
+                          <p className="text-muted-foreground">{t('home.budget.categoryChartEmptyState')}</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -3339,7 +3339,7 @@ export default function Home() {
                     .filter(s => s.date === getDateString(homeCalendarDate))
                     .sort((a, b) => a.time.localeCompare(b.time))
                     .length === 0 ? (
-                    <p className="text-slate-400 text-sm py-4 text-center bg-slate-50 rounded-xl">{t('home.previewDialog.noScheduleForDate')}</p>
+                    <p className="text-muted-foreground text-sm py-4 text-center bg-muted rounded-xl">{t('home.previewDialog.noScheduleForDate')}</p>
                   ) : (
                     <div className="space-y-2">
                       {previewPlan.schedules
@@ -3351,18 +3351,18 @@ export default function Home() {
                               <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold", getCategoryColor(s.category))}>
                                 {getCategoryLabel(s.category)}
                               </span>
-                              <span className="text-xs text-slate-500 font-semibold">{formatTime12h(s.time)}</span>
+                              <span className="text-xs text-muted-foreground font-semibold">{formatTime12h(s.time)}</span>
                             </div>
                             <p className="font-bold text-foreground">{s.title}</p>
                             {s.location && (
-                              <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                                 <MapPin className="w-3 h-3" /> {s.location}
                               </p>
                             )}
                             {s.cost && (
                               <p className="text-xs text-primary font-semibold mt-1">₩{s.cost.toLocaleString()}</p>
                             )}
-                            {s.notes && <p className="text-xs text-slate-400 italic mt-1">"{s.notes}"</p>}
+                            {s.notes && <p className="text-xs text-muted-foreground italic mt-1">"{s.notes}"</p>}
                           </div>
                         ))}
                     </div>
@@ -3643,15 +3643,15 @@ export default function Home() {
           {previewAccommodation && (
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap">
-                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkInShort')} {previewAccommodation.checkInDate}{previewAccommodation.checkInTime ? ` ${formatTime12h(previewAccommodation.checkInTime)}` : ''}
                 </span>
-                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.accommodation.checkOutShort')} {previewAccommodation.checkOutDate}{previewAccommodation.checkOutTime ? ` ${formatTime12h(previewAccommodation.checkOutTime)}` : ''}
                 </span>
               </div>
               {previewAccommodation.address && (
-                <div className="flex items-center gap-2 flex-wrap text-sm text-slate-600">
+                <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
                   <p className="flex items-center gap-1 min-w-0">
                     <MapPin className="w-4 h-4 text-primary flex-shrink-0" /> <span className="truncate">{previewAccommodation.address}</span>
                   </p>
@@ -3665,13 +3665,13 @@ export default function Home() {
                 </div>
               )}
               {previewAccommodation.phone && (
-                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Phone className="w-4 h-4 text-primary flex-shrink-0" />
                   <a href={`tel:${previewAccommodation.phone}`} className="hover:text-primary hover:underline">{previewAccommodation.phone}</a>
                 </p>
               )}
               {previewAccommodation.reservationNumber && (
-                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Hash className="w-4 h-4 text-primary flex-shrink-0" /> {previewAccommodation.reservationNumber}
                 </p>
               )}
@@ -3729,21 +3729,21 @@ export default function Home() {
           </DialogHeader>
           {previewFlight && (
             <div className="space-y-3 pt-2">
-              <div className="flex items-center gap-2 flex-wrap text-sm font-semibold text-slate-700">
+              <div className="flex items-center gap-2 flex-wrap text-sm font-semibold text-foreground">
                 <span>{previewFlight.departureAirport}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                 <span>{previewFlight.arrivalAirport}</span>
               </div>
               <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap">
-                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.departureShort')} {previewFlight.departureDate}{previewFlight.departureTime ? ` ${formatTime12h(previewFlight.departureTime)}` : ''}
                 </span>
-                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {t('home.flight.arrivalShort')} {previewFlight.arrivalDate}{previewFlight.arrivalTime ? ` ${formatTime12h(previewFlight.arrivalTime)}` : ''}
                 </span>
               </div>
               {previewFlight.boardingTime && (
-                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {formatTime12h(previewFlight.boardingTime)}
                 </p>
               )}
@@ -3761,7 +3761,7 @@ export default function Home() {
                 </div>
               )}
               {previewFlight.reservationNumber && (
-                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Hash className="w-4 h-4 text-primary flex-shrink-0" /> {previewFlight.reservationNumber}
                 </p>
               )}
@@ -3970,19 +3970,19 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
           </div>
           <h4 className="text-xl font-bold text-foreground mb-2 break-words">{accommodation.name}</h4>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600 mb-1">
-            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-1">
+            <p className="flex items-center gap-1.5 font-semibold text-foreground">
               <Calendar className="w-4 h-4 text-primary" />
               {t('home.accommodation.checkInShort')} {accommodation.checkInDate}{accommodation.checkInTime ? ` ${formatTime12h(accommodation.checkInTime)}` : ''}
             </p>
-            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+            <p className="flex items-center gap-1.5 font-semibold text-foreground">
               <Calendar className="w-4 h-4 text-primary" />
               {t('home.accommodation.checkOutShort')} {accommodation.checkOutDate}{accommodation.checkOutTime ? ` ${formatTime12h(accommodation.checkOutTime)}` : ''}
             </p>
           </div>
 
           {accommodation.address && (
-            <div className="flex items-center gap-2 text-sm text-slate-600 mt-1.5">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1.5">
               <p className="flex items-center gap-1 min-w-0">
                 <MapPin className="w-4 h-4 text-primary flex-shrink-0" /> <span className="truncate">{accommodation.address}</span>
               </p>
@@ -3997,14 +3997,14 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
           )}
 
           {accommodation.phone && (
-            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1.5">
               <Phone className="w-4 h-4 text-primary" />
               <a href={`tel:${accommodation.phone}`} className="hover:text-primary hover:underline">{accommodation.phone}</a>
             </p>
           )}
 
           {accommodation.reservationNumber && (
-            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1.5">
               <Hash className="w-4 h-4 text-primary" /> {accommodation.reservationNumber}
             </p>
           )}
@@ -4016,11 +4016,11 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
             </p>
           )}
 
-          {accommodation.notes && <p className="text-sm text-slate-500 mt-3 italic">"{accommodation.notes}"</p>}
+          {accommodation.notes && <p className="text-sm text-muted-foreground mt-3 italic">"{accommodation.notes}"</p>}
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <button onClick={onEdit} className="p-2 text-slate-300 hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
-          <button onClick={() => onDelete(accommodation.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={onEdit} className="p-2 text-muted-foreground hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => onDelete(accommodation.id)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
     </Card>
@@ -4079,7 +4079,7 @@ function AccommodationForm({ onAdd, region }: { onAdd: (accommodation: Accommoda
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.addressLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.addressLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
         <div className="flex flex-wrap gap-2">
           <Input
             placeholder={t('home.accommodation.form.addressPlaceholder')}
@@ -4128,7 +4128,7 @@ function AccommodationForm({ onAdd, region }: { onAdd: (accommodation: Accommoda
           <Input type="date" value={checkInDate} onChange={e => setCheckInDate(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkInTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkInTimeLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input type="time" value={checkInTime} onChange={e => setCheckInTime(e.target.value)} className="h-11" />
         </div>
       </div>
@@ -4138,7 +4138,7 @@ function AccommodationForm({ onAdd, region }: { onAdd: (accommodation: Accommoda
           <Input type="date" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkOutTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.checkOutTimeLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input type="time" value={checkOutTime} onChange={e => setCheckOutTime(e.target.value)} className="h-11" />
         </div>
       </div>
@@ -4148,17 +4148,17 @@ function AccommodationForm({ onAdd, region }: { onAdd: (accommodation: Accommoda
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.phoneLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.phoneLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input type="tel" placeholder={t('home.accommodation.form.phonePlaceholder')} value={phone} onChange={e => setPhone(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.reservationNumberLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.reservationNumberLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input placeholder={t('home.accommodation.form.reservationNumberPlaceholder')} value={reservationNumber} onChange={e => setReservationNumber(e.target.value)} className="h-11" />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.linkLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.linkLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
         <Input
           type="url"
           placeholder="https://..."
@@ -4169,7 +4169,7 @@ function AccommodationForm({ onAdd, region }: { onAdd: (accommodation: Accommoda
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
         <Textarea
           placeholder={t('home.schedule.form.notesFreeformPlaceholder')}
           value={notes}
@@ -4289,25 +4289,25 @@ function FlightCard({ flight, isEditing, onEdit, onUpdate, onDelete, onCancel }:
           </div>
           <h4 className="text-xl font-bold text-foreground mb-2 break-words">{flight.airline} {flight.flightNumber}</h4>
 
-          <div className="flex items-center gap-2 flex-wrap text-sm font-semibold text-slate-700 mb-1.5">
+          <div className="flex items-center gap-2 flex-wrap text-sm font-semibold text-foreground mb-1.5">
             <span>{flight.departureAirport}</span>
             <ArrowRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
             <span>{flight.arrivalAirport}</span>
           </div>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600 mb-1">
-            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-1">
+            <p className="flex items-center gap-1.5 font-semibold text-foreground">
               <Calendar className="w-4 h-4 text-primary" />
               {t('home.flight.departureShort')} {flight.departureDate}{flight.departureTime ? ` ${formatTime12h(flight.departureTime)}` : ''}
             </p>
-            <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+            <p className="flex items-center gap-1.5 font-semibold text-foreground">
               <Calendar className="w-4 h-4 text-primary" />
               {t('home.flight.arrivalShort')} {flight.arrivalDate}{flight.arrivalTime ? ` ${formatTime12h(flight.arrivalTime)}` : ''}
             </p>
           </div>
 
           {flight.boardingTime && (
-            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1.5">
               <Clock className="w-4 h-4 text-primary flex-shrink-0" /> {t('home.flight.form.boardingTimeLabel')} {formatTime12h(flight.boardingTime)}
             </p>
           )}
@@ -4321,14 +4321,14 @@ function FlightCard({ flight, isEditing, onEdit, onUpdate, onDelete, onCancel }:
           )}
 
           {flight.reservationNumber && (
-            <p className="flex items-center gap-1.5 text-sm text-slate-600 mt-1.5">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1.5">
               <Hash className="w-4 h-4 text-primary" /> {flight.reservationNumber}
             </p>
           )}
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <button onClick={onEdit} className="p-2 text-slate-300 hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
-          <button onClick={() => onDelete(flight.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={onEdit} className="p-2 text-muted-foreground hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => onDelete(flight.id)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
     </Card>
@@ -4392,7 +4392,7 @@ function FlightForm({ onAdd }: { onAdd: (flight: Flight) => void }) {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.flight.form.reservationNumberLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.flight.form.reservationNumberLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
         <Input placeholder={t('home.flight.form.reservationNumberPlaceholder')} value={reservationNumber} onChange={e => setReservationNumber(e.target.value)} className="h-11" />
       </div>
 
@@ -4413,7 +4413,7 @@ function FlightForm({ onAdd }: { onAdd: (flight: Flight) => void }) {
           <Input type="date" value={departureDate} onChange={e => setDepartureDate(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.departureTimeLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input type="time" value={departureTime} onChange={e => setDepartureTime(e.target.value)} className="h-11" />
         </div>
       </div>
@@ -4423,28 +4423,28 @@ function FlightForm({ onAdd }: { onAdd: (flight: Flight) => void }) {
           <Input type="date" value={arrivalDate} onChange={e => setArrivalDate(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.arrivalTimeLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input type="time" value={arrivalTime} onChange={e => setArrivalTime(e.target.value)} className="h-11" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.terminalLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.terminalLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input placeholder={t('home.flight.form.terminalPlaceholder')} value={terminal} onChange={e => setTerminal(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.gateLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.gateLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input placeholder={t('home.flight.form.gatePlaceholder')} value={gate} onChange={e => setGate(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.seatLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.flight.form.seatLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input placeholder={t('home.flight.form.seatPlaceholder')} value={seat} onChange={e => setSeat(e.target.value)} className="h-11" />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.flight.form.boardingTimeLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.flight.form.boardingTimeLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
         <Input type="time" value={boardingTime} onChange={e => setBoardingTime(e.target.value)} className="h-11" />
       </div>
 
@@ -4602,13 +4602,13 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
             <span className={cn("px-3 py-1 rounded-full text-xs font-bold", getCategoryColor(schedule.category))}>
               {getCategoryLabel(schedule.category)}
             </span>
-            <span className="text-sm font-bold text-slate-700">{schedule.date}</span>
+            <span className="text-sm font-bold text-foreground">{schedule.date}</span>
             <span className="text-sm font-bold text-sky-600 ml-1.5">
               {formatTime12h(schedule.time)}{schedule.endTime ? ` - ${formatTime12h(schedule.endTime)}` : ''}
             </span>
           </div>
           <h4 className="text-xl font-bold text-foreground mb-2 break-words">{schedule.title}</h4>
-          <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {schedule.location && <p className="flex items-center gap-1"><MapPin className="w-4 h-4 text-primary" /> {schedule.location}</p>}
             {schedule.cost && <p className="flex items-center gap-1"><DollarSign className="w-4 h-4 text-primary" /> ₩{schedule.cost.toLocaleString()}</p>}
           </div>
@@ -4625,11 +4625,11 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
               ))}
             </div>
           )}
-          {schedule.notes && <p className="text-sm text-slate-500 mt-3 italic break-words">"{schedule.notes}"</p>}
+          {schedule.notes && <p className="text-sm text-muted-foreground mt-3 italic break-words">"{schedule.notes}"</p>}
         </div>
         <div className="flex gap-2 ml-4 flex-shrink-0">
-          <button onClick={onEdit} className="p-2 text-slate-300 hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
-          <button onClick={() => onDelete(schedule.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={onEdit} className="p-2 text-muted-foreground hover:text-primary transition-colors"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => onDelete(schedule.id)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
     </Card>
@@ -4675,8 +4675,8 @@ function BudgetCard({ budget, isEditing, onEdit, onUpdate, onDelete, onCancel, g
         <div className="text-right flex-shrink-0">
           <p className="text-lg font-black text-primary">₩{budget.amount.toLocaleString()}</p>
           <div className="flex gap-2 mt-1 justify-end">
-            <button onClick={onEdit} className="text-slate-300 hover:text-primary"><Edit2 className="w-3 h-3" /></button>
-            <button onClick={() => onDelete(budget.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
+            <button onClick={onEdit} className="text-muted-foreground hover:text-primary"><Edit2 className="w-3 h-3" /></button>
+            <button onClick={() => onDelete(budget.id)} className="text-muted-foreground hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
           </div>
         </div>
       </div>
@@ -4721,13 +4721,13 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
             <input type="checkbox" checked={item.checked} onChange={() => onToggle(item.id)} className="w-5 h-5 rounded-full border-sky-300 text-primary flex-shrink-0" />
-            <span className={cn("font-bold break-words", item.checked ? "line-through text-slate-300" : "text-foreground")}>{item.item}</span>
+            <span className={cn("font-bold break-words", item.checked ? "line-through text-muted-foreground" : "text-foreground")}>{item.item}</span>
           </div>
           {item.link && <a href={item.link} target="_blank" className="text-xs text-primary underline">{t('home.shopping.viewProduct')}</a>}
         </div>
         <div className="flex gap-1 flex-shrink-0">
-          <button onClick={onEdit} className="text-slate-300 hover:text-primary"><Edit2 className="w-4 h-4" /></button>
-          <button onClick={() => onDelete(item.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={onEdit} className="text-muted-foreground hover:text-primary"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => onDelete(item.id)} className="text-muted-foreground hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
     </Card>
@@ -4814,7 +4814,7 @@ function ScheduleForm({ onAdd, existingSchedules, region }: { onAdd: (schedule: 
       )}
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.locationLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.locationLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
         <div className="flex gap-2">
           <Input
             placeholder={t('home.schedule.form.locationExample')}
@@ -4850,7 +4850,7 @@ function ScheduleForm({ onAdd, existingSchedules, region }: { onAdd: (schedule: 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.costLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.costLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input
             type="number"
             placeholder="0"
@@ -4860,7 +4860,7 @@ function ScheduleForm({ onAdd, existingSchedules, region }: { onAdd: (schedule: 
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.linkLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+          <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.linkLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
           <Input
             type="url"
             placeholder="https://..."
@@ -4872,7 +4872,7 @@ function ScheduleForm({ onAdd, existingSchedules, region }: { onAdd: (schedule: 
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.preparationsLabel')} <span className="text-slate-400 font-normal">({t('home.schedule.form.preparationsHint')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.preparationsLabel')} <span className="text-muted-foreground font-normal">({t('home.schedule.form.preparationsHint')})</span></label>
         <Input
           placeholder={t('home.schedule.form.preparationsExample')}
           value={preps}
@@ -4882,7 +4882,7 @@ function ScheduleForm({ onAdd, existingSchedules, region }: { onAdd: (schedule: 
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')} <span className="text-slate-400 font-normal">({t('home.common.optional')})</span></label>
+        <label className="text-sm font-semibold text-foreground">{t('home.schedule.form.notesLabel')} <span className="text-muted-foreground font-normal">({t('home.common.optional')})</span></label>
         <Textarea
           placeholder={t('home.schedule.form.notesFreeformPlaceholder')}
           value={notes}

@@ -371,7 +371,7 @@ export default function AuthPage() {
                         <div className="mt-2">
                           <div className="flex gap-1 mb-1">
                             {[1,2,3,4,5].map(i => (
-                              <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= fpPwStrength.score ? fpPwStrength.bgColor : 'bg-gray-200'}`} />
+                              <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= fpPwStrength.score ? fpPwStrength.bgColor : 'bg-muted'}`} />
                             ))}
                           </div>
                           <p className={`text-xs font-medium flex items-center gap-1 ${fpPwStrength.color}`}>
@@ -624,7 +624,7 @@ export default function AuthPage() {
                   <div className="mt-2">
                     <div className="flex gap-1 mb-1">
                       {[1,2,3,4,5].map(i => (
-                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= pwStrength.score ? pwStrength.bgColor : 'bg-gray-200'}`} />
+                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= pwStrength.score ? pwStrength.bgColor : 'bg-muted'}`} />
                       ))}
                     </div>
                     <p className={`text-xs font-medium flex items-center gap-1 ${pwStrength.color}`}>

@@ -1174,9 +1174,9 @@ export default function TravelDiary() {
                             className="min-h-[80px] border-none focus-visible:ring-0 p-0 shadow-none text-sm"
                           />
                         ) : block.type === 'video' ? (
-                          <video src={block.content} controls className="w-full max-h-40 rounded-lg bg-slate-50" />
+                          <video src={block.content} controls className="w-full max-h-40 rounded-lg bg-muted" />
                         ) : (
-                          <img src={block.content} alt="" className="w-full max-h-40 object-contain rounded-lg bg-slate-50" />
+                          <img src={block.content} alt="" className="w-full max-h-40 object-contain rounded-lg bg-muted" />
                         )}
                         <button
                           onClick={() => {
@@ -1294,7 +1294,7 @@ export default function TravelDiary() {
                           {photo.type === 'video' ? (
                             <video src={photo.url} controls className="w-full h-28 object-cover rounded-lg border border-border bg-black" />
                           ) : (
-                            <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-gray-100" />
+                            <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-muted" />
                           )}
                           <div className="absolute inset-0 bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
                             <input
@@ -1371,7 +1371,7 @@ export default function TravelDiary() {
                   onClick={() => setEditData({ ...editData, isPublic: !editData.isPublic })}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    editData.isPublic ? "bg-primary" : "bg-gray-300"
+                    editData.isPublic ? "bg-primary" : "bg-muted"
                   )}
                 >
                   <div className={cn(
@@ -1528,7 +1528,7 @@ export default function TravelDiary() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <img src={block.content} alt={block.caption || ''} className="w-full rounded-2xl shadow-sm border border-border bg-slate-50" />
+                      <img src={block.content} alt={block.caption || ''} className="w-full rounded-2xl shadow-sm border border-border bg-muted" />
                       {block.caption && <p className="text-center text-sm text-muted-foreground">{block.caption}</p>}
                     </div>
                   )}
@@ -1561,7 +1561,7 @@ export default function TravelDiary() {
                       {activePhoto.type === 'video' ? (
                         <video src={activePhoto.url} controls className="w-full object-contain max-h-[700px] bg-black" />
                       ) : (
-                        <img src={activePhoto.url} alt={activePhoto.caption || ''} className="w-full object-contain max-h-[700px] bg-slate-50" />
+                        <img src={activePhoto.url} alt={activePhoto.caption || ''} className="w-full object-contain max-h-[700px] bg-muted" />
                       )}
                       {diary.photos.length > 1 && (
                         <>
@@ -1601,7 +1601,7 @@ export default function TravelDiary() {
                       {photo.type === 'video' ? (
                         <video src={photo.url} controls className="w-full h-full object-cover rounded-xl border border-border bg-black" />
                       ) : (
-                        <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-gray-100" />
+                        <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-muted" />
                       )}
                       {photo.caption && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-xl opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -1729,7 +1729,7 @@ export default function TravelDiary() {
                       {photo.type === 'video' ? (
                         <video src={photo.url} controls className="w-full h-28 object-cover rounded-lg border border-border bg-black" />
                       ) : (
-                        <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-gray-100" />
+                        <img src={photo.url} alt={photo.caption || ''} className="w-full h-28 object-cover rounded-lg border border-border bg-muted" />
                       )}
                       <div className="absolute inset-0 bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2">
                         <input
@@ -1871,7 +1871,7 @@ export default function TravelDiary() {
                     {photo.type === 'video' ? (
                       <video src={photo.url} controls className="w-full h-full object-cover rounded-xl border border-border bg-black" />
                     ) : (
-                      <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-gray-100" />
+                      <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover rounded-xl border border-border bg-muted" />
                     )}
                     {photo.lat !== undefined && (
                       <span className="absolute top-2 left-2 bg-primary text-white rounded-full p-1">
@@ -2517,11 +2517,11 @@ export default function TravelDiary() {
                         />
                       ) : block.type === 'video' ? (
                         <div className="space-y-2">
-                          <video src={block.content} controls className="w-full max-h-60 rounded-lg bg-slate-50" />
+                          <video src={block.content} controls className="w-full max-h-60 rounded-lg bg-muted" />
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <img src={block.content} alt="" className="w-full max-h-60 object-contain rounded-lg bg-slate-50" />
+                          <img src={block.content} alt="" className="w-full max-h-60 object-contain rounded-lg bg-muted" />
                         </div>
                       )}
                       <div className="absolute -right-2 -top-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -2602,7 +2602,7 @@ export default function TravelDiary() {
                 onClick={() => setNewIsPublic(!newIsPublic)}
                 className={cn(
                   "w-12 h-6 rounded-full transition-colors relative",
-                  newIsPublic ? "bg-primary" : "bg-gray-300"
+                  newIsPublic ? "bg-primary" : "bg-muted"
                 )}
               >
                 <div className={cn(

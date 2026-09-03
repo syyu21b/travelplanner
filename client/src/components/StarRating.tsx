@@ -21,12 +21,12 @@ function StarSlot({ index, effective, size }: { index: number; effective: number
   if (effective >= index + 0.5) {
     return (
       <span className={cn('relative inline-block', iconClass)}>
-        <Star className={cn(iconClass, 'absolute inset-0 text-gray-300')} />
+        <Star className={cn(iconClass, 'absolute inset-0 text-muted-foreground')} />
         <StarHalf className={cn(iconClass, 'absolute inset-0 fill-yellow-400 text-yellow-400')} />
       </span>
     );
   }
-  return <Star className={cn(iconClass, 'text-gray-300')} />;
+  return <Star className={cn(iconClass, 'text-muted-foreground')} />;
 }
 
 function pickValueFromClick(e: React.MouseEvent<HTMLButtonElement>, index: number): number {

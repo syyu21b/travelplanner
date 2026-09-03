@@ -78,7 +78,7 @@ export function TripPlanPreviewDialog({ open, onOpenChange, plan, extraAction }:
       meal: 'bg-emerald-100 text-emerald-800',
       activity: 'bg-indigo-100 text-indigo-800',
       shopping: 'bg-orange-100 text-orange-800',
-      other: 'bg-slate-100 text-slate-800',
+      other: 'bg-muted text-foreground',
     };
     return colors[category] || colors.other;
   };

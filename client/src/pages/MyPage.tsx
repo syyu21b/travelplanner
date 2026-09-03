@@ -357,7 +357,7 @@ export default function MyPage() {
               </div>
               <button
                 onClick={() => photoInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-8 h-8 bg-card rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition border border-gray-200"
+                className="absolute bottom-0 right-0 w-8 h-8 bg-card rounded-full shadow-md flex items-center justify-center hover:bg-muted transition border border-border"
                 title={t('mypage.common.changePhoto')}
               >
                 <Camera className="w-4 h-4 text-primary" />
@@ -413,7 +413,7 @@ export default function MyPage() {
                   i === tabs.length - 1 ? 'rounded-tr-xl' : '',
                   activeTab === tab.id
                     ? 'border-primary text-primary bg-primary/5'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
               >
                 {tab.icon}
@@ -625,7 +625,7 @@ export default function MyPage() {
                         return (
                         <div key={d.id} className="flex items-center gap-4 py-3">
                           {thumbUrl ? (
-                            <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                            <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-muted" />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                               <BookOpen className="w-5 h-5 text-muted-foreground" />
@@ -644,7 +644,7 @@ export default function MyPage() {
                             {d.isPublic ? (
                               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">{t('mypage.activity.public')}</span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">{t('mypage.activity.private')}</span>
+                              <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">{t('mypage.activity.private')}</span>
                             )}
                           </div>
                         </div>
@@ -689,7 +689,7 @@ export default function MyPage() {
                         return (
                         <div key={a.id} className="flex items-center gap-4 py-3">
                           {thumbUrl ? (
-                            <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                            <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-muted" />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                               <Camera className="w-5 h-5 text-muted-foreground" />
@@ -740,7 +740,7 @@ export default function MyPage() {
                       return (
                       <div key={d.id} className="flex items-center gap-4 py-3">
                         {thumbUrl ? (
-                          <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                          <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-muted" />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                             <BookOpen className="w-5 h-5 text-muted-foreground" />
@@ -840,7 +840,7 @@ export default function MyPage() {
                       return (
                       <div key={d.id} className="flex items-center gap-4 py-3">
                         {thumbUrl ? (
-                          <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                          <img src={thumbUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-muted" />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                             <BookOpen className="w-5 h-5 text-muted-foreground" />
@@ -1001,7 +1001,7 @@ export default function MyPage() {
                         <div className="flex items-center gap-2">
                           <div className="flex gap-1 flex-1">
                             {[1, 2, 3, 4].map(i => (
-                              <div key={i} className={cn("h-1.5 flex-1 rounded-full transition-colors", i <= strength.level ? strength.color : 'bg-gray-200')} />
+                              <div key={i} className={cn("h-1.5 flex-1 rounded-full transition-colors", i <= strength.level ? strength.color : 'bg-muted')} />
                             ))}
                           </div>
                           <span className={cn("text-xs font-semibold", strength.level <= 1 ? 'text-red-500' : strength.level === 2 ? 'text-yellow-600' : strength.level === 3 ? 'text-blue-600' : 'text-green-600')}>
@@ -1363,14 +1363,14 @@ export default function MyPage() {
               <p className="text-xs text-red-500">{t('mypage.dialogs.withdrawConfirmDesc')}</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-foreground mb-1.5">
                 {t('mypage.dialogs.withdrawTypeLabel', { word: t('mypage.account.withdrawKeyword') })}
               </label>
               <input
                 value={withdrawConfirm}
                 onChange={e => setWithdrawConfirm(e.target.value)}
                 placeholder={t('mypage.account.withdrawKeyword')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
               />
             </div>
             <div className="flex gap-2">

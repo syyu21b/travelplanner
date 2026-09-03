@@ -126,7 +126,7 @@ function SharedNav() {
                 variant="ghost"
                 size="sm"
                 onClick={logout}
-                className="text-slate-500 hover:text-red-500 gap-1.5"
+                className="text-muted-foreground hover:text-red-500 gap-1.5"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">{t("nav.logout")}</span>

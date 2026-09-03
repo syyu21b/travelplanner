@@ -497,7 +497,7 @@ export default function Community() {
                       {photo.type === 'video' ? (
                         <video src={photo.url} muted className="w-full h-full object-contain bg-black" />
                       ) : (
-                        <img src={photo.url} alt="" className="w-full h-full object-contain bg-gray-100" />
+                        <img src={photo.url} alt="" className="w-full h-full object-contain bg-muted" />
                       )}
                     </button>
                   ))}
