@@ -33,6 +33,7 @@ const OverseasMapView = lazy(() =>
 );
 import { LocationPickerDialog } from '@/components/LocationPickerDialog';
 import { WeatherWidget } from '@/components/WeatherWidget';
+import { UpcomingTripHero } from '@/components/UpcomingTripHero';
 import { useLanguage } from '@/contexts/LanguageContext';
 import NotificationBell from '@/components/NotificationBell';
 import HeaderSearch from '@/components/HeaderSearch';
@@ -1892,6 +1893,20 @@ export default function Home() {
     return `D+${Math.abs(daysUntilEnd)}`;
   };
 
+  // 홈 대시보드 상단에 크게 띄울 여행: 진행 중인 여행이 있으면 그중 먼저 끝나는 것,
+  // 없으면 가장 임박한 예정 여행. 둘 다 없으면 히어로 카드를 표시하지 않음.
+  const dashboardTrip: { plan: TravelPlan; status: '진행 중' | '예정' } | null = (() => {
+    const ongoing = travelPlans
+      .filter(p => getPlanStatus(p) === '진행 중')
+      .sort((a, b) => new Date(a.endDate + 'T00:00:00').getTime() - new Date(b.endDate + 'T00:00:00').getTime());
+    if (ongoing.length > 0) return { plan: ongoing[0], status: '진행 중' };
+    const upcoming = travelPlans
+      .filter(p => getPlanStatus(p) === '예정')
+      .sort((a, b) => getDaysUntilStart(a) - getDaysUntilStart(b));
+    if (upcoming.length > 0) return { plan: upcoming[0], status: '예정' };
+    return null;
+  })();
+
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
       {/* 새 여행 계획 다이얼로그 */}
@@ -2240,6 +2255,17 @@ export default function Home() {
             </div>
           ) : (
           <>
+          {/* ── 다가오는 여행 히어로 카드 ── */}
+          {dashboardTrip && (
+            <div className="max-w-5xl mx-auto px-4 -mt-10 relative z-10">
+              <UpcomingTripHero
+                plan={dashboardTrip.plan}
+                status={dashboardTrip.status}
+                onOpen={() => setCurrentPlan(dashboardTrip.plan)}
+              />
+            </div>
+          )}
+
           {/* ── 스탯 바 ── */}
           {(() => {
             const myDiaries = myDiariesForStats;
@@ -2256,7 +2282,7 @@ export default function Home() {
               { label: t('home.stats.locationsLabel'), value: uniqueLocations, sub: t('home.stats.locationsSub', { n: uniqueLocations }), icon: <MapPin className="w-5 h-5" />, bg: 'bg-purple-100', color: 'text-purple-600' },
             ];
             return (
-              <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10">
+              <div className={cn("max-w-5xl mx-auto px-4 relative z-10", dashboardTrip ? "mt-6" : "-mt-8")}>
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 grid grid-cols-2 lg:grid-cols-4">
                   {statItems.map((s, i) => (
                     <div key={s.label} className={cn(
