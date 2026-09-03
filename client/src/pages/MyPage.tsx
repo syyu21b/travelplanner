@@ -346,7 +346,7 @@ export default function MyPage() {
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
             {/* 아바타 */}
             <div className="relative flex-shrink-0">
-              <div className="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
+              <div className="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-card">
                 {profilePhoto ? (
                   <img src={profilePhoto} alt={t('mypage.common.profileAlt')} className="w-full h-full object-cover" />
                 ) : (
@@ -357,7 +357,7 @@ export default function MyPage() {
               </div>
               <button
                 onClick={() => photoInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition border border-gray-200"
+                className="absolute bottom-0 right-0 w-8 h-8 bg-card rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition border border-gray-200"
                 title={t('mypage.common.changePhoto')}
               >
                 <Camera className="w-4 h-4 text-primary" />
@@ -429,7 +429,7 @@ export default function MyPage() {
           {activeTab === 'info' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 프로필 사진 카드 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
                   <Camera className="w-5 h-5 text-primary" /> {t('mypage.info.photoTitle')}
                 </h3>
@@ -467,7 +467,7 @@ export default function MyPage() {
               </Card>
 
               {/* 기본 정보 카드 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
                   <User className="w-5 h-5 text-primary" /> {t('mypage.info.basicInfoTitle')}
                 </h3>
@@ -516,7 +516,7 @@ export default function MyPage() {
               </Card>
 
               {/* 프로필 편집 카드 */}
-              <Card className="p-6 bg-white md:col-span-2">
+              <Card className="p-6 bg-card md:col-span-2">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
                   <Edit2 className="w-5 h-5 text-primary" /> {t('mypage.info.editTitle')}
                 </h3>
@@ -591,7 +591,7 @@ export default function MyPage() {
               </div>
 
               {/* 최근 여행 기록 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-primary" /> {t('mypage.activity.diariesTitle')}
@@ -655,7 +655,7 @@ export default function MyPage() {
               </Card>
 
               {/* 내 앨범 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                     <Camera className="w-5 h-5 text-primary" /> {t('mypage.activity.albumsTitle')}
@@ -709,7 +709,7 @@ export default function MyPage() {
               </Card>
 
               {/* 저장한 게시글 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                     <Bookmark className="w-5 h-5 text-primary" /> {t('mypage.activity.savedTitle')}
@@ -769,7 +769,7 @@ export default function MyPage() {
               </Card>
 
               {/* 내가 쓴 댓글 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                   <MessageCircle className="w-5 h-5 text-primary" /> {t('mypage.activity.commentsTitle')}
                   <span className="text-sm text-muted-foreground font-normal">{t('mypage.activity.commentsCount', { count: myComments.length })}</span>
@@ -809,7 +809,7 @@ export default function MyPage() {
               </Card>
 
               {/* 내가 좋아요 누른 게시글 (관리자는 문의할 일이 없으므로 문의 내역 대신 표시되지만, 일반 회원도 댓글과 문의 내역 사이에 노출) */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                     <Heart className="w-5 h-5 text-primary" /> {t('mypage.activity.likedTitle')}
@@ -870,7 +870,7 @@ export default function MyPage() {
 
               {/* 내 문의 내역 (관리자는 문의할 일이 없으므로 숨김) */}
               {!user?.isAdmin && (
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                   <Mail className="w-5 h-5 text-primary" /> {t('mypage.activity.inquiriesTitle')}
                   <span className="text-sm text-muted-foreground font-normal">{t('mypage.activity.commentsCount', { count: myInquiries.length })}</span>
@@ -954,7 +954,7 @@ export default function MyPage() {
           {/* ── 보안 설정 탭 ── */}
           {activeTab === 'security' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
                   <Lock className="w-5 h-5 text-primary" /> {t('mypage.security.changePwTitle')}
                 </h3>
@@ -1070,7 +1070,7 @@ export default function MyPage() {
           {activeTab === 'passport' && (
             <div>
               {!passportUnlocked ? (
-                <Card className="p-8 bg-white text-center">
+                <Card className="p-8 bg-card text-center">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                     <Lock className="w-7 h-7 text-primary" />
                   </div>
@@ -1210,7 +1210,7 @@ export default function MyPage() {
           {/* ── 계정 관리 탭 ── */}
           {activeTab === 'account' && (
             <div className="space-y-4">
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
                   <User className="w-5 h-5 text-primary" /> {t('mypage.account.infoTitle')}
                 </h3>
@@ -1237,7 +1237,7 @@ export default function MyPage() {
               </Card>
 
               {!user?.isAdmin && (
-                <Card className="p-6 bg-white border-red-100">
+                <Card className="p-6 bg-card border-red-100">
                   <h3 className="text-lg font-bold text-red-600 mb-3 flex items-center gap-2">
                     <UserX className="w-5 h-5" /> {t('mypage.account.withdrawTitle')}
                   </h3>
@@ -1268,7 +1268,7 @@ export default function MyPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               <div className="space-y-6">
               {/* 언어 설정 카드 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
                   <Globe2 className="w-5 h-5 text-primary" /> {t('mypage.settings.languageTitle')}
                 </h3>
@@ -1291,7 +1291,7 @@ export default function MyPage() {
               </Card>
 
               {/* 화면 테마 카드 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
                   <Moon className="w-5 h-5 text-primary" /> {t('mypage.settings.themeTitle')}
                 </h3>
@@ -1316,7 +1316,7 @@ export default function MyPage() {
               </div>
 
               {/* 알림 설정 카드 */}
-              <Card className="p-6 bg-white">
+              <Card className="p-6 bg-card">
                 <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
                   <Settings className="w-5 h-5 text-primary" /> {t('mypage.settings.notificationTitle')}
                 </h3>

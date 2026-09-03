@@ -212,7 +212,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#F9F7F2]">
       {/* 헤더 */}
-      <header className="bg-white border-b border-[#DED6CC] shadow-sm sticky top-0 z-10">
+      <header className="bg-card border-b border-[#DED6CC] shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -240,7 +240,7 @@ export default function AdminPage() {
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* 통계 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-5 bg-white border-[#DED6CC]">
+          <Card className="p-5 bg-card border-[#DED6CC]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#E8E2D9] rounded-xl flex items-center justify-center">
                 <Users className="w-5 h-5 text-[#A68B77]" />
@@ -251,7 +251,7 @@ export default function AdminPage() {
               </div>
             </div>
           </Card>
-          <Card className="p-5 bg-white border-[#DED6CC]">
+          <Card className="p-5 bg-card border-[#DED6CC]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#E8E2D9] rounded-xl flex items-center justify-center">
                 <Users className="w-5 h-5 text-blue-500" />
@@ -262,7 +262,7 @@ export default function AdminPage() {
               </div>
             </div>
           </Card>
-          <Card className="p-5 bg-white border-[#DED6CC]">
+          <Card className="p-5 bg-card border-[#DED6CC]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
                 <Crown className="w-5 h-5 text-amber-500" />
@@ -273,7 +273,7 @@ export default function AdminPage() {
               </div>
             </div>
           </Card>
-          <Card className="p-5 bg-white border-[#DED6CC]">
+          <Card className="p-5 bg-card border-[#DED6CC]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center">
                 <MessageCircle className="w-5 h-5 text-rose-500" />
@@ -293,14 +293,14 @@ export default function AdminPage() {
         <R2UsagePanel />
 
         {/* 결제 내역 / 정산 */}
-        <Card className="bg-white border-[#DED6CC] mb-8">
+        <Card className="bg-card border-[#DED6CC] mb-8">
           <div className="p-5 border-b border-[#E8E2D9]">
             <h2 className="text-base font-bold text-[#7D6B5D] flex items-center gap-2 mb-4">
               <Receipt className="w-4 h-4 text-[#A68B77]" /> 결제 내역 / 정산
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex items-center gap-3 bg-emerald-50 rounded-xl p-3.5 border border-emerald-100">
-                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div className="w-9 h-9 bg-card rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Wallet className="w-4.5 h-4.5 text-emerald-600" />
                 </div>
                 <div className="min-w-0">
@@ -309,7 +309,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-3.5 border border-blue-100">
-                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div className="w-9 h-9 bg-card rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
                   <TrendingUp className="w-4.5 h-4.5 text-blue-600" />
                 </div>
                 <div className="min-w-0">
@@ -318,7 +318,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-[#F9F7F2] rounded-xl p-3.5 border border-[#E8E2D9]">
-                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div className="w-9 h-9 bg-card rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
                   <DollarSign className="w-4.5 h-4.5 text-[#A68B77]" />
                 </div>
                 <div className="min-w-0">
@@ -413,7 +413,7 @@ export default function AdminPage() {
         </Card>
 
         {/* 문의 내역 */}
-        <Card className="bg-white border-[#DED6CC] mb-8">
+        <Card className="bg-card border-[#DED6CC] mb-8">
           <div className="p-5 border-b border-[#E8E2D9] flex items-center justify-between gap-4">
             <h2 className="text-base font-bold text-[#7D6B5D] flex items-center gap-2">
               <MessageCircle className="w-4 h-4 text-[#A68B77]" /> 문의 내역
@@ -515,7 +515,7 @@ export default function AdminPage() {
         </Card>
 
         {/* 회원 목록 */}
-        <Card className="bg-white border-[#DED6CC]">
+        <Card className="bg-card border-[#DED6CC]">
           <div className="p-5 border-b border-[#E8E2D9] flex items-center justify-between gap-4">
             <h2 className="text-base font-bold text-[#7D6B5D] flex-shrink-0">회원 목록</h2>
             <div className="relative w-full max-w-xs">
@@ -785,7 +785,7 @@ export default function AdminPage() {
                     <div
                       key={p.id}
                       onClick={() => setPaymentDetailTarget(p)}
-                      className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#E8E2D9] bg-white hover:bg-[#F9F7F2] cursor-pointer transition-colors"
+                      className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#E8E2D9] bg-card hover:bg-[#F9F7F2] cursor-pointer transition-colors"
                     >
                       <div className="min-w-0">
                         <p className="font-semibold text-[#7D6B5D] text-sm">{PACKAGE_LABEL[p.packageId] ?? p.packageId} ({p.credits}회)</p>

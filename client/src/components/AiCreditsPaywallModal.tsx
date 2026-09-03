@@ -180,7 +180,7 @@ export function AiCreditsPaywallModal({ open, onOpenChange, onPurchased }: AiCre
                   type="button"
                   onClick={() => handleBuy(pkg.id)}
                   disabled={payingId !== null}
-                  className={`relative w-full flex items-center justify-between gap-3 p-4 rounded-2xl text-left bg-white border ${theme.border} shadow-sm hover:shadow-md transition-all disabled:opacity-50`}
+                  className={`relative w-full flex items-center justify-between gap-3 p-4 rounded-2xl text-left bg-card border ${theme.border} shadow-sm hover:shadow-md transition-all disabled:opacity-50`}
                 >
                   {theme.badge && (
                     <span className={`absolute -top-2 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${theme.badgeClass}`}>

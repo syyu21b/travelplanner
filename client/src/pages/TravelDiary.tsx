@@ -1162,7 +1162,7 @@ export default function TravelDiary() {
                   <div className="space-y-4 border-2 border-dashed border-primary/20 p-4 rounded-xl bg-primary/5">
                     <p className="text-xs text-primary font-bold mb-2">{t('diary.blogEditor.editHint')}</p>
                     {(editData.blocks || [{ id: '1', type: 'text', content: editData.content }]).map((block) => (
-                      <div key={block.id} className="relative group bg-white p-3 rounded-lg shadow-sm border border-border">
+                      <div key={block.id} className="relative group bg-card p-3 rounded-lg shadow-sm border border-border">
                         {block.type === 'text' ? (
                           <Textarea
                             placeholder={t('diary.blogEditor.contentPlaceholder')}
@@ -1228,7 +1228,7 @@ export default function TravelDiary() {
                       onClick={() => setEditData({ ...editData, displayMode: 'grid' })}
                       className={cn(
                         "text-[10px] px-2 py-1 rounded-md transition",
-                        editData.displayMode === 'grid' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
+                        editData.displayMode === 'grid' ? "bg-card text-primary shadow-sm font-bold" : "text-muted-foreground"
                       )}
                     >
                       {t('diary.displayMode.grid')}
@@ -1237,7 +1237,7 @@ export default function TravelDiary() {
                       onClick={() => setEditData({ ...editData, displayMode: 'slide' })}
                       className={cn(
                         "text-[10px] px-2 py-1 rounded-md transition",
-                        editData.displayMode === 'slide' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
+                        editData.displayMode === 'slide' ? "bg-card text-primary shadow-sm font-bold" : "text-muted-foreground"
                       )}
                     >
                       {t('diary.displayMode.slide')}
@@ -1246,7 +1246,7 @@ export default function TravelDiary() {
                       onClick={() => setEditData({ ...editData, displayMode: 'blog' })}
                       className={cn(
                         "text-[10px] px-2 py-1 rounded-md transition",
-                        editData.displayMode === 'blog' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
+                        editData.displayMode === 'blog' ? "bg-card text-primary shadow-sm font-bold" : "text-muted-foreground"
                       )}
                     >
                       {t('diary.displayMode.blog')}
@@ -1375,7 +1375,7 @@ export default function TravelDiary() {
                   )}
                 >
                   <div className={cn(
-                    "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow",
+                    "w-5 h-5 bg-card rounded-full absolute top-0.5 transition-all shadow",
                     editData.isPublic ? "left-6" : "left-0.5"
                   )} />
                 </button>
@@ -1537,7 +1537,7 @@ export default function TravelDiary() {
             </div>
           ) : (
             <>
-              <Card className="p-6 mb-6 bg-white border-border shadow-sm">
+              <Card className="p-6 mb-6 bg-card border-border shadow-sm">
                 <div className="prose max-w-none text-foreground leading-relaxed whitespace-pre-wrap text-[15px]">
                   {diary.content}
                 </div>
@@ -1588,7 +1588,7 @@ export default function TravelDiary() {
                       )}
                     </div>
                     {activePhoto.caption && (
-                      <div className="p-4 bg-white border border-t-0 border-border rounded-b-2xl">
+                      <div className="p-4 bg-card border border-t-0 border-border rounded-b-2xl">
                         <p className="text-sm text-foreground">{activePhoto.caption}</p>
                       </div>
                     )}
@@ -1623,7 +1623,7 @@ export default function TravelDiary() {
                 "flex items-center gap-2 px-4 py-2 rounded-full border transition-all font-semibold text-sm",
                 diary.isLikedByMe
                   ? "bg-red-50 border-red-300 text-red-500"
-                  : "bg-white border-border text-muted-foreground hover:border-red-300 hover:text-red-400"
+                  : "bg-card border-border text-muted-foreground hover:border-red-300 hover:text-red-400"
               )}
             >
               <Heart className={cn("w-4 h-4", diary.isLikedByMe && "fill-red-500")} />
@@ -1846,13 +1846,13 @@ export default function TravelDiary() {
           <div className="flex bg-secondary p-1 rounded-lg w-fit mb-6">
             <button
               onClick={() => setAlbumViewMode('grid')}
-              className={cn("text-sm px-4 py-1.5 rounded-md transition font-semibold flex items-center gap-1.5", albumViewMode === 'grid' ? "bg-white text-primary shadow-sm" : "text-muted-foreground")}
+              className={cn("text-sm px-4 py-1.5 rounded-md transition font-semibold flex items-center gap-1.5", albumViewMode === 'grid' ? "bg-card text-primary shadow-sm" : "text-muted-foreground")}
             >
               <Camera className="w-4 h-4" /> {t('diary.album.detail.viewGrid')}
             </button>
             <button
               onClick={() => setAlbumViewMode('map')}
-              className={cn("text-sm px-4 py-1.5 rounded-md transition font-semibold flex items-center gap-1.5", albumViewMode === 'map' ? "bg-white text-primary shadow-sm" : "text-muted-foreground")}
+              className={cn("text-sm px-4 py-1.5 rounded-md transition font-semibold flex items-center gap-1.5", albumViewMode === 'map' ? "bg-card text-primary shadow-sm" : "text-muted-foreground")}
             >
               <MapPin className="w-4 h-4" /> {t('diary.album.detail.viewMap')}
             </button>
@@ -2025,7 +2025,7 @@ export default function TravelDiary() {
             {/* Stats */}
             {myDiaries.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-orange-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-300/25 blur-2xl group-hover:bg-amber-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
@@ -2036,7 +2036,7 @@ export default function TravelDiary() {
                     <p className="text-xs font-bold uppercase tracking-wider text-amber-600/80 mt-1.5">{t('diary.stats.totalEntries')}</p>
                   </div>
                 </Card>
-                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-emerald-300/25 blur-2xl group-hover:bg-emerald-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
@@ -2049,7 +2049,7 @@ export default function TravelDiary() {
                     <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/80 mt-1.5">{t('diary.stats.visitedPlaces')}</p>
                   </div>
                 </Card>
-                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-sky-400 to-blue-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-sky-300/25 blur-2xl group-hover:bg-sky-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
@@ -2071,7 +2071,7 @@ export default function TravelDiary() {
                 <Loader2 className="w-6 h-6 animate-spin" />
               </div>
             ) : myDiaries.length === 0 ? (
-              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
+              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-card/50">
                 <BookOpen className="w-16 h-16 text-border mb-4" />
                 <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.emptyState.title')}</h3>
                 <p className="text-muted-foreground mb-6 text-center">{t('diary.emptyState.subtitle')}</p>
@@ -2096,7 +2096,7 @@ export default function TravelDiary() {
                     return (
                     <Card
                       key={diary.id}
-                      className="group cursor-pointer hover:shadow-xl transition-all border-border bg-white overflow-hidden"
+                      className="group cursor-pointer hover:shadow-xl transition-all border-border bg-card overflow-hidden"
                       onClick={() => setCurrentDiary(diary)}
                     >
                       {cardThumb ? (
@@ -2198,7 +2198,7 @@ export default function TravelDiary() {
             {/* Album Stats */}
             {myAlbums.length > 0 && (
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-violet-400 to-fuchsia-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-violet-300/25 blur-2xl group-hover:bg-violet-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
@@ -2209,7 +2209,7 @@ export default function TravelDiary() {
                     <p className="text-xs font-bold uppercase tracking-wider text-violet-600/80 mt-1.5">{t('diary.album.stats.totalAlbums')}</p>
                   </div>
                 </Card>
-                <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-rose-400 to-orange-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-rose-300/25 blur-2xl group-hover:bg-rose-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
@@ -2231,7 +2231,7 @@ export default function TravelDiary() {
                 <Loader2 className="w-6 h-6 animate-spin" />
               </div>
             ) : myAlbums.length === 0 ? (
-              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
+              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-card/50">
                 <Camera className="w-16 h-16 text-border mb-4" />
                 <h3 className="text-xl font-bold text-foreground mb-2">{t('diary.album.emptyState.title')}</h3>
                 <p className="text-muted-foreground mb-6 text-center">{t('diary.album.emptyState.subtitle')}</p>
@@ -2256,7 +2256,7 @@ export default function TravelDiary() {
                     return (
                     <Card
                       key={album.id}
-                      className="group cursor-pointer hover:shadow-xl transition-all border-border bg-white overflow-hidden"
+                      className="group cursor-pointer hover:shadow-xl transition-all border-border bg-card overflow-hidden"
                       onClick={() => setCurrentAlbum(album)}
                     >
                       {cardThumb ? (
@@ -2477,7 +2477,7 @@ export default function TravelDiary() {
                     onClick={() => setNewDisplayMode('grid')}
                     className={cn(
                       "text-[10px] px-2 py-1 rounded-md transition",
-                      newDisplayMode === 'grid' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
+                      newDisplayMode === 'grid' ? "bg-card text-primary shadow-sm font-bold" : "text-muted-foreground"
                     )}
                   >
                     {t('diary.displayMode.grid')}
@@ -2486,7 +2486,7 @@ export default function TravelDiary() {
                     onClick={() => setNewDisplayMode('slide')}
                     className={cn(
                       "text-[10px] px-2 py-1 rounded-md transition",
-                      newDisplayMode === 'slide' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
+                      newDisplayMode === 'slide' ? "bg-card text-primary shadow-sm font-bold" : "text-muted-foreground"
                     )}
                   >
                     {t('diary.displayMode.slide')}
@@ -2495,7 +2495,7 @@ export default function TravelDiary() {
                     onClick={() => setNewDisplayMode('blog')}
                     className={cn(
                       "text-[10px] px-2 py-1 rounded-md transition",
-                      newDisplayMode === 'blog' ? "bg-white text-primary shadow-sm font-bold" : "text-muted-foreground"
+                      newDisplayMode === 'blog' ? "bg-card text-primary shadow-sm font-bold" : "text-muted-foreground"
                     )}
                   >
                     {t('diary.displayMode.blog')}
@@ -2507,7 +2507,7 @@ export default function TravelDiary() {
                 <div className="space-y-4 border-2 border-dashed border-primary/20 p-4 rounded-xl bg-primary/5">
                   <p className="text-xs text-primary font-bold mb-2">{t('diary.blogEditor.newHint')}</p>
                   {newBlocks.map((block, index) => (
-                    <div key={block.id} className="relative group bg-white p-3 rounded-lg shadow-sm border border-border">
+                    <div key={block.id} className="relative group bg-card p-3 rounded-lg shadow-sm border border-border">
                       {block.type === 'text' ? (
                         <Textarea
                           placeholder={t('diary.blogEditor.newContentPlaceholder')}
@@ -2606,7 +2606,7 @@ export default function TravelDiary() {
                 )}
               >
                 <div className={cn(
-                  "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow",
+                  "w-5 h-5 bg-card rounded-full absolute top-0.5 transition-all shadow",
                   newIsPublic ? "left-6" : "left-0.5"
                 )} />
               </button>

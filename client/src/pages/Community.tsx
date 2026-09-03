@@ -355,7 +355,7 @@ export default function Community() {
     return (
       <div className="min-h-screen bg-background">
         {/* Back */}
-        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-border">
+        <div className="sticky top-0 z-10 bg-card/90 backdrop-blur border-b border-border">
           <div className="container mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => { setSelectedDiary(null); setLinkedPlan(null); setActivePhotoIndex(0); setShowPlanSchedule(false); }}
@@ -507,7 +507,7 @@ export default function Community() {
           )}
 
           {/* Content */}
-          <Card className="p-6 mb-6 bg-white border-border shadow-sm">
+          <Card className="p-6 mb-6 bg-card border-border shadow-sm">
             <div className="text-foreground leading-relaxed whitespace-pre-wrap text-[15px] break-words">
               {diary.content}
             </div>
@@ -788,7 +788,7 @@ export default function Community() {
 
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+          <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-orange-400" />
             <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-300/25 blur-2xl group-hover:bg-amber-300/40 transition-colors duration-500" />
             <div className="relative flex flex-col items-center">
@@ -799,7 +799,7 @@ export default function Community() {
               <p className="text-xs font-bold uppercase tracking-wider text-amber-600/80 mt-1.5">{t('community.stats.totalReviews')}</p>
             </div>
           </Card>
-          <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+          <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-400" />
             <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-emerald-300/25 blur-2xl group-hover:bg-emerald-300/40 transition-colors duration-500" />
             <div className="relative flex flex-col items-center">
@@ -812,7 +812,7 @@ export default function Community() {
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/80 mt-1.5">{t('community.stats.destinations')}</p>
             </div>
           </Card>
-          <Card className="relative overflow-hidden p-5 bg-white border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+          <Card className="relative overflow-hidden p-5 bg-card border-border group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-sky-400 to-blue-400" />
             <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-sky-300/25 blur-2xl group-hover:bg-sky-300/40 transition-colors duration-500" />
             <div className="relative flex flex-col items-center">
@@ -842,7 +842,7 @@ export default function Community() {
             </div>
 
             {/* Sort */}
-            <Card className="p-4 bg-white border-border">
+            <Card className="p-4 bg-card border-border">
               <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
                 <SortAsc className="w-4 h-4 text-primary" /> {t('community.sort.title')}
               </h4>
@@ -876,7 +876,7 @@ export default function Community() {
 
             {/* Tags */}
             {allTags.length > 0 && (
-              <Card className="p-4 bg-white border-border">
+              <Card className="p-4 bg-card border-border">
                 <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-lg bg-fuchsia-50 ring-1 ring-fuchsia-200 text-fuchsia-600 flex items-center justify-center">
                     <Filter className="w-3.5 h-3.5" />
@@ -923,7 +923,7 @@ export default function Community() {
 
             {/* Saved */}
             {bookmarkedDiaries.length > 0 && (
-              <Card className="p-4 bg-white border-border">
+              <Card className="p-4 bg-card border-border">
                 <h4 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-lg bg-pink-50 ring-1 ring-pink-200 text-pink-600 flex items-center justify-center">
                     <Bookmark className="w-3.5 h-3.5 fill-pink-500" />
@@ -964,7 +964,7 @@ export default function Community() {
           {/* Main feed */}
           <div className="lg:col-span-3">
             {filteredDiaries.length === 0 ? (
-              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/50">
+              <Card className="p-16 flex flex-col items-center justify-center border-dashed border-2 border-border bg-card/50">
                 <Globe className="w-16 h-16 text-border mb-4" />
                 <h3 className="text-xl font-bold text-foreground mb-2">
                   {totalCount === 0 ? t('community.empty.noPostsTitle') : t('community.empty.noResultsTitle')}
@@ -987,7 +987,7 @@ export default function Community() {
                   return (
                     <Card
                       key={diary.id}
-                      className="group relative bg-white border-border shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col p-0 gap-0"
+                      className="group relative bg-card border-border shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col p-0 gap-0"
                     >
                       {/* Cover photo */}
                       <button

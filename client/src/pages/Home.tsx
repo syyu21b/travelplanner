@@ -1544,7 +1544,7 @@ export default function Home() {
                     disabled={!interactive}
                     className={cn(
                       "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
-                      s.completed ? "bg-primary border-primary" : "bg-white border-border",
+                      s.completed ? "bg-primary border-primary" : "bg-card border-border",
                       interactive && !s.completed && "hover:border-primary",
                       !interactive && "cursor-default"
                     )}
@@ -1596,7 +1596,7 @@ export default function Home() {
             </h4>
             <div className="flex flex-wrap gap-2">
               {splitPreparationItems(s.preparations).map((p, idx) => (
-                <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm text-muted-foreground border border-border shadow-sm">{p}</span>
+                <span key={idx} className="bg-card px-3 py-1 rounded-full text-sm text-muted-foreground border border-border shadow-sm">{p}</span>
               ))}
             </div>
           </div>
@@ -1658,7 +1658,7 @@ export default function Home() {
                     aria-label={checked ? t('home.timeline.unmarkComplete') : t('home.timeline.markComplete')}
                     className={cn(
                       "absolute -left-9 top-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors shadow-sm",
-                      checked ? "bg-primary border-primary" : "bg-white border-border",
+                      checked ? "bg-primary border-primary" : "bg-card border-border",
                       interactive && !checked && "hover:border-primary",
                       !interactive && "cursor-default"
                     )}
@@ -1907,7 +1907,7 @@ export default function Home() {
                   onClick={() => setNewPlanRegion('domestic')}
                   className={cn(
                     "h-11 rounded-xl border font-bold text-sm transition-colors",
-                    newPlanRegion === 'domestic' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                    newPlanRegion === 'domestic' ? "bg-primary text-white border-primary" : "bg-card text-foreground border-border hover:border-primary/40"
                   )}
                 >
                   {t('home.map.domestic')}
@@ -1917,7 +1917,7 @@ export default function Home() {
                   onClick={() => setNewPlanRegion('overseas')}
                   className={cn(
                     "h-11 rounded-xl border font-bold text-sm transition-colors",
-                    newPlanRegion === 'overseas' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                    newPlanRegion === 'overseas' ? "bg-primary text-white border-primary" : "bg-card text-foreground border-border hover:border-primary/40"
                   )}
                 >
                   {t('home.map.overseas')}
@@ -2066,7 +2066,7 @@ export default function Home() {
       />
 
       {/* ── 헤더 ── */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
           <button
             onClick={() => setCurrentPlan(null)}
@@ -2114,7 +2114,7 @@ export default function Home() {
                 <NotificationBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-border bg-white hover:border-primary hover:shadow-sm transition-all">
+                    <button className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary hover:shadow-sm transition-all">
                       <div className="w-7 h-7 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
                         {profilePhoto ? (
                           <img src={profilePhoto} alt="" className="w-full h-full object-cover" />
@@ -2227,7 +2227,7 @@ export default function Home() {
               스탯/달력/계획 목록 전체를 숨기고 로그인 유도 카드만 보여줌 */}
           {!user ? (
             <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10 pb-12">
-              <Card className="p-10 flex flex-col items-center justify-center text-center bg-white border-border shadow-xl rounded-2xl">
+              <Card className="p-10 flex flex-col items-center justify-center text-center bg-card border-border shadow-xl rounded-2xl">
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                   <Lock className="w-7 h-7 text-primary" />
                 </div>
@@ -2257,7 +2257,7 @@ export default function Home() {
             ];
             return (
               <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10">
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 grid grid-cols-2 lg:grid-cols-4">
+                <div className="bg-card rounded-2xl shadow-xl border border-gray-100 grid grid-cols-2 lg:grid-cols-4">
                   {statItems.map((s, i) => (
                     <div key={s.label} className={cn(
                       "p-5 flex items-center gap-4",
@@ -2284,7 +2284,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* 왼쪽: 달력 */}
             <div className="lg:col-span-1">
-              <Card className="p-5 bg-white border-border shadow-sm lg:sticky lg:top-20">
+              <Card className="p-5 bg-card border-border shadow-sm lg:sticky lg:top-20">
                 <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-primary" /> {t('home.calendarSidebar.title')}
                 </h3>
@@ -2323,7 +2323,7 @@ export default function Home() {
                       onClick={() => setPlanFilter(f)}
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex-shrink-0",
-                        planFilter === f ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                        planFilter === f ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {getFilterLabel(f)}
@@ -2369,7 +2369,7 @@ export default function Home() {
                 }
                 if (travelPlans.length === 0) {
                   return (
-                    <Card className="p-12 flex flex-col items-center justify-center border-dashed border-2 border-border bg-white/60">
+                    <Card className="p-12 flex flex-col items-center justify-center border-dashed border-2 border-border bg-card/60">
                       <Map className="w-16 h-16 text-border mb-4" />
                       <h2 className="text-xl font-bold text-foreground mb-2">{t('home.planList.emptyTitle')}</h2>
                       <p className="text-muted-foreground mb-6">{t('home.planList.emptySubtitle')}</p>
@@ -2398,7 +2398,7 @@ export default function Home() {
                       return (
                         <Card
                           key={plan.id}
-                          className="flex flex-row gap-4 p-4 cursor-pointer hover:shadow-md transition-all bg-white border-border hover:border-primary/30 group"
+                          className="flex flex-row gap-4 p-4 cursor-pointer hover:shadow-md transition-all bg-card border-border hover:border-primary/30 group"
                           onClick={() => setCurrentPlan(plan)}
                         >
                           <div className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-xl overflow-hidden flex-shrink-0">
@@ -2602,7 +2602,7 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* 사이드바: 달력 및 요약 */}
               <div className="lg:col-span-4 space-y-6">
-                <Card className="p-6 bg-white border-border shadow-sm">
+                <Card className="p-6 bg-card border-border shadow-sm">
                   <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-primary" /> {t('home.planDetail.calendarTitle')}
                   </h3>
@@ -2631,20 +2631,20 @@ export default function Home() {
                     className="flex lg:grid w-full lg:grid-cols-9 gap-1 overflow-x-auto lg:overflow-visible touch-pan-x overscroll-x-contain bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
                   >
-                    <TabsTrigger value="schedule" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
-                    <TabsTrigger value="accommodation" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.accommodation')}</TabsTrigger>
-                    <TabsTrigger value="flight" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.flight')}</TabsTrigger>
-                    <TabsTrigger value="map" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.map')}</TabsTrigger>
-                    <TabsTrigger value="weather" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.weather')}</TabsTrigger>
-                    <TabsTrigger value="budget" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.budget')}</TabsTrigger>
-                    <TabsTrigger value="shopping" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.shopping')}</TabsTrigger>
-                    <TabsTrigger value="summary" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.summary')}</TabsTrigger>
-                    <TabsTrigger value="timeline" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.timeline')}</TabsTrigger>
+                    <TabsTrigger value="schedule" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
+                    <TabsTrigger value="accommodation" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.accommodation')}</TabsTrigger>
+                    <TabsTrigger value="flight" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.flight')}</TabsTrigger>
+                    <TabsTrigger value="map" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.map')}</TabsTrigger>
+                    <TabsTrigger value="weather" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.weather')}</TabsTrigger>
+                    <TabsTrigger value="budget" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.budget')}</TabsTrigger>
+                    <TabsTrigger value="shopping" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.shopping')}</TabsTrigger>
+                    <TabsTrigger value="summary" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.summary')}</TabsTrigger>
+                    <TabsTrigger value="timeline" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.timeline')}</TabsTrigger>
                   </TabsList>
 
                   {/* 일정 탭 */}
                   <TabsContent value="schedule" className="space-y-6">
-                    <Card className="p-6 bg-white border-border">
+                    <Card className="p-6 bg-card border-border">
                       <h3 className="text-lg font-bold text-foreground mb-5">{t('home.schedule.addTitle')}</h3>
                       <ScheduleForm onAdd={handleAddSchedule} existingSchedules={currentPlan?.schedules || []} region={currentPlan.region} />
                     </Card>
@@ -2662,7 +2662,7 @@ export default function Home() {
                       </div>
 
                       {filteredSchedules.length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-2xl border border-border">
+                        <div className="text-center py-12 bg-card rounded-2xl border border-border">
                           <p className="text-slate-400">{t('home.schedule.emptyState')}</p>
                         </div>
                       ) : (
@@ -2689,7 +2689,7 @@ export default function Home() {
 
                   {/* 숙소 탭 */}
                   <TabsContent value="accommodation" className="space-y-6">
-                    <Card className="p-6 bg-white border-border">
+                    <Card className="p-6 bg-card border-border">
                       <h3 className="text-lg font-bold text-foreground mb-5">{t('home.accommodation.addTitle')}</h3>
                       <AccommodationForm onAdd={handleAddAccommodation} region={currentPlan.region} />
                     </Card>
@@ -2697,7 +2697,7 @@ export default function Home() {
                     <div className="space-y-4">
                       <h3 className="text-xl font-bold text-foreground">{t('home.accommodation.listTitle')}</h3>
                       {(currentPlan.accommodations || []).length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-2xl border border-border">
+                        <div className="text-center py-12 bg-card rounded-2xl border border-border">
                           <p className="text-slate-400">{t('home.accommodation.emptyState')}</p>
                         </div>
                       ) : (
@@ -2721,7 +2721,7 @@ export default function Home() {
 
                   {/* 항공권 탭 */}
                   <TabsContent value="flight" className="space-y-6">
-                    <Card className="p-6 bg-white border-border">
+                    <Card className="p-6 bg-card border-border">
                       <h3 className="text-lg font-bold text-foreground mb-5">{t('home.flight.addTitle')}</h3>
                       <FlightForm onAdd={handleAddFlight} />
                     </Card>
@@ -2729,7 +2729,7 @@ export default function Home() {
                     <div className="space-y-4">
                       <h3 className="text-xl font-bold text-foreground">{t('home.flight.listTitle')}</h3>
                       {(currentPlan.flights || []).length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-2xl border border-border">
+                        <div className="text-center py-12 bg-card rounded-2xl border border-border">
                           <p className="text-slate-400">{t('home.flight.emptyState')}</p>
                         </div>
                       ) : (
@@ -2752,7 +2752,7 @@ export default function Home() {
 
                   {/* 지도 탭 */}
                   <TabsContent value="map" className="space-y-4">
-                    <Card className="p-6 bg-white border-border">
+                    <Card className="p-6 bg-card border-border">
                       {(() => {
                         const isDomestic = currentPlan.region !== 'overseas';
 
@@ -2856,7 +2856,7 @@ export default function Home() {
                                         onClick={() => setRouteSelectMode(routeSelectMode === 'origin' ? null : 'origin')}
                                         className={cn(
                                           "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
-                                          routeSelectMode === 'origin' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                                          routeSelectMode === 'origin' ? "bg-primary text-white border-primary" : "bg-card text-foreground border-border hover:border-primary/40"
                                         )}
                                       >
                                         {t('home.map.routeOriginLabel')}{routeOrigin ? `: ${pinned.indexOf(routeOrigin) + 1}. ${routeOrigin.title}` : ''}
@@ -2867,7 +2867,7 @@ export default function Home() {
                                         onClick={() => setRouteSelectMode(routeSelectMode === 'destination' ? null : 'destination')}
                                         className={cn(
                                           "px-3 py-2 rounded-full text-xs sm:text-sm font-bold border transition-colors max-w-[45%] sm:max-w-[180px] truncate",
-                                          routeSelectMode === 'destination' ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40"
+                                          routeSelectMode === 'destination' ? "bg-primary text-white border-primary" : "bg-card text-foreground border-border hover:border-primary/40"
                                         )}
                                       >
                                         {t('home.map.routeDestinationLabel')}{routeDestination ? `: ${pinned.indexOf(routeDestination) + 1}. ${routeDestination.title}` : ''}
@@ -2951,8 +2951,8 @@ export default function Home() {
                   <TabsContent value="weather" className="space-y-4">
                     <Tabs defaultValue="domestic" className="w-full">
                       <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 rounded-2xl mb-4">
-                        <TabsTrigger value="domestic" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.domestic')}</TabsTrigger>
-                        <TabsTrigger value="overseas" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.overseas')}</TabsTrigger>
+                        <TabsTrigger value="domestic" className="rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.domestic')}</TabsTrigger>
+                        <TabsTrigger value="overseas" className="rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.overseas')}</TabsTrigger>
                       </TabsList>
                       <TabsContent value="domestic">
                         <WeatherWidget scope="domestic" />
@@ -3061,7 +3061,7 @@ export default function Home() {
                         <div>
                           <div className="h-2.5 rounded-full bg-white/20 overflow-hidden">
                             <div
-                              className={cn("h-full rounded-full transition-all", totalBudget > plannedBudget ? "bg-red-400" : "bg-white")}
+                              className={cn("h-full rounded-full transition-all", totalBudget > plannedBudget ? "bg-red-400" : "bg-card")}
                               style={{ width: `${Math.min(100, Math.round((totalBudget / plannedBudget) * 100))}%` }}
                             />
                           </div>
@@ -3079,11 +3079,11 @@ export default function Home() {
                     </Card>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card className="p-6 bg-white border-border">
+                      <Card className="p-6 bg-card border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4">{t('home.budget.addTitle')}</h3>
                         <BudgetForm onAdd={handleAddBudget} remainingBudget={plannedBudget > 0 ? remainingBudget : null} />
                       </Card>
-                      <Card className="p-6 bg-white border-border">
+                      <Card className="p-6 bg-card border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                           <Info className="w-4 h-4 text-primary" /> {t('home.budget.calculatorTitle')}
                         </h3>
@@ -3114,7 +3114,7 @@ export default function Home() {
                     </div>
 
                     {/* 카테고리별 지출 차트 */}
-                    <Card className="p-6 bg-white border-border">
+                    <Card className="p-6 bg-card border-border">
                       <h3 className="text-lg font-bold text-foreground mb-4">{t('home.budget.categoryChartTitle')}</h3>
                       {categorySpending.length === 0 ? (
                         <div className="text-center py-12 bg-secondary rounded-2xl">
@@ -3184,7 +3184,7 @@ export default function Home() {
 
                   {/* 쇼핑 탭 */}
                   <TabsContent value="shopping" className="space-y-6">
-                    <Card className="p-6 bg-white border-border">
+                    <Card className="p-6 bg-card border-border">
                       <h3 className="text-lg font-bold text-foreground mb-4">{t('home.shopping.addTitle')}</h3>
                       <ShoppingForm onAdd={handleAddShoppingItem} />
                     </Card>
@@ -3208,13 +3208,13 @@ export default function Home() {
                   <TabsContent value="summary">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* 좌측: 일정별 준비물 */}
-                      <Card className="p-6 bg-white border-border">
+                      <Card className="p-6 bg-card border-border">
                         <h3 className="text-lg font-bold text-foreground mb-4">{t('home.summary.byScheduleTitle')}</h3>
                         {renderPreparationsByScheduleContent(currentPlan)}
                       </Card>
 
                       {/* 우측: 전체 준비물 체크리스트 */}
-                      <Card className="p-6 bg-white border-border">
+                      <Card className="p-6 bg-card border-border">
                         {renderAllPreparationsChecklistContent(currentPlan, handleTogglePreparationCheck)}
                       </Card>
                     </div>
@@ -3222,7 +3222,7 @@ export default function Home() {
 
                   {/* 타임라인 탭 */}
                   <TabsContent value="timeline" className="space-y-4">
-                    <Card className="p-6 bg-white border-border">
+                    <Card className="p-6 bg-card border-border">
                       <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                         <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                           <Clock className="w-5 h-5 text-primary" /> {t('home.timeline.title')}
@@ -3346,7 +3346,7 @@ export default function Home() {
                         .filter(s => s.date === getDateString(homeCalendarDate))
                         .sort((a, b) => a.time.localeCompare(b.time))
                         .map(s => (
-                          <div key={s.id} className="p-3 bg-white border border-border rounded-xl">
+                          <div key={s.id} className="p-3 bg-card border border-border rounded-xl">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold", getCategoryColor(s.category))}>
                                 {getCategoryLabel(s.category)}
@@ -3843,7 +3843,7 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
 
   if (isEditing) {
     return (
-      <Card className="p-6 bg-white border-primary/30 shadow-lg">
+      <Card className="p-6 bg-card border-primary/30 shadow-lg">
         <div className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">{t('home.accommodation.form.nameLabel')} *</label>
@@ -3960,7 +3960,7 @@ function AccommodationCard({ accommodation, isEditing, onEdit, onUpdate, onDelet
   }
 
   return (
-    <Card className="p-5 bg-white border-border hover:border-primary/50 transition-colors shadow-sm">
+    <Card className="p-5 bg-card border-border hover:border-primary/50 transition-colors shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
@@ -4191,7 +4191,7 @@ function FlightCard({ flight, isEditing, onEdit, onUpdate, onDelete, onCancel }:
 
   if (isEditing) {
     return (
-      <Card className="p-6 bg-white border-primary/30 shadow-lg">
+      <Card className="p-6 bg-card border-primary/30 shadow-lg">
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -4279,7 +4279,7 @@ function FlightCard({ flight, isEditing, onEdit, onUpdate, onDelete, onCancel }:
   }
 
   return (
-    <Card className="p-5 bg-white border-border hover:border-primary/50 transition-colors shadow-sm">
+    <Card className="p-5 bg-card border-border hover:border-primary/50 transition-colors shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
@@ -4480,7 +4480,7 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
 
   if (isEditing) {
     return (
-      <Card className="p-6 bg-white border-primary/30 shadow-lg">
+      <Card className="p-6 bg-card border-primary/30 shadow-lg">
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -4595,7 +4595,7 @@ function ScheduleCard({ schedule, isEditing, onEdit, onUpdate, onDelete, onCance
   }
 
   return (
-    <Card className="p-5 bg-white border-border hover:border-primary/50 transition-colors shadow-sm">
+    <Card className="p-5 bg-card border-border hover:border-primary/50 transition-colors shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -4641,7 +4641,7 @@ function BudgetCard({ budget, isEditing, onEdit, onUpdate, onDelete, onCancel, g
   const [editData, setEditData] = React.useState(budget);
   if (isEditing) {
     return (
-      <Card className="p-5 bg-white border-primary/30">
+      <Card className="p-5 bg-card border-primary/30">
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">{t('home.budget.form.categoryLabel')}</label>
@@ -4666,7 +4666,7 @@ function BudgetCard({ budget, isEditing, onEdit, onUpdate, onDelete, onCancel, g
     );
   }
   return (
-    <Card className="p-4 bg-white border-border">
+    <Card className="p-4 bg-card border-border">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold mb-1 inline-block", getCategoryColor(budget.category))}>{getCategoryLabel(budget.category)}</span>
@@ -4690,7 +4690,7 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
   React.useEffect(() => { setEditData(item); }, [item]);
   if (isEditing) {
     return (
-      <Card className="p-4 bg-white border-primary/30">
+      <Card className="p-4 bg-card border-primary/30">
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-foreground">{t('home.shopping.form.itemLabel')}</label>
@@ -4713,7 +4713,7 @@ function ShoppingCard({ item, isEditing, onEdit, onUpdate, onDelete, onToggle, o
     );
   }
   return (
-    <Card className="p-4 bg-white border-border">
+    <Card className="p-4 bg-card border-border">
       <div className="flex items-start gap-4">
         {item.imageUrl && (
           <img src={item.imageUrl} alt={item.item} className="w-16 h-16 object-cover rounded border border-border" />

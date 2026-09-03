@@ -267,7 +267,7 @@ export function LocationPickerDialog({
               </Button>
             </div>
             {searchResults.length > 0 && (
-              <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+              <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
                 {searchResults.map((r, i) => (
                   <button
                     key={i}
@@ -374,7 +374,7 @@ export function LocationPickerDialog({
                           onClick={() => setActivePoiCategory(cat)}
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors",
-                            active ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/40",
+                            active ? "bg-primary text-white border-primary" : "bg-card text-foreground border-border hover:border-primary/40",
                             count === 0 && "opacity-40 cursor-not-allowed"
                           )}
                         >
@@ -393,7 +393,7 @@ export function LocationPickerDialog({
                         .map(poi => (
                           <div
                             key={poi.id}
-                            className="flex items-center gap-1.5 rounded-lg bg-white border border-border hover:border-primary/40 hover:shadow-sm transition-all"
+                            className="flex items-center gap-1.5 rounded-lg bg-card border border-border hover:border-primary/40 hover:shadow-sm transition-all"
                           >
                             <button
                               type="button"

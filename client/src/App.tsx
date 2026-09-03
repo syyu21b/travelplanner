@@ -36,7 +36,7 @@ function SharedNav() {
   }, [user, getProfilePhoto]);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
+    <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border shadow-sm">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-2">
         <button
           onClick={() => setLocation("/")}

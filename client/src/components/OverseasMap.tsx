@@ -580,7 +580,7 @@ export function OverseasMapView({
           onClick={handleLocateMe}
           disabled={locating}
           title="현재 위치로 이동"
-          className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-primary hover:bg-secondary transition-colors disabled:opacity-60 z-[10]"
+          className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-card shadow-lg border border-border flex items-center justify-center text-primary hover:bg-secondary transition-colors disabled:opacity-60 z-[10]"
         >
           {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
         </button>

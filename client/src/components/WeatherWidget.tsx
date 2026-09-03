@@ -278,7 +278,7 @@ export function WeatherWidget({ scope }: WeatherWidgetProps) {
   const currentInfo = weather ? getWeatherInfo(weather.current.weather_code) : null;
 
   return (
-    <Card className="p-6 bg-white border-border space-y-5">
+    <Card className="p-6 bg-card border-border space-y-5">
       <div>
         <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-3">
           <Sun className="w-5 h-5 text-primary" /> {scope === "domestic" ? "국내 날씨" : "해외 날씨"}
@@ -303,7 +303,7 @@ export function WeatherWidget({ scope }: WeatherWidgetProps) {
             </Button>
           </div>
           {searchResults.length > 0 && (
-            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
               {searchResults.map((r, i) => (
                 <button
                   key={i}
@@ -379,29 +379,29 @@ export function WeatherWidget({ scope }: WeatherWidgetProps) {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-              <div className="bg-white/70 rounded-xl p-3">
+              <div className="bg-card/70 rounded-xl p-3">
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Wind className="w-3.5 h-3.5" /> 풍속</p>
                 <p className="text-sm font-bold text-foreground mt-0.5">{weather.current.wind_speed_10m} km/h</p>
               </div>
-              <div className="bg-white/70 rounded-xl p-3">
+              <div className="bg-card/70 rounded-xl p-3">
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Gauge className="w-3.5 h-3.5" /> 기압</p>
                 <p className="text-sm font-bold text-foreground mt-0.5">{Math.round(weather.current.surface_pressure)} hPa</p>
               </div>
-              <div className="bg-white/70 rounded-xl p-3">
+              <div className="bg-card/70 rounded-xl p-3">
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1"><CloudRain className="w-3.5 h-3.5" /> 강수량</p>
                 <p className="text-sm font-bold text-foreground mt-0.5">{weather.current.precipitation} mm</p>
               </div>
-              <div className="bg-white/70 rounded-xl p-3">
+              <div className="bg-card/70 rounded-xl p-3">
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Snowflake className="w-3.5 h-3.5" /> 강설량</p>
                 <p className="text-sm font-bold text-foreground mt-0.5">{weather.current.snowfall} cm</p>
               </div>
-              <div className="bg-white/70 rounded-xl p-3">
+              <div className="bg-card/70 rounded-xl p-3">
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Sun className="w-3.5 h-3.5" /> 자외선(UV)</p>
                 <p className={cn("text-sm font-bold mt-0.5", getUvLevel(currentUv).color)}>
                   {currentUv !== undefined ? currentUv.toFixed(1) : "-"} · {getUvLevel(currentUv).label}
                 </p>
               </div>
-              <div className="bg-white/70 rounded-xl p-3">
+              <div className="bg-card/70 rounded-xl p-3">
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Droplets className="w-3.5 h-3.5" /> 습도</p>
                 <p className="text-sm font-bold text-foreground mt-0.5">{weather.current.relative_humidity_2m}%</p>
               </div>

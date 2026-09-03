@@ -18,7 +18,7 @@ export function GeminiUsagePanel() {
   ];
 
   return (
-    <Card className="p-5 bg-white border-[#DED6CC] mb-8">
+    <Card className="p-5 bg-card border-[#DED6CC] mb-8">
       <div className="flex items-center gap-2 mb-1">
         <h2 className="text-base font-bold text-[#7D6B5D]">AI 여행 일정(Gemini API) 사용량</h2>
         <a
@@ -40,7 +40,7 @@ export function GeminiUsagePanel() {
           const s = summary[item.key];
           return (
             <div key={item.key} className="flex items-center gap-3 bg-[#F9F7F2] rounded-xl p-4 border border-[#E8E2D9]">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+              <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                 {item.icon}
               </div>
               <div className="flex-1 min-w-0">

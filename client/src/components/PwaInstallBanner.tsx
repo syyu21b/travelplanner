@@ -104,7 +104,7 @@ export default function PwaInstallBanner() {
 
   return (
     <div ref={wrapperRef} className="fixed bottom-0 inset-x-0 z-[60] px-4 pb-4 sm:pb-6 pointer-events-none">
-      <div className="pointer-events-auto max-w-md mx-auto bg-white border border-border rounded-2xl shadow-xl p-4 flex items-start gap-3">
+      <div className="pointer-events-auto max-w-md mx-auto bg-card border border-border rounded-2xl shadow-xl p-4 flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
           {ios || inApp ? <Share className="w-5 h-5" /> : <Download className="w-5 h-5" />}
         </div>

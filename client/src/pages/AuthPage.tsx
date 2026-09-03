@@ -250,7 +250,7 @@ export default function AuthPage() {
         {BG}
         <div className="relative w-full max-w-md">
           <Logo t={t} />
-          <Card className="p-5 sm:p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
+          <Card className="p-5 sm:p-8 bg-card/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
             <button
               onClick={() => switchMode('login')}
               className="flex items-center gap-1 text-[#A68B77] text-sm font-semibold mb-6 hover:text-[#7D6B5D] transition-colors"
@@ -426,7 +426,7 @@ export default function AuthPage() {
       <div className="relative w-full max-w-md">
         <Logo t={t} />
 
-        <Card className="p-5 sm:p-8 bg-white/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
+        <Card className="p-5 sm:p-8 bg-card/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
           {/* 탭 */}
           <div className="mb-2">
             <div className="flex bg-[#E8E2D9] rounded-xl p-1 gap-1">
@@ -435,7 +435,7 @@ export default function AuthPage() {
                   key={m}
                   onClick={() => switchMode(m)}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    mode === m ? 'bg-white text-[#A68B77] shadow-md' : 'text-[#A68B77] hover:text-[#7D6B5D]'
+                    mode === m ? 'bg-card text-[#A68B77] shadow-md' : 'text-[#A68B77] hover:text-[#7D6B5D]'
                   }`}
                 >
                   {m === 'login' ? t('auth.tabs.login') : t('auth.tabs.register')}
@@ -467,7 +467,7 @@ export default function AuthPage() {
                 <div className="w-full border-t border-[#DED6CC]" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-xs text-[#A68B77]">{t('auth.social.divider')}</span>
+                <span className="bg-card px-3 text-xs text-[#A68B77]">{t('auth.social.divider')}</span>
               </div>
             </div>
           </div>
