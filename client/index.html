@@ -41,6 +41,15 @@
     <meta name="twitter:image" content="https://travelplanner.syyu21b.workers.dev/og-image-v4.png" />
     <link rel="stylesheet" as="style" crossorigin
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+
+    <!-- 저장된 테마를 페인트 전에 적용해 첫 로드 시 라이트→다크 깜빡임(FOUC)을 방지 -->
+    <script>
+      try {
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
   </head>
 
   <body>
