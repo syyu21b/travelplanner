@@ -43,16 +43,6 @@ export const home = {
       locationsLabel: "방문한 지역",
       locationsSub: "총 {{n}}개 여행지",
     },
-    dashboard: {
-      upcomingBadge: "다가오는 여행",
-      ongoingBadge: "여행 중",
-      tripDayPrefix: "",
-      tripDaySuffix: "일째",
-      weatherForTripDate: "여행일 예보",
-      weatherAtDestination: "여행지 날씨",
-      rainChance: "강수 {{n}}%",
-      openTrip: "여행 열기",
-    },
     calendarSidebar: {
       title: "여행 캘린더",
       legendHasSchedule: "여행 일정이 있는 날",
@@ -490,16 +480,6 @@ export const home = {
       diariesSub: "{{n}} this month",
       locationsLabel: "Places Visited",
       locationsSub: "{{n}} destinations total",
-    },
-    dashboard: {
-      upcomingBadge: "Upcoming trip",
-      ongoingBadge: "On your trip",
-      tripDayPrefix: "Day ",
-      tripDaySuffix: "",
-      weatherForTripDate: "forecast for your trip",
-      weatherAtDestination: "destination weather",
-      rainChance: "{{n}}% rain",
-      openTrip: "Open trip",
     },
     calendarSidebar: {
       title: "Trip Calendar",
