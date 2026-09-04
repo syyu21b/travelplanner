@@ -3139,7 +3139,7 @@ export default function Home() {
                                 </Pie>
                                 <Tooltip
                                   formatter={(value: number, _name: string, item: any) => [`₩${value.toLocaleString()}`, getCategoryLabel(item.payload.category)]}
-                                  contentStyle={{ borderRadius: 12, border: '1px solid #e1e0d9', fontSize: 13 }}
+                                  contentStyle={{ borderRadius: 12, border: '1px solid var(--border)', fontSize: 13 }}
                                 />
                               </PieChart>
                             </ResponsiveContainer>
