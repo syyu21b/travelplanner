@@ -18,9 +18,9 @@ export function NaverMapsUsagePanel() {
   ];
 
   return (
-    <Card className="p-5 bg-card border-[#DED6CC] mb-8">
+    <Card className="p-5 bg-card border-border mb-8">
       <div className="flex items-center gap-2 mb-1">
-        <h2 className="text-base font-bold text-[#7D6B5D]">네이버 지도(NCP Maps) 사용량</h2>
+        <h2 className="text-base font-bold text-muted-foreground">네이버 지도(NCP Maps) 사용량</h2>
         <a
           href="https://console.ncloud.com/"
           target="_blank"
@@ -30,7 +30,7 @@ export function NaverMapsUsagePanel() {
           NCP 콘솔에서 보기 ↗
         </a>
       </div>
-      <p className="text-xs text-[#A68B77] flex items-start gap-1 mb-4">
+      <p className="text-xs text-primary flex items-start gap-1 mb-4">
         <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
         NCP 콘솔은 사용량 통계를 조회하는 공개 API를 제공하지 않아, 이 앱에서 실제로 호출한 횟수를 자체 집계한 값입니다. NCP 콘솔의 공식 과금 수치와 다를 수 있습니다.
       </p>
@@ -38,20 +38,20 @@ export function NaverMapsUsagePanel() {
         {items.map(item => {
           const s = summary[item.key];
           return (
-            <div key={item.key} className="flex items-center gap-3 bg-[#F9F7F2] rounded-xl p-4 border border-[#E8E2D9]">
+            <div key={item.key} className="flex items-center gap-3 bg-background rounded-xl p-4 border border-secondary">
               <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                 {item.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[#7D6B5D]">{item.label}</p>
+                <p className="text-sm font-bold text-muted-foreground">{item.label}</p>
                 <div className="flex items-center gap-5 mt-1">
                   <div>
-                    <p className="text-[10px] text-[#A68B77] font-semibold uppercase tracking-wide">당일</p>
-                    <p className="text-lg font-bold text-[#7D6B5D]">{s.today.toLocaleString()}</p>
+                    <p className="text-[10px] text-primary font-semibold uppercase tracking-wide">당일</p>
+                    <p className="text-lg font-bold text-muted-foreground">{s.today.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-[#A68B77] font-semibold uppercase tracking-wide">당월</p>
-                    <p className="text-lg font-bold text-[#7D6B5D]">{s.month.toLocaleString()}</p>
+                    <p className="text-[10px] text-primary font-semibold uppercase tracking-wide">당월</p>
+                    <p className="text-lg font-bold text-muted-foreground">{s.month.toLocaleString()}</p>
                   </div>
                 </div>
               </div>

@@ -161,8 +161,8 @@ function ProtectedRouter() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F9F7F2] flex items-center justify-center">
-        <div className="text-[#A68B77] text-lg font-semibold">{t("nav.loading")}</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-primary text-lg font-semibold">{t("nav.loading")}</div>
       </div>
     );
   }

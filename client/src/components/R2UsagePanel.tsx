@@ -39,9 +39,9 @@ export function R2UsagePanel() {
   const kindEntries = summary ? Object.entries(summary.byKind).sort((a, b) => b[1].bytes - a[1].bytes) : [];
 
   return (
-    <Card className="p-5 bg-card border-[#DED6CC] mb-8">
+    <Card className="p-5 bg-card border-border mb-8">
       <div className="flex items-center gap-2 mb-1">
-        <h2 className="text-base font-bold text-[#7D6B5D]">R2 스토리지 사용량</h2>
+        <h2 className="text-base font-bold text-muted-foreground">R2 스토리지 사용량</h2>
         <a
           href="https://dash.cloudflare.com/f545225d9fa9224b8af3fffc70c5f5c5/r2/default/buckets/travelplanner/metrics"
           target="_blank"
@@ -51,7 +51,7 @@ export function R2UsagePanel() {
           Cloudflare 대시보드에서 Class A/B 사용량 보기 ↗
         </a>
       </div>
-      <p className="text-xs text-[#A68B77] flex items-start gap-1 mb-4">
+      <p className="text-xs text-primary flex items-start gap-1 mb-4">
         <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
         업로드된 전체 이미지/영상 파일을 직접 조회해 집계한 실측 값입니다. 무료 티어는 월 10GB 저장까지 무료입니다.
         Class A/B 오퍼레이션 사용량은 위 대시보드 링크에서 확인할 수 있습니다.
@@ -60,23 +60,23 @@ export function R2UsagePanel() {
       {error ? (
         <p className="text-sm text-red-500">{error}</p>
       ) : !summary ? (
-        <div className="flex items-center gap-2 text-sm text-[#A68B77] py-6 justify-center">
+        <div className="flex items-center gap-2 text-sm text-primary py-6 justify-center">
           <Loader2 className="w-4 h-4 animate-spin" /> 불러오는 중...
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-3 bg-[#F9F7F2] rounded-xl p-4 border border-[#E8E2D9] mb-4">
+          <div className="flex items-center gap-3 bg-background rounded-xl p-4 border border-secondary mb-4">
             <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
               <HardDrive className="w-5 h-5 text-indigo-500" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-bold text-[#7D6B5D]">
-                  {formatBytes(summary.totalBytes)} <span className="font-normal text-[#A68B77]">/ 10 GB</span>
+                <p className="text-sm font-bold text-muted-foreground">
+                  {formatBytes(summary.totalBytes)} <span className="font-normal text-primary">/ 10 GB</span>
                 </p>
-                <p className="text-xs text-[#A68B77]">파일 {summary.totalCount.toLocaleString()}개</p>
+                <p className="text-xs text-primary">파일 {summary.totalCount.toLocaleString()}개</p>
               </div>
-              <div className="mt-2 h-2 rounded-full bg-[#E8E2D9] overflow-hidden">
+              <div className="mt-2 h-2 rounded-full bg-secondary overflow-hidden">
                 <div
                   className={`h-full rounded-full ${usedPercent >= 90 ? "bg-red-500" : usedPercent >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
                   style={{ width: `${usedPercent}%` }}
@@ -88,10 +88,10 @@ export function R2UsagePanel() {
           {kindEntries.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {kindEntries.map(([kind, stat]) => (
-                <div key={kind} className="bg-[#F9F7F2] rounded-lg p-3 border border-[#E8E2D9]">
-                  <p className="text-xs font-semibold text-[#7D6B5D]">{KIND_LABELS[kind] ?? kind}</p>
-                  <p className="text-sm font-bold text-[#7D6B5D] mt-0.5">{formatBytes(stat.bytes)}</p>
-                  <p className="text-[10px] text-[#A68B77]">{stat.count.toLocaleString()}개</p>
+                <div key={kind} className="bg-background rounded-lg p-3 border border-secondary">
+                  <p className="text-xs font-semibold text-muted-foreground">{KIND_LABELS[kind] ?? kind}</p>
+                  <p className="text-sm font-bold text-muted-foreground mt-0.5">{formatBytes(stat.bytes)}</p>
+                  <p className="text-[10px] text-primary">{stat.count.toLocaleString()}개</p>
                 </div>
               ))}
             </div>

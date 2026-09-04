@@ -32,26 +32,26 @@ function getPasswordStrength(pw: string) {
 
 const BG = (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#E8E2D9] rounded-full opacity-40 blur-3xl" />
-    <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#DED6CC] rounded-full opacity-40 blur-3xl" />
+    <div className="absolute -top-40 -right-40 w-96 h-96 bg-secondary rounded-full opacity-40 blur-3xl" />
+    <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-muted rounded-full opacity-40 blur-3xl" />
   </div>
 );
 
 function Logo({ t }: { t: (key: string) => string }) {
   return (
     <div className="text-center mb-8">
-      <div className="inline-flex items-center justify-center w-16 h-16 bg-[#A68B77] rounded-2xl shadow-lg mb-4">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl shadow-lg mb-4">
         <Plane className="w-8 h-8 text-white" />
       </div>
-      <h1 className="text-4xl font-bold text-[#7D6B5D]">Travel Planner</h1>
-      <p className="text-[#A68B77] mt-2 font-light">{t('auth.tagline')}</p>
+      <h1 className="text-4xl font-bold text-muted-foreground">Travel Planner</h1>
+      <p className="text-primary mt-2 font-light">{t('auth.tagline')}</p>
     </div>
   );
 }
 
 function Footer({ t }: { t: (key: string) => string }) {
   return (
-    <p className="text-center text-[#A68B77] text-xs mt-6">
+    <p className="text-center text-primary text-xs mt-6">
       Travel Planner © 2025 · {t('auth.footerTagline')}
     </p>
   );
@@ -246,14 +246,14 @@ export default function AuthPage() {
   // ── Find ID / Find Password 전용 레이아웃
   if (mode === 'findId' || mode === 'findPassword') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F9F7F2] via-white to-[#E8E2D9] flex items-center justify-center p-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-background via-white to-secondary flex items-center justify-center p-4 py-8">
         {BG}
         <div className="relative w-full max-w-md">
           <Logo t={t} />
-          <Card className="p-5 sm:p-8 bg-card/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
+          <Card className="p-5 sm:p-8 bg-card/90 backdrop-blur-sm border border-border shadow-xl">
             <button
               onClick={() => switchMode('login')}
-              className="flex items-center gap-1 text-[#A68B77] text-sm font-semibold mb-6 hover:text-[#7D6B5D] transition-colors"
+              className="flex items-center gap-1 text-primary text-sm font-semibold mb-6 hover:text-muted-foreground transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
               {t('auth.backToLogin')}
@@ -261,39 +261,39 @@ export default function AuthPage() {
 
             {mode === 'findId' ? (
               <div className="space-y-4">
-                <h2 className="text-xl font-bold text-[#7D6B5D]">{t('auth.findId.title')}</h2>
-                <p className="text-sm text-[#A68B77]">{t('auth.findId.description')}</p>
+                <h2 className="text-xl font-bold text-muted-foreground">{t('auth.findId.title')}</h2>
+                <p className="text-sm text-primary">{t('auth.findId.description')}</p>
 
                 <div>
-                  <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.emailLabel')}</label>
+                  <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.emailLabel')}</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                    <Mail className="absolute left-3 top-3 w-5 h-5 text-primary" />
                     <Input
                       type="email"
                       placeholder={t('auth.common.emailPlaceholder')}
                       value={findEmail}
                       onChange={(e) => { setFindEmail(e.target.value); setFindIdSearched(false); setFoundId(null); }}
-                      className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                      className="pl-10 py-3 border-border focus:border-primary"
                     />
                   </div>
                 </div>
 
                 <Button
                   onClick={handleFindId}
-                  className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold"
+                  className="w-full py-3 bg-primary hover:bg-[#8B7355] text-white rounded-full font-bold"
                 >
                   {t('auth.findId.submit')}
                 </Button>
 
                 {findIdSearched && (
-                  <div className={`p-4 rounded-xl text-sm border ${foundId ? 'bg-[#F9F7F2] border-[#DED6CC]' : 'bg-red-50 border-red-200'}`}>
+                  <div className={`p-4 rounded-xl text-sm border ${foundId ? 'bg-background border-border' : 'bg-red-50 border-red-200'}`}>
                     {foundId ? (
                       <>
-                        <p className="text-xs text-[#A68B77] mb-1">{t('auth.findId.resultLabel')}</p>
-                        <p className="text-lg font-bold text-[#7D6B5D] tracking-wide">{foundId}</p>
+                        <p className="text-xs text-primary mb-1">{t('auth.findId.resultLabel')}</p>
+                        <p className="text-lg font-bold text-muted-foreground tracking-wide">{foundId}</p>
                         <button
                           onClick={() => switchMode('login')}
-                          className="mt-3 text-xs text-[#A68B77] underline hover:text-[#7D6B5D]"
+                          className="mt-3 text-xs text-primary underline hover:text-muted-foreground"
                         >
                           {t('auth.findId.goToLogin')}
                         </button>
@@ -307,40 +307,40 @@ export default function AuthPage() {
             ) : (
               /* Find Password */
               <div className="space-y-4">
-                <h2 className="text-xl font-bold text-[#7D6B5D]">{t('auth.findPassword.title')}</h2>
+                <h2 className="text-xl font-bold text-muted-foreground">{t('auth.findPassword.title')}</h2>
 
                 {!fpVerified ? (
                   <>
-                    <p className="text-sm text-[#A68B77]">{t('auth.findPassword.description')}</p>
+                    <p className="text-sm text-primary">{t('auth.findPassword.description')}</p>
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.idLabel')}</label>
+                      <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.idLabel')}</label>
                       <div className="relative">
-                        <AtSign className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                        <AtSign className="absolute left-3 top-3 w-5 h-5 text-primary" />
                         <Input
                           type="text"
                           placeholder={t('auth.common.idPlaceholder')}
                           value={fpId}
                           onChange={(e) => setFpId(e.target.value)}
-                          className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                          className="pl-10 py-3 border-border focus:border-primary"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.emailLabel')}</label>
+                      <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.emailLabel')}</label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                        <Mail className="absolute left-3 top-3 w-5 h-5 text-primary" />
                         <Input
                           type="email"
                           placeholder={t('auth.common.emailPlaceholder')}
                           value={fpEmail}
                           onChange={(e) => setFpEmail(e.target.value)}
-                          className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                          className="pl-10 py-3 border-border focus:border-primary"
                         />
                       </div>
                     </div>
                     <Button
                       onClick={handleFpVerify}
-                      className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold"
+                      className="w-full py-3 bg-primary hover:bg-[#8B7355] text-white rounded-full font-bold"
                     >
                       {t('auth.findPassword.verify')}
                     </Button>
@@ -353,17 +353,17 @@ export default function AuthPage() {
                     </p>
 
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.findPassword.newPasswordLabel')}</label>
+                      <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.findPassword.newPasswordLabel')}</label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                        <Lock className="absolute left-3 top-3 w-5 h-5 text-primary" />
                         <Input
                           type={showFpPw ? 'text' : 'password'}
                           placeholder={t('auth.common.newPasswordPlaceholder')}
                           value={fpNewPw}
                           onChange={(e) => setFpNewPw(e.target.value)}
-                          className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                          className="pl-10 pr-10 py-3 border-border focus:border-primary"
                         />
-                        <button type="button" onClick={() => setShowFpPw(!showFpPw)} className="absolute right-3 top-3 text-[#A68B77]">
+                        <button type="button" onClick={() => setShowFpPw(!showFpPw)} className="absolute right-3 top-3 text-primary">
                           {showFpPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
@@ -382,15 +382,15 @@ export default function AuthPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.findPassword.newPasswordConfirmLabel')}</label>
+                      <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.findPassword.newPasswordConfirmLabel')}</label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                        <Lock className="absolute left-3 top-3 w-5 h-5 text-primary" />
                         <Input
                           type={showFpPw ? 'text' : 'password'}
                           placeholder={t('auth.common.confirmPasswordPlaceholder')}
                           value={fpNewPwConfirm}
                           onChange={(e) => setFpNewPwConfirm(e.target.value)}
-                          className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                          className="pl-10 pr-10 py-3 border-border focus:border-primary"
                         />
                         {fpNewPwConfirm && (
                           <span className="absolute right-3 top-3">
@@ -404,7 +404,7 @@ export default function AuthPage() {
 
                     <Button
                       onClick={handleFpReset}
-                      className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold"
+                      className="w-full py-3 bg-primary hover:bg-[#8B7355] text-white rounded-full font-bold"
                     >
                       {t('auth.findPassword.submit')}
                     </Button>
@@ -421,21 +421,21 @@ export default function AuthPage() {
 
   // ── Login / Register 탭 레이아웃
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F9F7F2] via-white to-[#E8E2D9] flex items-center justify-center p-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-white to-secondary flex items-center justify-center p-4 py-8">
       {BG}
       <div className="relative w-full max-w-md">
         <Logo t={t} />
 
-        <Card className="p-5 sm:p-8 bg-card/90 backdrop-blur-sm border border-[#DED6CC] shadow-xl">
+        <Card className="p-5 sm:p-8 bg-card/90 backdrop-blur-sm border border-border shadow-xl">
           {/* 탭 */}
           <div className="mb-2">
-            <div className="flex bg-[#E8E2D9] rounded-xl p-1 gap-1">
+            <div className="flex bg-secondary rounded-xl p-1 gap-1">
               {(['login', 'register'] as const).map((m) => (
                 <button
                   key={m}
                   onClick={() => switchMode(m)}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    mode === m ? 'bg-card text-[#A68B77] shadow-md' : 'text-[#A68B77] hover:text-[#7D6B5D]'
+                    mode === m ? 'bg-card text-primary shadow-md' : 'text-primary hover:text-muted-foreground'
                   }`}
                 >
                   {m === 'login' ? t('auth.tabs.login') : t('auth.tabs.register')}
@@ -464,10 +464,10 @@ export default function AuthPage() {
             </div>
             <div className="relative py-0">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#DED6CC]" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-card px-3 text-xs text-[#A68B77]">{t('auth.social.divider')}</span>
+                <span className="bg-card px-3 text-xs text-primary">{t('auth.social.divider')}</span>
               </div>
             </div>
           </div>
@@ -476,31 +476,31 @@ export default function AuthPage() {
             /* ═══ 로그인 폼 ═══ */
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.idLabel')}</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.idLabel')}</label>
                 <div className="relative">
-                  <AtSign className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                  <AtSign className="absolute left-3 top-3 w-5 h-5 text-primary" />
                   <Input
                     type="text"
                     placeholder={t('auth.common.idPlaceholder')}
                     value={loginId}
                     onChange={(e) => { setLoginId(e.target.value); setLoginError(''); }}
-                    className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                    className="pl-10 py-3 border-border focus:border-primary"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.passwordLabel')}</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.passwordLabel')}</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                  <Lock className="absolute left-3 top-3 w-5 h-5 text-primary" />
                   <Input
                     type={showLoginPw ? 'text' : 'password'}
                     placeholder={t('auth.common.passwordPlaceholder')}
                     value={loginPw}
                     onChange={(e) => { setLoginPw(e.target.value); setLoginError(''); }}
-                    className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                    className="pl-10 pr-10 py-3 border-border focus:border-primary"
                   />
-                  <button type="button" onClick={() => setShowLoginPw(!showLoginPw)} className="absolute right-3 top-3 text-[#A68B77]">
+                  <button type="button" onClick={() => setShowLoginPw(!showLoginPw)} className="absolute right-3 top-3 text-primary">
                     {showLoginPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
@@ -516,7 +516,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold transition-all"
+                className="w-full py-3 bg-primary hover:bg-[#8B7355] text-white rounded-full font-bold transition-all"
               >
                 {isLoading ? t('auth.login.submitting') : t('auth.login.submit')}
               </Button>
@@ -525,15 +525,15 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={() => switchMode('findId')}
-                  className="text-xs text-[#A68B77] hover:text-[#7D6B5D] hover:underline underline-offset-2 transition-colors"
+                  className="text-xs text-primary hover:text-muted-foreground hover:underline underline-offset-2 transition-colors"
                 >
                   {t('auth.login.findId')}
                 </button>
-                <span className="text-[#DED6CC] text-sm">|</span>
+                <span className="text-border text-sm">|</span>
                 <button
                   type="button"
                   onClick={() => switchMode('findPassword')}
-                  className="text-xs text-[#A68B77] hover:text-[#7D6B5D] hover:underline underline-offset-2 transition-colors"
+                  className="text-xs text-primary hover:text-muted-foreground hover:underline underline-offset-2 transition-colors"
                 >
                   {t('auth.login.findPassword')}
                 </button>
@@ -544,23 +544,23 @@ export default function AuthPage() {
             <form onSubmit={handleRegister} className="space-y-4">
               {/* 닉네임 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.register.nicknameLabel')}</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.register.nicknameLabel')}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <User className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                    <User className="absolute left-3 top-3 w-5 h-5 text-primary" />
                     <Input
                       type="text"
                       placeholder={t('auth.register.nicknamePlaceholder')}
                       value={nickname}
                       onChange={(e) => { setNickname(e.target.value); setNicknameOk(null); }}
-                      className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                      className="pl-10 py-3 border-border focus:border-primary"
                     />
                   </div>
                   <Button
                     type="button"
                     onClick={handleCheckNickname}
                     variant="outline"
-                    className="px-3 text-xs font-bold whitespace-nowrap border-[#DED6CC] text-[#7D6B5D] hover:bg-[#E8E2D9]"
+                    className="px-3 text-xs font-bold whitespace-nowrap border-border text-muted-foreground hover:bg-secondary"
                   >
                     {t('auth.common.duplicateCheck')}
                   </Button>
@@ -575,23 +575,23 @@ export default function AuthPage() {
 
               {/* 아이디 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.idLabel')}</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.idLabel')}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <AtSign className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                    <AtSign className="absolute left-3 top-3 w-5 h-5 text-primary" />
                     <Input
                       type="text"
                       placeholder={t('auth.register.usernamePlaceholder')}
                       value={username}
                       onChange={(e) => { setUsername(e.target.value); setUsernameOk(null); }}
-                      className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                      className="pl-10 py-3 border-border focus:border-primary"
                     />
                   </div>
                   <Button
                     type="button"
                     onClick={handleCheckUsername}
                     variant="outline"
-                    className="px-3 text-xs font-bold whitespace-nowrap border-[#DED6CC] text-[#7D6B5D] hover:bg-[#E8E2D9]"
+                    className="px-3 text-xs font-bold whitespace-nowrap border-border text-muted-foreground hover:bg-secondary"
                   >
                     {t('auth.common.duplicateCheck')}
                   </Button>
@@ -606,17 +606,17 @@ export default function AuthPage() {
 
               {/* 비밀번호 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.passwordLabel')}</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.passwordLabel')}</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                  <Lock className="absolute left-3 top-3 w-5 h-5 text-primary" />
                   <Input
                     type={showRegPw ? 'text' : 'password'}
                     placeholder={t('auth.common.newPasswordPlaceholder')}
                     value={regPw}
                     onChange={(e) => setRegPw(e.target.value)}
-                    className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                    className="pl-10 pr-10 py-3 border-border focus:border-primary"
                   />
-                  <button type="button" onClick={() => setShowRegPw(!showRegPw)} className="absolute right-3 top-3 text-[#A68B77]">
+                  <button type="button" onClick={() => setShowRegPw(!showRegPw)} className="absolute right-3 top-3 text-primary">
                     {showRegPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
@@ -636,15 +636,15 @@ export default function AuthPage() {
 
               {/* 비밀번호 확인 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.register.passwordConfirmLabel')}</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.register.passwordConfirmLabel')}</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                  <Lock className="absolute left-3 top-3 w-5 h-5 text-primary" />
                   <Input
                     type={showRegPw ? 'text' : 'password'}
                     placeholder={t('auth.common.confirmPasswordPlaceholder')}
                     value={regPwConfirm}
                     onChange={(e) => setRegPwConfirm(e.target.value)}
-                    className="pl-10 pr-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                    className="pl-10 pr-10 py-3 border-border focus:border-primary"
                   />
                   {regPwConfirm && (
                     <span className="absolute right-3 top-3">
@@ -658,35 +658,35 @@ export default function AuthPage() {
 
               {/* 휴대전화번호 (선택) */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">
-                  {t('auth.register.phoneLabel')} <span className="text-xs font-normal text-[#A68B77]">{t('auth.register.phoneOptional')}</span>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">
+                  {t('auth.register.phoneLabel')} <span className="text-xs font-normal text-primary">{t('auth.register.phoneOptional')}</span>
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                  <Phone className="absolute left-3 top-3 w-5 h-5 text-primary" />
                   <Input
                     type="tel"
                     placeholder={t('auth.register.phonePlaceholder')}
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77]"
+                    className="pl-10 py-3 border-border focus:border-primary"
                   />
                 </div>
-                <p className="text-xs text-[#A68B77] mt-1">{t('auth.register.phoneHint')}</p>
+                <p className="text-xs text-primary mt-1">{t('auth.register.phoneHint')}</p>
               </div>
 
               {/* 이메일 */}
               <div>
-                <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.common.emailLabel')}</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.common.emailLabel')}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-3 w-5 h-5 text-[#A68B77]" />
+                    <Mail className="absolute left-3 top-3 w-5 h-5 text-primary" />
                     <Input
                       type="email"
                       placeholder={t('auth.common.emailPlaceholder')}
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setEmailVerified(false); }}
                       disabled={emailVerified}
-                      className="pl-10 py-3 border-[#DED6CC] focus:border-[#A68B77] disabled:opacity-60"
+                      className="pl-10 py-3 border-border focus:border-primary disabled:opacity-60"
                     />
                   </div>
                   <Button
@@ -694,7 +694,7 @@ export default function AuthPage() {
                     onClick={handleSendCode}
                     disabled={emailVerified || sendingCode}
                     variant="outline"
-                    className="px-3 text-xs font-bold whitespace-nowrap border-[#DED6CC] text-[#7D6B5D] hover:bg-[#E8E2D9] disabled:opacity-50"
+                    className="px-3 text-xs font-bold whitespace-nowrap border-border text-muted-foreground hover:bg-secondary disabled:opacity-50"
                   >
                     {sendingCode ? t('auth.register.emailSending') : codeSent ? t('auth.register.emailResend') : t('auth.register.emailSendCode')}
                   </Button>
@@ -709,7 +709,7 @@ export default function AuthPage() {
               {/* 인증코드 입력 */}
               {codeSent && !emailVerified && (
                 <div>
-                  <label className="block text-sm font-semibold text-[#7D6B5D] mb-2">{t('auth.register.codeLabel')}</label>
+                  <label className="block text-sm font-semibold text-muted-foreground mb-2">{t('auth.register.codeLabel')}</label>
                   <div className="flex gap-2">
                     <Input
                       type="text"
@@ -717,13 +717,13 @@ export default function AuthPage() {
                       value={inputCode}
                       onChange={(e) => setInputCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       maxLength={6}
-                      className="py-3 border-[#DED6CC] focus:border-[#A68B77] tracking-[0.3em] font-mono text-center"
+                      className="py-3 border-border focus:border-primary tracking-[0.3em] font-mono text-center"
                     />
                     <Button
                       type="button"
                       onClick={handleVerifyCode}
                       disabled={verifyingCode || inputCode.length !== 6}
-                      className="px-4 bg-[#A68B77] hover:bg-[#8B7355] text-white text-xs font-bold whitespace-nowrap disabled:opacity-50"
+                      className="px-4 bg-primary hover:bg-[#8B7355] text-white text-xs font-bold whitespace-nowrap disabled:opacity-50"
                     >
                       {t('auth.register.codeVerify')}
                     </Button>
@@ -734,7 +734,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-[#A68B77] hover:bg-[#8B7355] text-white rounded-full font-bold transition-all mt-2"
+                className="w-full py-3 bg-primary hover:bg-[#8B7355] text-white rounded-full font-bold transition-all mt-2"
               >
                 {isLoading ? t('auth.register.submitting') : t('auth.register.submit')}
               </Button>

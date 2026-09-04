@@ -1893,7 +1893,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F7F4]">
+    <div className="min-h-screen bg-background">
       {/* 새 여행 계획 다이얼로그 */}
       <Dialog open={showNewPlanDialog} onOpenChange={setShowNewPlanDialog}>
         <DialogContent className="max-w-md">
@@ -2177,7 +2177,7 @@ export default function Home() {
                     }
                     setShowNewPlanDialog(true);
                   }}
-                  className="bg-[#A68B77] hover:bg-[#7D6B5D] text-white px-6 h-11 rounded-full gap-2 shadow-lg"
+                  className="bg-primary hover:bg-muted-foreground text-white px-6 h-11 rounded-full gap-2 shadow-lg"
                 >
                   <Plane className="w-4 h-4" /> {t('home.hero.startButton')}
                 </Button>
@@ -2204,7 +2204,7 @@ export default function Home() {
                   }
                   setShowAiPlanDialog(true);
                 }}
-                className="bg-gradient-to-r from-primary to-[#7D6B5D] text-white hover:opacity-90 gap-1.5 rounded-full shadow-lg font-bold text-sm px-4 h-9"
+                className="bg-gradient-to-r from-primary to-muted-foreground text-white hover:opacity-90 gap-1.5 rounded-full shadow-lg font-bold text-sm px-4 h-9"
               >
                 <Sparkles className="w-4 h-4" /> <span className="hidden sm:inline">{t('home.hero.aiPlanButton')}</span>
               </Button>
@@ -3093,11 +3093,11 @@ export default function Home() {
                             {['7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', '0', '.', '=', '+'].map(btn => {
                               let btnClass = "h-12 text-lg font-bold";
                               if (btn === '=') {
-                                btnClass += " bg-[#A68B77] hover:bg-[#8B7968] text-white border-0";
+                                btnClass += " bg-primary hover:bg-[#8B7968] text-white border-0";
                               } else if (['+', '-', '*', '/'].includes(btn)) {
-                                btnClass += " bg-[#E8E2D9] hover:bg-[#DED6CC] text-[#3D3D3D] border-[#DED6CC]";
+                                btnClass += " bg-secondary hover:bg-muted text-foreground border-border";
                               } else {
-                                btnClass += " bg-[#F9F7F2] hover:bg-[#E8E2D9] text-[#3D3D3D] border-[#DED6CC]";
+                                btnClass += " bg-background hover:bg-secondary text-foreground border-border";
                               }
                               return (
                                 <Button key={btn} onClick={() => {
@@ -3107,7 +3107,7 @@ export default function Home() {
                                 }} className={btnClass}>{btn}</Button>
                               );
                             })}
-                            <Button onClick={handleCalcClear} className="col-span-4 h-12 font-bold bg-[#A68B77] hover:bg-[#8B7968] text-white border-0">{t('home.budget.clearButton')}</Button>
+                            <Button onClick={handleCalcClear} className="col-span-4 h-12 font-bold bg-primary hover:bg-[#8B7968] text-white border-0">{t('home.budget.clearButton')}</Button>
                           </div>
                         </div>
                       </Card>
@@ -5013,7 +5013,7 @@ function ShoppingForm({ onAdd }: { onAdd: (item: string, imageUrl?: string, link
           {imageUrl && (
             <div className="relative w-full h-32 rounded border-2 border-sky-300 overflow-hidden">
               <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
-              <button onClick={() => setImageUrl('')} className="absolute top-1 right-1 bg-[#A68B77] hover:bg-[#8B7968] text-white p-1 rounded">
+              <button onClick={() => setImageUrl('')} className="absolute top-1 right-1 bg-primary hover:bg-[#8B7968] text-white p-1 rounded">
                 <X className="w-4 h-4" />
               </button>
             </div>

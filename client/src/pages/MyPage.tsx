@@ -335,7 +335,7 @@ export default function MyPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F9F7F2]">
+    <div className="min-h-screen bg-background">
       {/* 프로필 헤더 배너 */}
       <div
         className="relative overflow-hidden flex items-center py-10 min-h-[260px] sm:min-h-[300px] bg-[#5b4636]"
