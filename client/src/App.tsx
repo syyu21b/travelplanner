@@ -210,7 +210,7 @@ function App() {
   return (
     <ErrorBoundary>
       <LanguageProvider>
-        <ThemeProvider defaultTheme="light" switchable>
+        <ThemeProvider defaultTheme="light">
           <TooltipProvider>
             <Toaster />
             <AuthProvider>

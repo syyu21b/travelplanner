@@ -13,8 +13,7 @@
     <meta name="description" content="나만의 여행 일정을 만들고, 기록하고, 공유해보세요." />
 
     <!-- PWA -->
-    <meta name="theme-color" content="#F9F7F2" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#2A2520" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F9F7F2" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -41,15 +40,6 @@
     <meta name="twitter:image" content="https://travelplanner.syyu21b.workers.dev/og-image-v4.png" />
     <link rel="stylesheet" as="style" crossorigin
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-
-    <!-- 저장된 테마를 페인트 전에 적용해 첫 로드 시 라이트→다크 깜빡임(FOUC)을 방지 -->
-    <script>
-      try {
-        if (localStorage.getItem('theme') === 'dark') {
-          document.documentElement.classList.add('dark');
-        }
-      } catch (e) {}
-    </script>
   </head>
 
   <body>

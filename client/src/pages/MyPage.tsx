@@ -8,14 +8,12 @@ import {
   User, Mail, Lock, Trash2, Camera, Edit2, Check, X, Shield,
   BookOpen, Plane, Bookmark, MessageCircle, Heart, Calendar,
   KeyRound, UserX, ChevronLeft, ChevronRight, Eye, EyeOff, Star, MapPin, Crown,
-  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings, Loader2, Phone, Sparkles,
-  Moon, Sun
+  IdCard, Stamp, Globe2, ShieldCheck, Save, Settings, Loader2, Phone, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useLocation } from 'wouter';
 import type { PassportInfo } from '@/lib/passportCrypto';
@@ -69,7 +67,6 @@ export default function MyPage() {
     verifyPassword, hasPassportInfo, savePassportInfo, loadPassportInfo, deletePassportInfo,
   } = useAuth();
   const { language, setLanguage, t } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
   const { settings, updateSettings } = useNotifications();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('info');
@@ -1288,30 +1285,6 @@ export default function MyPage() {
                     {t('mypage.settings.english')}
                   </Button>
                 </div>
-              </Card>
-
-              {/* 화면 테마 카드 */}
-              <Card className="p-6 bg-card">
-                <h3 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
-                  <Moon className="w-5 h-5 text-primary" /> {t('mypage.settings.themeTitle')}
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => { if (theme !== 'light' && toggleTheme) toggleTheme(); }}
-                    variant={theme === 'light' ? 'default' : 'outline'}
-                    className={cn("h-11 gap-1.5", theme === 'light' && 'bg-primary text-white')}
-                  >
-                    <Sun className="w-4 h-4" /> {t('mypage.settings.themeLight')}
-                  </Button>
-                  <Button
-                    onClick={() => { if (theme !== 'dark' && toggleTheme) toggleTheme(); }}
-                    variant={theme === 'dark' ? 'default' : 'outline'}
-                    className={cn("h-11 gap-1.5", theme === 'dark' && 'bg-primary text-white')}
-                  >
-                    <Moon className="w-4 h-4" /> {t('mypage.settings.themeDark')}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-3">{t('mypage.settings.themeHint')}</p>
               </Card>
               </div>
 
