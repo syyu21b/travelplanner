@@ -1504,7 +1504,7 @@ export default function Home() {
     const interactive = !!onToggle;
     if (plan.schedules.length === 0) {
       return (
-        <div className="text-center py-12 bg-secondary rounded-2xl">
+        <div className="text-center py-12 bg-secondary rounded-xl">
           <p className="text-muted-foreground">{t('home.timeline.emptyState')}</p>
         </div>
       );
@@ -1582,7 +1582,7 @@ export default function Home() {
     const withPreps = plan.schedules.filter(s => s.preparations && s.preparations.length > 0);
     if (withPreps.length === 0) {
       return (
-        <div className="text-center py-12 bg-secondary rounded-2xl">
+        <div className="text-center py-12 bg-secondary rounded-xl">
           <p className="text-muted-foreground">{t('home.summary.emptyState')}</p>
         </div>
       );
@@ -1641,7 +1641,7 @@ export default function Home() {
           )}
         </div>
         {totalCount === 0 ? (
-          <div className="text-center py-12 bg-secondary rounded-2xl">
+          <div className="text-center py-12 bg-secondary rounded-xl">
             <p className="text-muted-foreground">{t('home.summary.allEmptyState')}</p>
           </div>
         ) : (
@@ -1679,7 +1679,7 @@ export default function Home() {
     if (!plan) return null;
     if (plan.schedules.length === 0) {
       return (
-        <div className="text-center py-12 bg-secondary rounded-2xl">
+        <div className="text-center py-12 bg-secondary rounded-xl">
           <p className="text-muted-foreground">{t('home.timeline.emptyState')}</p>
         </div>
       );
@@ -1713,7 +1713,7 @@ export default function Home() {
     const list = plan.accommodations || [];
     if (list.length === 0) {
       return (
-        <div className="text-center py-12 bg-secondary rounded-2xl">
+        <div className="text-center py-12 bg-secondary rounded-xl">
           <p className="text-muted-foreground">{t('home.accommodation.emptyState')}</p>
         </div>
       );
@@ -1744,7 +1744,7 @@ export default function Home() {
     const list = plan.flights || [];
     if (list.length === 0) {
       return (
-        <div className="text-center py-12 bg-secondary rounded-2xl">
+        <div className="text-center py-12 bg-secondary rounded-xl">
           <p className="text-muted-foreground">{t('home.flight.emptyState')}</p>
         </div>
       );
@@ -2227,8 +2227,8 @@ export default function Home() {
               스탯/달력/계획 목록 전체를 숨기고 로그인 유도 카드만 보여줌 */}
           {!user ? (
             <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10 pb-12">
-              <Card className="p-10 flex flex-col items-center justify-center text-center bg-card border-border shadow-xl rounded-2xl">
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <Card className="p-10 flex flex-col items-center justify-center text-center bg-card border-border shadow-xl rounded-xl">
+                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <Lock className="w-7 h-7 text-primary" />
                 </div>
                 <h2 className="text-xl font-bold text-foreground mb-2">{t('home.loggedOut.title')}</h2>
@@ -2257,7 +2257,7 @@ export default function Home() {
             ];
             return (
               <div className="max-w-5xl mx-auto px-4 -mt-8 relative z-10">
-                <div className="bg-card rounded-2xl shadow-xl border border-border grid grid-cols-2 lg:grid-cols-4">
+                <div className="bg-card rounded-xl shadow-xl border border-border grid grid-cols-2 lg:grid-cols-4">
                   {statItems.map((s, i) => (
                     <div key={s.label} className={cn(
                       "p-5 flex items-center gap-4",
@@ -2480,7 +2480,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => planPhotoInputRef.current?.click()}
-                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-border group/cover"
+                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex-shrink-0 border border-border group/cover"
                   title={t('home.planDetail.coverPhotoTitle')}
                 >
                   {currentPlan.coverPhoto ? (
@@ -2628,7 +2628,7 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <Tabs defaultValue="schedule" className="w-full">
                   <TabsList
-                    className="flex lg:grid w-full lg:grid-cols-9 gap-1 overflow-x-auto lg:overflow-visible touch-pan-x overscroll-x-contain bg-secondary/50 p-1 rounded-2xl mb-6 [&::-webkit-scrollbar]:hidden"
+                    className="flex lg:grid w-full lg:grid-cols-9 gap-1 overflow-x-auto lg:overflow-visible touch-pan-x overscroll-x-contain bg-secondary/50 p-1 rounded-xl mb-6 [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
                   >
                     <TabsTrigger value="schedule" className="flex-shrink-0 lg:flex-shrink whitespace-nowrap px-4 lg:px-2 rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.tabs.schedule')}</TabsTrigger>
@@ -2662,7 +2662,7 @@ export default function Home() {
                       </div>
 
                       {filteredSchedules.length === 0 ? (
-                        <div className="text-center py-12 bg-card rounded-2xl border border-border">
+                        <div className="text-center py-12 bg-card rounded-xl border border-border">
                           <p className="text-muted-foreground">{t('home.schedule.emptyState')}</p>
                         </div>
                       ) : (
@@ -2697,7 +2697,7 @@ export default function Home() {
                     <div className="space-y-4">
                       <h3 className="text-xl font-bold text-foreground">{t('home.accommodation.listTitle')}</h3>
                       {(currentPlan.accommodations || []).length === 0 ? (
-                        <div className="text-center py-12 bg-card rounded-2xl border border-border">
+                        <div className="text-center py-12 bg-card rounded-xl border border-border">
                           <p className="text-muted-foreground">{t('home.accommodation.emptyState')}</p>
                         </div>
                       ) : (
@@ -2729,7 +2729,7 @@ export default function Home() {
                     <div className="space-y-4">
                       <h3 className="text-xl font-bold text-foreground">{t('home.flight.listTitle')}</h3>
                       {(currentPlan.flights || []).length === 0 ? (
-                        <div className="text-center py-12 bg-card rounded-2xl border border-border">
+                        <div className="text-center py-12 bg-card rounded-xl border border-border">
                           <p className="text-muted-foreground">{t('home.flight.emptyState')}</p>
                         </div>
                       ) : (
@@ -2950,7 +2950,7 @@ export default function Home() {
                   {/* 날씨 탭 */}
                   <TabsContent value="weather" className="space-y-4">
                     <Tabs defaultValue="domestic" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 rounded-2xl mb-4">
+                      <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 rounded-xl mb-4">
                         <TabsTrigger value="domestic" className="rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.domestic')}</TabsTrigger>
                         <TabsTrigger value="overseas" className="rounded-xl data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">{t('home.weather.overseas')}</TabsTrigger>
                       </TabsList>
@@ -3117,7 +3117,7 @@ export default function Home() {
                     <Card className="p-6 bg-card border-border">
                       <h3 className="text-lg font-bold text-foreground mb-4">{t('home.budget.categoryChartTitle')}</h3>
                       {categorySpending.length === 0 ? (
-                        <div className="text-center py-12 bg-secondary rounded-2xl">
+                        <div className="text-center py-12 bg-secondary rounded-xl">
                           <p className="text-muted-foreground">{t('home.budget.categoryChartEmptyState')}</p>
                         </div>
                       ) : (
@@ -5099,7 +5099,7 @@ function CommunityTrending() {
             onClick={() => navigateToCommunity(post)}
             className="flex-shrink-0 w-52 text-left group"
           >
-            <div className="relative w-52 h-36 rounded-2xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-sm group-hover:shadow-md transition-shadow">
+            <div className="relative w-52 h-36 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-sm group-hover:shadow-md transition-shadow">
               {thumbUrl ? (
                 <img
                   src={thumbUrl}

@@ -1113,7 +1113,7 @@ export default function MyPage() {
                 <div className="space-y-4">
                   {/* 여권 스타일 카드 */}
                   <div
-                    className="relative rounded-2xl overflow-hidden shadow-xl border border-[#0d1b2e]"
+                    className="relative rounded-xl overflow-hidden shadow-xl border border-[#0d1b2e]"
                     style={{ background: 'linear-gradient(135deg, #0d1b2e 0%, #1a3a5c 100%)' }}
                   >
                     <div className="p-6 sm:p-8 text-[#e8dcc0]">

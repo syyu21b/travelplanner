@@ -360,7 +360,7 @@ export function WeatherWidget({ scope }: WeatherWidgetProps) {
       {!loading && !error && weather && currentInfo && (
         <div className="space-y-5">
           {/* 현재 날씨 */}
-          <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 p-5">
+          <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-5">
             <div className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground mb-1">
               <MapPin className="w-4 h-4 text-primary" /> {selectedCity.name}
             </div>

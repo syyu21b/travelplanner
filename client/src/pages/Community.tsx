@@ -438,7 +438,7 @@ export default function Community() {
           {/* Photos */}
           {diary.photos.length > 0 && (
             <div className="mb-6">
-              <div className="relative rounded-2xl overflow-hidden mb-2">
+              <div className="relative rounded-xl overflow-hidden mb-2">
                 {diary.photos[activePhotoIndex].type === 'video' ? (
                   <video
                     src={diary.photos[activePhotoIndex].url}
@@ -605,7 +605,7 @@ export default function Community() {
                       </div>
                       <div className="flex-1">
                         {editingCommentId === comment.id ? (
-                          <div className="bg-secondary rounded-2xl rounded-tl-none px-4 py-3 space-y-2">
+                          <div className="bg-secondary rounded-xl rounded-tl-none px-4 py-3 space-y-2">
                             <Textarea
                               value={editingCommentText}
                               onChange={e => setEditingCommentText(e.target.value)}
@@ -630,7 +630,7 @@ export default function Community() {
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-secondary rounded-2xl rounded-tl-none px-4 py-3">
+                          <div className="bg-secondary rounded-xl rounded-tl-none px-4 py-3">
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-bold text-foreground text-sm">{comment.userName}</span>
                               <span className="text-xs text-muted-foreground">{timeAgo(comment.updatedAt || comment.createdAt)}{comment.updatedAt && comment.updatedAt !== comment.createdAt ? ` ${t('community.detail.edited')}` : ''}</span>
@@ -792,7 +792,7 @@ export default function Community() {
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-orange-400" />
             <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-300/25 blur-2xl group-hover:bg-amber-300/40 transition-colors duration-500" />
             <div className="relative flex flex-col items-center">
-              <div className="w-11 h-11 rounded-2xl bg-amber-50 ring-1 ring-amber-200 text-amber-600 flex items-center justify-center mb-3">
+              <div className="w-11 h-11 rounded-xl bg-amber-50 ring-1 ring-amber-200 text-amber-600 flex items-center justify-center mb-3">
                 <BookOpen className="w-5 h-5" />
               </div>
               <p className="text-3xl font-black tracking-tight text-foreground">{stats.totalReviews}</p>
@@ -803,7 +803,7 @@ export default function Community() {
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-400" />
             <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-emerald-300/25 blur-2xl group-hover:bg-emerald-300/40 transition-colors duration-500" />
             <div className="relative flex flex-col items-center">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-600 flex items-center justify-center mb-3">
+              <div className="w-11 h-11 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-600 flex items-center justify-center mb-3">
                 <MapPin className="w-5 h-5" />
               </div>
               <p className="text-3xl font-black tracking-tight text-foreground">
@@ -816,7 +816,7 @@ export default function Community() {
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-sky-400 to-blue-400" />
             <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-sky-300/25 blur-2xl group-hover:bg-sky-300/40 transition-colors duration-500" />
             <div className="relative flex flex-col items-center">
-              <div className="w-11 h-11 rounded-2xl bg-sky-50 ring-1 ring-sky-200 text-sky-600 flex items-center justify-center mb-3">
+              <div className="w-11 h-11 rounded-xl bg-sky-50 ring-1 ring-sky-200 text-sky-600 flex items-center justify-center mb-3">
                 <Users className="w-5 h-5" />
               </div>
               <p className="text-3xl font-black tracking-tight text-foreground">

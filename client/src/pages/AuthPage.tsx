@@ -40,7 +40,7 @@ const BG = (
 function Logo({ t }: { t: (key: string) => string }) {
   return (
     <div className="text-center mb-8">
-      <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl shadow-lg mb-4">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl shadow-lg mb-4">
         <Plane className="w-8 h-8 text-white" />
       </div>
       <h1 className="text-4xl font-bold text-muted-foreground">Travel Planner</h1>

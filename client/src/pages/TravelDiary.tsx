@@ -1400,7 +1400,7 @@ export default function TravelDiary() {
       <div className="min-h-screen bg-background pb-16">
         {/* Hero section with first photo */}
         {heroPhoto ? (
-          <div className="relative h-[280px] sm:h-[380px] lg:h-[500px] w-full max-w-6xl mx-auto bg-slate-900 overflow-hidden sm:rounded-2xl sm:mt-4">
+          <div className="relative h-[280px] sm:h-[380px] lg:h-[500px] w-full max-w-6xl mx-auto bg-slate-900 overflow-hidden sm:rounded-xl sm:mt-4">
             {heroPhoto.type === 'video' ? (
               <video src={heroPhoto.url} controls className="w-full h-full object-contain" />
             ) : (
@@ -1523,12 +1523,12 @@ export default function TravelDiary() {
                     </div>
                   ) : block.type === 'video' ? (
                     <div className="space-y-2">
-                      <video src={block.content} controls className="w-full rounded-2xl shadow-sm border border-border bg-black" />
+                      <video src={block.content} controls className="w-full rounded-xl shadow-sm border border-border bg-black" />
                       {block.caption && <p className="text-center text-sm text-muted-foreground">{block.caption}</p>}
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <img src={block.content} alt={block.caption || ''} className="w-full rounded-2xl shadow-sm border border-border bg-muted" />
+                      <img src={block.content} alt={block.caption || ''} className="w-full rounded-xl shadow-sm border border-border bg-muted" />
                       {block.caption && <p className="text-center text-sm text-muted-foreground">{block.caption}</p>}
                     </div>
                   )}
@@ -1557,7 +1557,7 @@ export default function TravelDiary() {
                 const activePhoto = diary.photos[activeIndex];
                 return (
                   <div>
-                    <div className="relative rounded-2xl overflow-hidden shadow-sm border border-border">
+                    <div className="relative rounded-xl overflow-hidden shadow-sm border border-border">
                       {activePhoto.type === 'video' ? (
                         <video src={activePhoto.url} controls className="w-full object-contain max-h-[700px] bg-black" />
                       ) : (
@@ -2029,7 +2029,7 @@ export default function TravelDiary() {
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-orange-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-300/25 blur-2xl group-hover:bg-amber-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
-                    <div className="w-11 h-11 rounded-2xl bg-amber-50 ring-1 ring-amber-200 text-amber-600 flex items-center justify-center mb-3">
+                    <div className="w-11 h-11 rounded-xl bg-amber-50 ring-1 ring-amber-200 text-amber-600 flex items-center justify-center mb-3">
                       <BookOpen className="w-5 h-5" />
                     </div>
                     <p className="text-3xl font-black tracking-tight text-foreground">{myDiaries.length}</p>
@@ -2040,7 +2040,7 @@ export default function TravelDiary() {
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-emerald-300/25 blur-2xl group-hover:bg-emerald-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
-                    <div className="w-11 h-11 rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-600 flex items-center justify-center mb-3">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-600 flex items-center justify-center mb-3">
                       <MapPin className="w-5 h-5" />
                     </div>
                     <p className="text-3xl font-black tracking-tight text-foreground">
@@ -2053,7 +2053,7 @@ export default function TravelDiary() {
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-sky-400 to-blue-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-sky-300/25 blur-2xl group-hover:bg-sky-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
-                    <div className="w-11 h-11 rounded-2xl bg-sky-50 ring-1 ring-sky-200 text-sky-600 flex items-center justify-center mb-3">
+                    <div className="w-11 h-11 rounded-xl bg-sky-50 ring-1 ring-sky-200 text-sky-600 flex items-center justify-center mb-3">
                       <Camera className="w-5 h-5" />
                     </div>
                     <p className="text-3xl font-black tracking-tight text-foreground">
@@ -2202,7 +2202,7 @@ export default function TravelDiary() {
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-violet-400 to-fuchsia-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-violet-300/25 blur-2xl group-hover:bg-violet-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
-                    <div className="w-11 h-11 rounded-2xl bg-violet-50 ring-1 ring-violet-200 text-violet-600 flex items-center justify-center mb-3">
+                    <div className="w-11 h-11 rounded-xl bg-violet-50 ring-1 ring-violet-200 text-violet-600 flex items-center justify-center mb-3">
                       <ImageIcon className="w-5 h-5" />
                     </div>
                     <p className="text-3xl font-black tracking-tight text-foreground">{myAlbums.length}</p>
@@ -2213,7 +2213,7 @@ export default function TravelDiary() {
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-rose-400 to-orange-400" />
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-rose-300/25 blur-2xl group-hover:bg-rose-300/40 transition-colors duration-500" />
                   <div className="relative flex flex-col items-center">
-                    <div className="w-11 h-11 rounded-2xl bg-rose-50 ring-1 ring-rose-200 text-rose-600 flex items-center justify-center mb-3">
+                    <div className="w-11 h-11 rounded-xl bg-rose-50 ring-1 ring-rose-200 text-rose-600 flex items-center justify-center mb-3">
                       <Camera className="w-5 h-5" />
                     </div>
                     <p className="text-3xl font-black tracking-tight text-foreground">
