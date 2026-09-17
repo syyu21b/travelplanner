@@ -43,6 +43,31 @@ export const footer = {
       errorStorageFull: '이 브라우저에서는 문의를 저장할 수 없습니다. 다른 브라우저나 시크릿 모드 해제 후 다시 시도해주세요.',
       success: '문의가 접수되었습니다. 답변까지 조금만 기다려주세요!',
     },
+    faq: {
+      title: '자주 묻는 질문',
+      items: {
+        q1: {
+          question: '회원가입 및 서비스 이용은 무료인가요?',
+          answer: '네, 회원가입과 여행 계획·여행 기록·커뮤니티 등 모든 기능은 무료로 이용하실 수 있습니다.',
+        },
+        q2: {
+          question: '작성한 여행 계획이나 여행 기록은 어디에 저장되나요?',
+          answer: '입력하신 정보와 업로드한 사진·영상은 서버에 안전하게 저장되며, 로그인한 계정으로 언제 어디서든 다시 확인하실 수 있습니다.',
+        },
+        q3: {
+          question: '비밀번호를 잊어버렸어요. 어떻게 해야 하나요?',
+          answer: '현재는 별도의 비밀번호 재설정 기능이 준비 중입니다. 로그인이 어려우신 경우 하단 문의하기를 통해 등록하신 이메일과 함께 문의해 주시면 확인 후 도와드리겠습니다.',
+        },
+        q4: {
+          question: '회원 탈퇴하면 작성한 게시글과 여행 기록은 어떻게 되나요?',
+          answer: '회원 탈퇴 시 계정에 연결된 여행 계획, 여행 기록, 앨범, 댓글 등 모든 데이터가 서버에서 함께 삭제되며 이후 복구할 수 없습니다.',
+        },
+        q5: {
+          question: '여행 계획을 PDF나 텍스트 파일로 내보낼 수 있나요?',
+          answer: '네, 여행 계획 상세 화면에서 일정, 숙소, 항공권, 예산, 준비물 체크리스트, 타임라인 등을 포함한 PDF 또는 텍스트(.txt) 파일로 내보낼 수 있습니다.',
+        },
+      },
+    },
     notice: {
       title: '공지사항',
       items: {
@@ -161,6 +186,31 @@ export const footer = {
       errorInvalidEmail: 'Please enter a valid email address.',
       errorStorageFull: "This browser can't save your inquiry. Please try a different browser or turn off private/incognito mode.",
       success: "Your inquiry has been submitted. We'll get back to you soon!",
+    },
+    faq: {
+      title: 'Frequently Asked Questions',
+      items: {
+        q1: {
+          question: 'Is signing up and using the service free?',
+          answer: 'Yes, signing up and every feature — trip planning, travel diary, and community — are completely free to use.',
+        },
+        q2: {
+          question: 'Where are my trip plans and travel diaries stored?',
+          answer: 'The information you enter and any photos or videos you upload are stored securely on our servers, so you can access them anytime, anywhere, from your logged-in account.',
+        },
+        q3: {
+          question: "I forgot my password. What should I do?",
+          answer: "A dedicated password reset feature is currently in development. If you're having trouble logging in, please contact us via Contact Us with your registered email and we'll help you out.",
+        },
+        q4: {
+          question: 'What happens to my posts and travel diaries if I delete my account?',
+          answer: 'When you delete your account, all associated data — trip plans, travel diaries, albums, comments, and more — is permanently removed from our servers and cannot be recovered.',
+        },
+        q5: {
+          question: 'Can I export a trip plan as a PDF or text file?',
+          answer: 'Yes, from the trip plan detail screen you can export a PDF or text (.txt) file that includes the itinerary, accommodations, flights, budget, packing checklist, and timeline.',
+        },
+      },
     },
     notice: {
       title: 'Notices',

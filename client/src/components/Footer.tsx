@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plane, Mail, Phone, MapPin, Instagram, Facebook, Youtube, MessageCircle, Megaphone, FileText, ShieldCheck } from 'lucide-react';
+import { Plane, Mail, Phone, MapPin, Instagram, Facebook, Youtube, MessageCircle, Megaphone, FileText, ShieldCheck, HelpCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { addInquiry } from '@/lib/inquiries';
 
+const FAQ_KEYS = ['q1', 'q2', 'q3', 'q4', 'q5'] as const;
 const NOTICE_KEYS = ['n1', 'n2', 'n3', 'n4', 'n5'] as const;
 const TERMS_SECTION_KEYS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10'] as const;
 const PRIVACY_SECTION_KEYS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7'] as const;
@@ -17,6 +18,7 @@ export default function Footer() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [showInquiry, setShowInquiry] = useState(false);
+  const [showFaq, setShowFaq] = useState(false);
   const [showNotice, setShowNotice] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -119,7 +121,11 @@ export default function Footer() {
                 {t('footer.support.notice')}
               </button>
             </li>
-            <li><a href="#" className="hover:text-white transition-colors">{t('footer.support.faq')}</a></li>
+            <li>
+              <button type="button" onClick={() => setShowFaq(true)} className="hover:text-white transition-colors text-left">
+                {t('footer.support.faq')}
+              </button>
+            </li>
             <li>
               <button type="button" onClick={openInquiry} className="hover:text-white transition-colors text-left">
                 {t('footer.support.inquiry')}
@@ -191,6 +197,25 @@ export default function Footer() {
             <Button onClick={handleSubmitInquiry} className="w-full bg-primary text-white h-11 text-base font-semibold">
               {t('footer.inquiryDialog.submit')}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 자주 묻는 질문 다이얼로그 */}
+      <Dialog open={showFaq} onOpenChange={setShowFaq}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <HelpCircle className="w-5 h-5 text-primary" /> {t('footer.faq.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2 space-y-4">
+            {FAQ_KEYS.map((key) => (
+              <div key={key} className="pb-4 border-b border-border last:border-b-0 last:pb-0">
+                <p className="text-sm font-bold text-foreground mb-1">Q. {t(`footer.faq.items.${key}.question`)}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">A. {t(`footer.faq.items.${key}.answer`)}</p>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
