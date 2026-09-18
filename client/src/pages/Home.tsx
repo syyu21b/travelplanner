@@ -2078,7 +2078,7 @@ export default function Home() {
             <h1 className="text-base sm:text-xl font-extrabold text-foreground tracking-tight whitespace-nowrap">Travel Planner</h1>
           </button>
 
-          <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto min-w-0 touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
             <Link href="/">
               <button className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-sm whitespace-nowrap">
                 <Plane className="w-4 h-4" />

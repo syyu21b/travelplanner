@@ -2044,7 +2044,7 @@ export default function TravelDiary() {
                       <MapPin className="w-5 h-5" />
                     </div>
                     <p className="text-3xl font-black tracking-tight text-foreground">
-                      {[...new Set(myDiaries.map(d => d.location))].length}
+                      {Array.from(new Set(myDiaries.map(d => d.location))).length}
                     </p>
                     <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/80 mt-1.5">{t('diary.stats.visitedPlaces')}</p>
                   </div>
