@@ -398,19 +398,17 @@ export default function MyPage() {
       {/* 탭 + 콘텐츠 */}
       <div className="container mx-auto px-4 max-w-4xl mt-6">
         {/* 탭 바 */}
-        <Card className="shadow-lg mb-6">
-          <div className="flex overflow-x-auto touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {tabs.map((tab, i) => (
+        <div className="mb-6 rounded-xl border border-border bg-secondary/60 p-1.5 shadow-sm">
+          <div className="flex overflow-x-auto gap-1 touch-pan-x overscroll-x-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-4 text-sm font-bold whitespace-nowrap transition-all border-b-2 flex-shrink-0 sm:flex-1 justify-center",
-                  i === 0 ? 'rounded-tl-xl' : '',
-                  i === tabs.length - 1 ? 'rounded-tr-xl' : '',
+                  "flex items-center justify-center gap-2 px-4 sm:px-5 py-3 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 sm:flex-1",
                   activeTab === tab.id
-                    ? 'border-primary text-primary bg-primary/5'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted'
+                    ? 'bg-card text-primary shadow-sm ring-1 ring-border'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
                 )}
               >
                 {tab.icon}
@@ -418,7 +416,7 @@ export default function MyPage() {
               </button>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* 탭 콘텐츠 */}
         <div className="pb-16">
